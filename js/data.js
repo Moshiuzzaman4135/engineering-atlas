@@ -420,7 +420,7 @@
       quizCorrect:'Choose based on durability, replay, ordering, routing, throughput, retention and operational constraints—not brand popularity.',
       sources:['kafka-docs','redis-streams','rabbit-ack'] }),
 
-    T({ id:'postgres-explain', domain:'database', title:'PostgreSQL Query Planning & EXPLAIN', priority:5, diagram:'db',
+    T({ id:'postgres-explain', domain:'database', title:'PostgreSQL Query Planning & EXPLAIN', priority:5, diagram:'planner',
       intuition:'EXPLAIN is the database showing its planned route through the data. Optimize the route you actually see, not the query you imagine it is running.',
       technical:'The planner estimates costs using table/index statistics and chooses scans, join algorithms and order. `EXPLAIN ANALYZE` executes the query and shows actual rows/timing, letting you spot estimate errors, sequential scans, expensive sorts, nested-loop explosions and repeated work.',
       keyPoints:['Compare estimated vs actual rows.','Check which node consumes most time/buffers.','Update statistics before blaming the planner.'],

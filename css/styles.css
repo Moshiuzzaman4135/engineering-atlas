@@ -46,6 +46,7 @@
 [data-theme="light"] .hero{background:linear-gradient(135deg,rgba(109,40,217,.08),rgba(255,255,255,.92) 45%,rgba(8,127,140,.05))}
 [data-theme="light"] .badge,[data-theme="light"] .tag{background:#eef2f8;color:#394861}
 [data-theme="light"] .path-step,[data-theme="light"] .glossary-item,[data-theme="light"] .mini-list,[data-theme="light"] .sim-metric,[data-theme="light"] .recall-box,[data-theme="light"] .diagram-wrap,[data-theme="light"] .term-pill,[data-theme="light"] .vector-stage>div{background:#f7f9fc}
+[data-theme="light"] .progress{background:#dce4ef}[data-theme="light"] .lab-tab.active{background:#28344a;border-color:#52627d;color:#fff}
 [data-theme="light"] .control-group select,[data-theme="light"] .settings-row input,[data-theme="light"] .settings-row select,[data-theme="light"] .self-explain,[data-theme="light"] .search-input,[data-theme="light"] .quiz-option{background:white;color:var(--text)}
 [data-theme="light"] .code-block,[data-theme="light"] .function-list code{background:#182235;color:#dbeafe}
 [data-theme="light"] .interview-answer,[data-theme="light"] .flash-answer{color:#26354b}
