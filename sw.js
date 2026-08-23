@@ -1,4 +1,4 @@
-const CACHE='engineering-atlas-v3';
+const CACHE='engineering-atlas-v4';
 const ASSETS=[
   './','./index.html','./START_HERE.html','./manifest.webmanifest','./css/styles.css',
   './js/data.js','./js/expanded-data.js','./js/store.js','./js/scheduler.js','./js/simulations.js','./js/diagrams.js','./js/app.js',

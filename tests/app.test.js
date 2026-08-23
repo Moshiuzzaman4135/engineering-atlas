@@ -1,5 +1,6 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
+const fs=require('node:fs');
 const {loadScript}=require('./helpers');
 
 const data={topics:[{id:'kafka-deep-dive',title:'Kafka',domain:'messaging',priority:5,intuition:'i',technical:'t',interviewAnswer:'a',usedByYou:[],tradeoffs:[],failureModes:[],scaling:[],security:[],traps:[],quiz:[{q:'q',options:['a','b'],answer:0,why:'w'}],cards:[{q:'cq',a:'ca'}]}],domains:[{id:'messaging',title:'Messaging',icon:'⇄'}],projects:[],mockQuestions:[],cheatsheets:[],sources:[]};
@@ -107,4 +108,10 @@ test('settings expose system, dark, and light themes',()=>{
   const html=A.renderSources();
   assert.match(html,/data-setting="theme"/);
   for(const value of ['system','dark','light']) assert.match(html,new RegExp(`value="${value}"`));
+});
+
+test('top bar exposes an explicit persisted theme toggle',()=>{
+  const html=fs.readFileSync('index.html','utf8');
+  assert.match(html,/data-action="toggle-theme"/);
+  assert.match(html,/aria-label="Switch to (dark|light) theme"/);
 });
