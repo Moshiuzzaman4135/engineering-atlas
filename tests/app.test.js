@@ -124,4 +124,6 @@ test('light theme keeps roadmap tiles and hover states readable',()=>{
   assert.match(css,/\[data-theme="light"\] \.topic-tile\{background:var\(--surface-soft\)/);
   assert.match(css,/\[data-theme="light"\] \.topic-tile:hover\{background:#eef2f8/);
   assert.match(css,/\[data-theme="light"\] \.badge,\[data-theme="light"\] \.tag\{background:#fff;color:#344258/);
+  assert.match(css,/\[data-theme="light"\] \.path-step:hover\{background:#eef2f8;border-color:#9aabc2;color:var\(--text\)/);
+  assert.match(css,/\[data-theme="light"\] \.path-step:hover strong\{color:var\(--text\)/);
 });
