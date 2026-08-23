@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#0b1220">
+  <meta name="description" content="An interactive engineering knowledge platform covering Python, databases, distributed systems, system design, machine learning, computer vision, LLM systems, and production AI architecture.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Engineering Atlas — Systems &amp; AI Knowledge Platform">
+  <meta property="og:description" content="Explore progressive engineering curricula, interactive systems labs, architecture case studies, and spaced recall.">
+  <meta property="og:image" content="assets/icon-512.png">
+  <meta property="og:url" content="https://moshiuzzaman4135.github.io/engineering-atlas/">
+  <title>Engineering Atlas — Systems &amp; AI Knowledge Platform</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/atlas-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#app">Skip to study content</a>
+  <div class="shell">
+    <aside id="sidebar" class="sidebar" aria-label="Primary navigation">
+      <a class="brand" href="#/dashboard" aria-label="Engineering Atlas dashboard">
+        <span class="brand-mark">EA</span>
+        <span><strong>Engineering Atlas</strong><small>Interactive Systems &amp; AI Knowledge Platform</small></span>
+      </a>
+      <nav id="desktop-nav" class="nav-list"></nav>
+      <div class="sidebar-foot">
+        <div class="streak-pill" id="sidebar-progress">0% mastered</div>
+        <small>Offline • progress stays on device</small>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header id="topbar" class="topbar">
+        <button class="icon-btn menu-toggle" data-action="toggle-sidebar" aria-label="Toggle navigation">☰</button>
+        <div class="topbar-copy"><span id="route-kicker">ENGINEERING ATLAS</span><strong id="route-title">Dashboard</strong></div>
+        <div class="topbar-actions">
+          <button class="mode-chip" data-action="toggle-mode" id="study-mode">Sprint mode</button>
+          <button class="icon-btn" data-action="quick-review" aria-label="Start quick review" title="Quick review">↻</button>
+        </div>
+      </header>
+      <div id="app" class="app" role="main" aria-live="polite"></div>
+    </main>
+  </div>
+
+  <nav id="mobile-nav" class="mobile-nav" aria-label="Mobile navigation"></nav>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/expanded-data.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/scheduler.js"></script>
+  <script src="js/simulations.js"></script>
+  <script src="js/diagrams.js"></script>
+  <script src="js/app.js"></script>
+  <script>if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./sw.js').catch(()=>{});</script>
+</body>
+</html>
