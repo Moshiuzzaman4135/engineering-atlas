@@ -1,33 +1,35 @@
-# Publish to GitHub Pages
+# Publishing Engineering Atlas to GitHub Pages
 
-This project is static: HTML, CSS, JavaScript, Markdown and images. There is no build step.
+Engineering Atlas is a static site and requires no build step. The target repository is `Moshiuzzaman4135/engineering-atlas`, and the expected site is:
 
-## Create and push
+<https://moshiuzzaman4135.github.io/engineering-atlas/>
+
+## Workflow
+
+`.github/workflows/pages.yml` deploys on every push to `main` and can also be run manually. It follows GitHub's current custom-workflow shape: checkout, configure Pages, upload the repository root as a Pages artifact, then deploy that artifact with `contents: read`, `pages: write`, and `id-token: write` permissions.
+
+GitHub's official references:
+
+- <https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages>
+- <https://github.com/actions/deploy-pages>
+
+## Initial publication
 
 ```bash
-git init
-git add .
-git commit -m "feat: add engineering learning os"
 git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
+git remote add origin https://github.com/Moshiuzzaman4135/engineering-atlas.git
 git push -u origin main
 ```
 
-## Enable Pages
+In repository Settings → Pages, ensure the publishing source is **GitHub Actions**. The workflow environment is `github-pages`, and its deployment step reports the final URL.
 
-The repository includes `.github/workflows/pages.yml`.
+## Offline behavior
 
-1. Open GitHub repository **Settings**.
-2. Open **Pages**.
-3. Under **Build and deployment**, choose **GitHub Actions**.
-4. Push to `main` or manually run the Pages workflow.
+On Pages, HTTPS allows `sw.js` to cache the app shell after a successful visit. Progress remains in browser `localStorage`, independent of the service worker. Export progress from Sources / Settings before clearing site data or changing browsers.
 
-The action publishes the repository root directly.
+Direct-file use remains available through `START_HERE.html`, but `file://` pages do not install a service worker.
 
-## PWA/offline behavior
+## Updating
 
-When served over HTTPS by GitHub Pages, `sw.js` caches the app shell after the first visit. Progress is still kept in browser localStorage, so use **Sources / Settings → Export progress JSON** if you want to move progress between browsers/devices.
+Run `./tests/run-all.sh`, commit to `main`, and push. The workflow redeploys automatically. After every production change, verify the public title, navigation, at least one lesson and lab, local progress, mobile layout, console output, and resource responses.
 
-## Updating later
-
-Add new topics to `js/expanded-data.js`, add interactive behavior to `js/simulations.js`/`js/app.js`, run `./tests/run-all.sh`, then commit and push. The workflow redeploys automatically.

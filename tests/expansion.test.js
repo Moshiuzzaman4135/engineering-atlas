@@ -60,7 +60,8 @@ test('Engineering Atlas identity and PWA contract are public-facing',()=>{
   assert.equal(manifest.short_name,'Atlas');
   assert.match(sw,/engineering-atlas-v\d+/i);
   assert.match(index,/manifest\.webmanifest/);
-  assert.doesNotMatch([index,start,JSON.stringify(manifest),sw].join('\n'),/Engineering Learning OS|Learning OS/i);
+  const oldNames=[['Engineering','Learning','OS'].join(' '),['Learning','OS'].join(' ')];
+  assert.doesNotMatch([index,start,JSON.stringify(manifest),sw].join('\n'),new RegExp(oldNames.join('|'),'i'));
 });
 
 test('repository contains no target-company branding',()=>{
