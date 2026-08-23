@@ -5,7 +5,7 @@ const Store=window.InterviewStore;
 const Sch=window.InterviewScheduler;
 const Sims=window.InterviewSimulations||{};
 const Diag=window.InterviewDiagrams||{render:()=>''};
-let state=Store?Store.load():{settings:{mode:'sprint',motion:true,targetDate:'2026-08-25T15:00:00+06:00'},topics:{},cards:{},mock:{history:[]},notes:{},stats:{}};
+let state=Store?Store.load():{settings:{mode:'long',motion:true,targetDate:''},topics:{},cards:{},mock:{history:[]},notes:{},stats:{}};
 let ui={activeLab:'harness',reviewIndex:0,reviewRevealed:false,confidence:0,mockIndex:0,mockMode:'rapid',mockStart:0,mockRevealed:false};
 
 const NAV=[['dashboard','⌂','Today'],['roadmap','◫','Roadmap'],['labs','⌁','Labs'],['review','↻','Review'],['mock','◉','Mock'],['projects','⬡','Projects'],['cheats','≡','Cheats'],['sources','◎','Sources']];
@@ -29,7 +29,7 @@ function prepareCards(){
 prepareCards();
 
 function totalMastery(){return D.topics.length?Math.round(D.topics.reduce((s,t)=>s+mastery(t.id),0)/D.topics.length):0;}
-function dueCards(){const now=Date.now();return Object.values(state.cards).filter(c=>!c.dueAt||c.dueAt<=now);}
+function dueCards(){const now=Date.now();return Object.values(state.cards).filter(c=>Sch&&typeof Sch.isDue==='function'?Sch.isDue(c,now):Number(c.dueAt)>0&&c.dueAt<=now);}
 function updateProgressBadge(){if(typeof document==='undefined')return;const el=document.getElementById('sidebar-progress');if(el)el.textContent=`${totalMastery()}% mastered • ${dueCards().length} due`;}
 
 function renderDashboard(){
@@ -101,7 +101,7 @@ function renderLabBody(){
 function renderLab(name){const before=ui.activeLab;ui.activeLab=name||before;let html;try{html=renderLabBody();}finally{ui.activeLab=before;}return html;}
 function renderLabs(){return `${pageHead('Interactive architecture','Systems labs','Change one variable, observe the system, then explain the trade-off aloud. Numbers are intentionally synthetic—not benchmarks.')}${labTabs()}<div id="lab-body">${renderLabBody()}</div>`;}
 
-function reviewDeck(){const now=Date.now();let due=Object.values(state.cards).filter(c=>!c.dueAt||c.dueAt<=now);if(!due.length)due=Object.values(state.cards).sort((a,b)=>(a.dueAt||0)-(b.dueAt||0)).slice(0,12);return due.map(c=>{const t=topicBy(c.topicId),card=t&&t.cards&&t.cards[c.index];return card?{...c,q:card.q,a:card.a,title:t.title}:null}).filter(Boolean);}
+function reviewDeck(){const now=Date.now();let due=dueCards();if(!due.length)due=Object.values(state.cards).filter(c=>!c.lastReviewed).slice(0,12);return due.map(c=>{const t=topicBy(c.topicId),card=t&&t.cards&&t.cards[c.index];return card?{...c,q:card.q,a:card.a,title:t.title}:null}).filter(Boolean);}
 function renderReview(){const deck=reviewDeck();if(!deck.length)return `${pageHead('Spaced retrieval','Review','No cards available yet.')}<div class="card">Open a topic to generate review material.</div>`;ui.reviewIndex=ui.reviewIndex%deck.length;const c=deck[ui.reviewIndex];return `${pageHead('Spaced retrieval','Review','Try to retrieve before revealing. Confidence helps expose the dangerous “I thought I knew it” gap.',`<span class="badge">${ui.reviewIndex+1}/${deck.length}</span>`)}<div class="review-shell"><div class="flashcard"><div class="eyebrow">${esc(c.title)}</div><div class="question">${esc(c.q)}</div><div class="confidence-row"><span class="tiny muted">Confidence before reveal:</span>${[1,2,3,4,5].map(n=>`<button class="btn ${ui.confidence===n?'primary':''}" data-action="confidence" data-value="${n}">${n}</button>`).join('')}</div><div class="actions" style="justify-content:center"><button class="btn primary" data-action="reveal-card">Reveal answer <span class="faint">[Space]</span></button></div><div class="flash-answer ${ui.reviewRevealed?'revealed':''}" id="flash-answer"><div class="divider"></div><p>${esc(c.a)}</p><div class="callout">Now say one concrete example or failure mode that was <em>not</em> printed on the card.</div></div></div><div class="rating-row ${ui.reviewRevealed?'show':''}"><button class="btn rating-btn" data-action="rate-card" data-card="${c.id}" data-rating="again">1 Again</button><button class="btn rating-btn" data-action="rate-card" data-card="${c.id}" data-rating="hard">2 Hard</button><button class="btn rating-btn" data-action="rate-card" data-card="${c.id}" data-rating="good">3 Good</button><button class="btn rating-btn" data-action="rate-card" data-card="${c.id}" data-rating="easy">4 Easy</button></div><p class="tiny muted" style="text-align:center">Sprint mode returns weak cards in minutes/hours. Long-term mode spaces successful recall over days.</p></div>`;}
 
 function mockPool(){return D.mockQuestions.filter(q=>q.type===ui.mockMode);}

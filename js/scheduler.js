@@ -2,6 +2,7 @@
   'use strict';
   const MIN=60*1000, HOUR=60*MIN, DAY=24*HOUR;
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+  function isDue(card,now){return !!card&&Number(card.dueAt)>0&&Number(card.dueAt)<=now;}
 
   function rateCard(prev, rating, now, mode){
     const p=Object.assign({repetitions:0,intervalMs:0,ease:2.3,dueAt:now,lastRating:null}, prev||{});
@@ -32,7 +33,7 @@
     const dueByTopic={};
     Object.keys(state.cards).forEach(id=>{
       const c=state.cards[id];
-      if(c && c.topicId && (!c.dueAt || c.dueAt<=now)) dueByTopic[c.topicId]=(dueByTopic[c.topicId]||0)+1;
+      if(c && c.topicId && isDue(c,now)) dueByTopic[c.topicId]=(dueByTopic[c.topicId]||0)+1;
     });
     return (data.topics||[]).map(t=>{
       const st=state.topics[t.id]||{};
@@ -52,5 +53,5 @@
     return out;
   }
 
-  window.InterviewScheduler={rateCard,topicMastery,buildStudyQueue,domainMastery,constants:{MIN,HOUR,DAY}};
+  window.InterviewScheduler={rateCard,topicMastery,buildStudyQueue,domainMastery,isDue,constants:{MIN,HOUR,DAY}};
 })();

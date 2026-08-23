@@ -37,3 +37,11 @@ test('study queue prioritizes due and high-priority weak topics', () => {
   assert.equal(q[0].id, 'high');
   assert.ok(q[0].score > q[1].score);
 });
+
+test('unseen cards are new, not overdue', () => {
+  assert.equal(S.isDue({ dueAt:0, lastReviewed:undefined }, now), false);
+  assert.equal(S.isDue({ dueAt:now-1, lastReviewed:now-1000 }, now), true);
+  const data={topics:[{id:'fresh',priority:5,domain:'a',title:'Fresh'}]};
+  const state={topics:{},cards:{'fresh:0':{id:'fresh:0',topicId:'fresh',dueAt:0,repetitions:0}}};
+  assert.equal(S.buildStudyQueue(data,state,now)[0].dueCards,0);
+});
