@@ -65,3 +65,36 @@ test('capacity simulation follows littles law and replica utilization',()=>{
   assert.equal(one.inFlight,100);
   assert.ok(four.utilizationPct<one.utilizationPct);
 });
+
+test('backpressure simulation exposes an unstable producer consumer gap',()=>{
+  const r=S.BackpressureSim.run({producerRate:1200,consumers:4,consumerRate:250,buffer:1000,shedding:false});
+  assert.equal(r.capacity,1000);
+  assert.equal(r.queueGrowthPerSec,200);
+  assert.equal(r.bufferFillSeconds,5);
+  assert.equal(r.status,'unstable');
+});
+
+test('load balancer simulation makes unhealthy replicas and skew visible',()=>{
+  const r=S.LoadBalancerSim.run({rps:900,replicas:3,unhealthy:1,skew:0,capacityPerReplica:500});
+  assert.equal(r.healthyReplicas,2);
+  assert.equal(r.averageRps,450);
+  assert.equal(r.hottestRps,450);
+  assert.equal(r.hottestUtilizationPct,90);
+});
+
+test('query planner chooses an index only when estimated work wins',()=>{
+  const selective=S.PlannerSim.run({rows:1000000,selectivity:.001,index:true,correlation:.8});
+  const broad=S.PlannerSim.run({rows:1000000,selectivity:.7,index:true,correlation:0});
+  assert.equal(selective.plan,'Index Scan');
+  assert.equal(selective.rowsScanned,1000);
+  assert.equal(broad.plan,'Seq Scan');
+  assert.equal(broad.rowsScanned,1000000);
+});
+
+test('ANPR capacity simulation separates sampled input from GPU throughput',()=>{
+  const r=S.AnprCapacitySim.run({cameras:100,fps:25,sampleEvery:5,batch:10,inferenceMs:100,gpus:2});
+  assert.equal(r.sampledFps,500);
+  assert.equal(r.capacityFps,200);
+  assert.equal(r.queueGrowthPerSec,300);
+  assert.equal(r.status,'under-capacity');
+});

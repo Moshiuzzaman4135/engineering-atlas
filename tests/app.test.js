@@ -6,6 +6,16 @@ const data={topics:[{id:'kafka-deep-dive',title:'Kafka',domain:'messaging',prior
 const store={defaults:()=>({settings:{mode:'sprint',targetDate:'2026-08-25T15:00:00+06:00',motion:true},topics:{},cards:{},mock:{history:[]},notes:{},stats:{}}),load(){return this.defaults()},save(s){return s},exportState(){return '{}'},importState(){return this.defaults()},reset(){return this.defaults()}};
 const sched={topicMastery:()=>0,buildStudyQueue:()=>[{id:'kafka-deep-dive',title:'Kafka',domain:'messaging',priority:5,mastery:0,dueCards:0,score:100}],domainMastery:()=>({messaging:{value:0}}),rateCard:s=>s};
 const seed={window:{InterviewOSData:data,InterviewStore:store,InterviewScheduler:sched,InterviewSimulations:{MessagingSim:{run:()=>({capacity:1,backlog:0,utilizationPct:1,replay:'Strong',ordering:'Per partition',ack:'Ack',label:'sim'})},ScaleSim:{run:()=>({appUtilPct:1,dbQps:1,dbUtilPct:1,p95Ms:1,status:'healthy',label:'sim'})},DbSim:{run:()=>({scannedRows:1,primaryLoad:1,poolPressure:0,cacheMissPct:1,recommendation:'profile',label:'sim'})},HarnessSim:{run:()=>({successPct:90,latencyMs:1,costUnits:1,riskScore:1,label:'sim'})},RagSim:{run:()=>({recallPct:90,precisionPct:90,contextTokens:1,latencyMs:1,label:'sim'})},InferenceSim:{run:()=>({throughput:1,queueMs:1,p95Ms:1,gpuMemoryGB:1,label:'Synthetic simulation — not a benchmark'})}},InterviewDiagrams:{render:()=>'<svg></svg>'}}};
+Object.assign(seed.window.InterviewSimulations,{
+  AsyncSim:{run:()=>({inFlight:1,ioCapacity:1,eventLoopPressurePct:1,p95Ms:1,status:'healthy',label:'sim'})},
+  CosineSim:{run:()=>({dot:1,cosine:1,angleDeg:0,match:'strong',label:'sim'})},
+  YoloSim:{run:()=>({precisionPct:1,recallPct:1,candidates:1,kept:1,duplicateRisk:1,missRisk:1,label:'sim'})},
+  CapacitySim:{run:()=>({inFlight:1,capacity:1,utilizationPct:1,recommendedReplicas:1,label:'sim'})},
+  BackpressureSim:{run:()=>({capacity:1,queueGrowthPerSec:0,bufferFillSeconds:0,droppedPerSec:0,status:'stable',label:'sim'})},
+  LoadBalancerSim:{run:()=>({healthyReplicas:1,averageRps:1,hottestRps:1,hottestUtilizationPct:1,status:'healthy',label:'sim'})},
+  PlannerSim:{run:()=>({plan:'Index Scan',rowsMatched:1,rowsScanned:1,seqCost:1,indexCost:1,reason:'selective',label:'sim'})},
+  AnprCapacitySim:{run:()=>({sampledFps:1,capacityFps:1,queueGrowthPerSec:0,gpuUtilizationPct:1,status:'stable',label:'sim'})}
+});
 const box=loadScript('js/app.js',seed);
 const A=box.window.InterviewApp;
 
@@ -34,11 +44,17 @@ test('topic screen starts with recall before explanation and has quiz/self expla
 });
 
 test('every interactive lab has a render path and labels synthetic metrics',()=>{
-  for(const lab of ['messaging','scale','db','harness','rag','inference','failure']){
+  for(const lab of ['python','backpressure','db','messaging','loadbalancer','planner','cosine','rag','harness','inference','yolo','anpr','capacity','failure']){
     const html=A.renderLab(lab);
     assert.ok(html.length>100,`${lab} lab should render`);
   }
   assert.match(A.renderLab('inference'),/not a benchmark/i);
+});
+
+test('lab sliders have programmatically associated labels',()=>{
+  const html=A.renderLab('backpressure');
+  assert.match(html,/label for="lab-producerRate"/);
+  assert.match(html,/input id="lab-producerRate"[^>]+data-lab-input="producerRate"/);
 });
 
 test('project screen uses personalized project names and strengths',()=>{

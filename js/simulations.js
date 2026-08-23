@@ -112,5 +112,38 @@ const CapacitySim={run(c){
   return {label:'Synthetic capacity planning — not a benchmark',inFlight,capacity,utilizationPct:round(util*100),recommendedReplicas:recommended,headroomPct:round(headroom*100),status:util<.7?'healthy':util<1?'warm':'overloaded'};
 }};
 
-window.InterviewSimulations={MessagingSim,ScaleSim,DbSim,HarnessSim,InferenceSim,RagSim,AsyncSim,CosineSim,YoloSim,CapacitySim};
+const BackpressureSim={run(c){
+  c=Object.assign({producerRate:1200,consumers:4,consumerRate:250,buffer:1000,shedding:false},c||{});
+  const capacity=Math.max(1,Number(c.consumers)*Number(c.consumerRate));
+  const gap=Math.max(0,Number(c.producerRate)-capacity);
+  const buffer=Math.max(0,Number(c.buffer)||0);
+  return {label:'Synthetic queue model — not a benchmark',capacity,queueGrowthPerSec:gap,bufferFillSeconds:gap?round(buffer/gap):0,droppedPerSec:c.shedding?gap:0,status:gap?(c.shedding?'protected':'unstable'):'stable'};
+}};
+
+const LoadBalancerSim={run(c){
+  c=Object.assign({rps:900,replicas:3,unhealthy:0,skew:0,capacityPerReplica:500},c||{});
+  const healthy=Math.max(1,Number(c.replicas)-Number(c.unhealthy));
+  const average=Number(c.rps)/healthy;
+  const hottest=average*(1+clamp(Number(c.skew)||0,0,1)*Math.max(0,healthy-1));
+  const utilization=hottest/Math.max(1,Number(c.capacityPerReplica));
+  return {label:'Synthetic traffic distribution — not a benchmark',healthyReplicas:healthy,averageRps:round(average),hottestRps:round(hottest),hottestUtilizationPct:round(utilization*100),p95Ms:Math.round(35+55*utilization*utilization+(utilization>1?(utilization-1)*500:0)),status:utilization<.75?'healthy':utilization<1?'warm':'overloaded'};
+}};
+
+const PlannerSim={run(c){
+  c=Object.assign({rows:1000000,selectivity:.01,index:true,correlation:.5},c||{});
+  const rows=Math.max(1,Number(c.rows)||1),selectivity=clamp(Number(c.selectivity)||0,.000001,1),matched=Math.max(1,Math.round(rows*selectivity));
+  const seqCost=rows,indexCost=50+matched*(4-3*clamp(Number(c.correlation)||0,0,1));
+  const useIndex=!!c.index&&indexCost<seqCost*.85;
+  return {label:'Synthetic planner intuition — not PostgreSQL cost units',plan:useIndex?'Index Scan':'Seq Scan',rowsMatched:matched,rowsScanned:useIndex?matched:rows,seqCost:Math.round(seqCost),indexCost:Math.round(indexCost),reason:!c.index?'No usable index':useIndex?'Selective lookup is cheaper':'Broad/random heap access makes the index unattractive'};
+}};
+
+const AnprCapacitySim={run(c){
+  c=Object.assign({cameras:100,fps:25,sampleEvery:5,batch:10,inferenceMs:100,gpus:2},c||{});
+  const sampled=Number(c.cameras)*Number(c.fps)/Math.max(1,Number(c.sampleEvery));
+  const capacity=Number(c.gpus)*Number(c.batch)/(Math.max(1,Number(c.inferenceMs))/1000);
+  const gap=Math.max(0,sampled-capacity),util=sampled/Math.max(1,capacity);
+  return {label:'Synthetic ANPR capacity model — not a benchmark',sampledFps:round(sampled),capacityFps:round(capacity),queueGrowthPerSec:round(gap),gpuUtilizationPct:round(clamp(util*100,0,999)),status:gap?'under-capacity':util>.8?'warm':'stable'};
+}};
+
+window.InterviewSimulations={MessagingSim,ScaleSim,DbSim,HarnessSim,InferenceSim,RagSim,AsyncSim,CosineSim,YoloSim,CapacitySim,BackpressureSim,LoadBalancerSim,PlannerSim,AnprCapacitySim};
 })();
