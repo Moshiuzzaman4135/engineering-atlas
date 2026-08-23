@@ -27,3 +27,11 @@ test('study settings stack form controls on very narrow screens',()=>{
     'stacked settings controls must be allowed to shrink to the card width'
   );
 });
+
+test('visual system supports light theme, keyboard focus, and reduced motion',()=>{
+  const css=fs.readFileSync(path.join(ROOT,'css/styles.css'),'utf8');
+  assert.match(css,/\[data-theme=["']light["']\]/);
+  assert.match(css,/:focus-visible/);
+  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
+  assert.match(css,/color-scheme:\s*light/);
+});

@@ -102,3 +102,9 @@ test('dashboard guides a durable active-learning journey without deadline pressu
   assert.match(html,/Mock/i);
   assert.doesNotMatch(html,/countdown|days.*hours.*min.*sec/is);
 });
+
+test('settings expose system, dark, and light themes',()=>{
+  const html=A.renderSources();
+  assert.match(html,/data-setting="theme"/);
+  for(const value of ['system','dark','light']) assert.match(html,new RegExp(`value="${value}"`));
+});
