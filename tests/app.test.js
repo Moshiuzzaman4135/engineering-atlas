@@ -66,11 +66,14 @@ test('roadmap shows priority requirement coverage when requirement mappings exis
   assert.match(html,/transfer your eval work/);
 });
 
-test('dashboard includes an explicit active-recall study cycle and interview sprint phases',()=>{
+test('dashboard guides a durable active-learning journey without deadline pressure',()=>{
   const html=A.renderDashboard();
+  for(const section of ['Continue Learning','Priority Interview Path','Master Curriculum','Review Due','Weak Areas','Recent Topics','Project Architectures','Interactive Labs','Mock Interview']) assert.match(html,new RegExp(section,'i'),section);
+  assert.match(html,/Learn.*Explain.*Visualize.*Recall.*Apply.*Interview.*Review/is);
+  assert.match(html,/0 scheduled cards/i);
   assert.match(html,/Study cycle/i);
   assert.match(html,/Recall/i);
   assert.match(html,/Lab/i);
   assert.match(html,/Mock/i);
-  assert.match(html,/Sprint phases/i);
+  assert.doesNotMatch(html,/countdown|days.*hours.*min.*sec/is);
 });
