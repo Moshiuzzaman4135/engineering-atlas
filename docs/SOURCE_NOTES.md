@@ -1,5 +1,17 @@
 # Source Notes and Provenance
 
+## Public GitHub evidence
+
+Only public, directly inspectable repository evidence is used for additional examples:
+
+- [`football-intelligence`](https://github.com/Moshiuzzaman4135/football-intelligence) documents a Python/FastAPI/OpenCV workflow with direct multipart MinIO upload, restartable bounded full-match processing, tracking, scoreboard OCR observations, event evidence, clips, Docker Compose, and explicit capability limits. Engineering Atlas preserves those limits and does not claim production-grade semantic event detection.
+- [`python_utility`](https://github.com/Moshiuzzaman4135/python_utility) contains historical utility areas for Flask APIs, MQTT subscription, RTSP capture, ROI cropping, Pillow, and regular expressions. These support “used or explored” examples only.
+- [`MachineLearning`](https://github.com/Moshiuzzaman4135/MachineLearning) visibly contains Siamese face-recognition and neural-style-transfer work.
+- [`ComputerVisionMSC`](https://github.com/Moshiuzzaman4135/ComputerVisionMSC) visibly contains academic computer-vision and ML notebooks.
+- [`Docker_basics`](https://github.com/Moshiuzzaman4135/Docker_basics) is treated as Docker learning evidence, not production ownership.
+
+Private repositories are intentionally excluded from public source notes and public claims.
+
 The curriculum blends three categories of material and keeps them conceptually separate.
 
 ## 1. Supplied project study notes

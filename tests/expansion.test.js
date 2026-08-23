@@ -88,3 +88,26 @@ test('all curriculum references resolve and key weak-area lessons are present',(
     assert.ok(ids.has(id),`missing weak-area/platform topic ${id}`);
   }
 });
+
+test('mock interview bank is broad, identified, and includes follow-ups',()=>{
+  const D=loadExpanded();
+  assert.ok(D.mockQuestions.length>=40,`mock questions ${D.mockQuestions.length}`);
+  const ids=D.mockQuestions.map(q=>q.id);
+  assert.equal(new Set(ids).size,ids.length,'mock question ids must be unique');
+  for(const q of D.mockQuestions){
+    assert.ok(q.id&&q.category&&q.q&&Array.isArray(q.rubric)&&q.rubric.length>=3,q.id||q.q);
+    assert.ok(Array.isArray(q.followUps)&&q.followUps.length>=2,`${q.id} follow-ups`);
+  }
+  const categories=new Set(D.mockQuestions.map(q=>q.category));
+  for(const category of ['Python','Backend','PostgreSQL','Messaging','Distributed Systems','Infrastructure','Machine Learning','Computer Vision','RAG & LLM Systems','GPU Inference','Production Incidents','Architecture Leadership']) assert.ok(categories.has(category),`missing ${category}`);
+});
+
+test('every lesson belongs to a curriculum phase and content ids are unique',()=>{
+  const D=loadExpanded();
+  const topicIds=D.topics.map(t=>t.id),projectIds=D.projects.map(p=>p.id),cheatIds=D.cheatsheets.map(c=>c.id);
+  assert.equal(new Set(topicIds).size,topicIds.length,'duplicate topic id');
+  assert.equal(new Set(projectIds).size,projectIds.length,'duplicate project id');
+  assert.equal(new Set(cheatIds).size,cheatIds.length,'duplicate cheat id');
+  const mapped=new Set(D.curriculumPhases.flatMap(p=>p.topics));
+  for(const id of topicIds) assert.ok(mapped.has(id),`orphan lesson ${id}`);
+});

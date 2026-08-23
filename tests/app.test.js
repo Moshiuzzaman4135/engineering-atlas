@@ -73,6 +73,15 @@ test('review screen keeps answer hidden until explicit reveal control',()=>{
   assert.doesNotMatch(html,/rating-row show/);
 });
 
+test('mock interview reveals category and follow-up questions',()=>{
+  const d4={...data,mockQuestions:[{id:'python-1',type:'rapid',category:'Python',q:'Does async mean parallel?',rubric:['Concurrency','I/O','CPU'],followUps:['What blocks the loop?','When use processes?']}]};
+  const b4=loadScript('js/app.js',{window:{InterviewOSData:d4,InterviewStore:store,InterviewScheduler:sched,InterviewSimulations:{},InterviewDiagrams:{render:()=>'<svg></svg>'}}});
+  const html=b4.window.InterviewApp.renderMock();
+  assert.match(html,/Python/);
+  assert.match(html,/Follow-up questions/);
+  assert.match(html,/What blocks the loop/);
+});
+
 test('roadmap shows priority requirement coverage when requirement mappings exist',()=>{
   const d3={...data,requirements:[{skill:'Harness Optimization',status:'High-priority growth',topics:['kafka-deep-dive'],evidence:'transfer your eval work'}]};
   const b3=loadScript('js/app.js',{window:{InterviewOSData:d3,InterviewStore:store,InterviewScheduler:sched,InterviewSimulations:{MessagingSim:{run:()=>({capacity:1,backlog:0,utilizationPct:1,replay:'Strong',ordering:'x',ack:'x'})}},InterviewDiagrams:{render:()=>'<svg></svg>'}}});

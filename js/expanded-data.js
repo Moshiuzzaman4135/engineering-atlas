@@ -223,6 +223,52 @@ const extraMocks=[
 ];
 D.mockQuestions.push(...extraMocks);
 
+const advancedMocks=[
+ {id:'python-async-parallel',type:'rapid',category:'Python',q:'Does async make Python code parallel?',rubric:['Cooperative concurrency','Await yields during I/O','CPU parallelism needs process/native work','Name event-loop blocking risk'],followUps:['When would a thread pool be appropriate?','How would you prove the event loop is blocked?']},
+ {id:'python-memory-incident',type:'rapid',category:'Python',q:'A long-running Python worker keeps growing in RSS. How do you investigate?',rubric:['Measure allocations and object lifetime','Distinguish Python heap from native/GPU memory','Check caches/queues/file descriptors','Reproduce and profile before changing GC'],followUps:['Why might gc.collect() not solve it?','What changes under multiprocessing?']},
+ {id:'fastapi-pool-exhaustion',type:'rapid',category:'Backend',q:'A FastAPI service is responsive at low traffic but stalls at peak load. What do you inspect first?',rubric:['Break down latency','Inspect event loop and connection pools','Check dependency saturation','Use timeouts and bounded concurrency'],followUps:['What if CPU is low?','What if p50 is fine but p99 is high?']},
+ {id:'backend-idempotent-api',type:'system',category:'Backend',q:'Design an idempotent job-submission API.',rubric:['Idempotency key scope','Atomic uniqueness/state','Return existing result','Expiry and payload mismatch policy'],followUps:['What happens if the first response is lost?','Where should the idempotency record live?']},
+ {id:'postgres-index-proof',type:'rapid',category:'PostgreSQL',q:'Why can an index speed a query, and how do you prove it helped?',rubric:['Reduce pages/rows examined','Selectivity and access pattern','EXPLAIN ANALYZE BUFFERS','Account for write/storage cost'],followUps:['When would PostgreSQL still choose a sequential scan?','Why can too many indexes slow the system?']},
+ {id:'postgres-hot-row',type:'system',category:'PostgreSQL',q:'A counter row becomes a write bottleneck. Redesign it.',rubric:['Confirm lock contention','Batch or shard counters','Append events then aggregate','State consistency trade-off'],followUps:['Would Redis automatically fix it?','How would you recover an exact total?']},
+ {id:'kafka-duplicate',type:'rapid',category:'Messaging',q:'A Kafka consumer processes the same event twice. What should the application do?',rubric:['At-least-once is normal','Idempotent side effect','Dedup/unique constraint','Offset after safe processing'],followUps:['What if the external side effect has no idempotency API?','Does exactly-once Kafka remove every duplicate?']},
+ {id:'broker-choice',type:'rapid',category:'Messaging',q:'Choose among Kafka, RabbitMQ, Redis Streams, MQTT, and Celery for a new workload.',rubric:['Start from delivery/routing/replay','Ordering and retention','Consumer model and operations','Explain rejected alternatives'],followUps:['When is Redis ZSET enough?','How does backpressure differ across these choices?']},
+ {id:'distributed-retry-storm',type:'system',category:'Distributed Systems',q:'A dependency outage triggers a retry storm. Stabilize the system.',rubric:['Stop amplification','Deadline and bounded retry','Exponential backoff with jitter','Circuit breaker/load shedding'],followUps:['Which requests should not be retried?','How do you safely resume traffic?']},
+ {id:'distributed-consistency',type:'cto',category:'Distributed Systems',q:'Explain eventual consistency without hiding its user impact.',rubric:['Replicas can temporarily disagree','Name a concrete stale-read behavior','Define acceptable window','Offer read-after-write strategy'],followUps:['When is strong consistency required?','How would you monitor convergence?']},
+ {id:'kubernetes-readiness',type:'rapid',category:'Infrastructure',q:'Liveness passes but users receive errors. What is missing?',rubric:['Readiness differs from liveness','Dependency/model warmup','Remove from traffic','Inspect rollout and downstream health'],followUps:['When should liveness fail?','How do startup probes help AI services?']},
+ {id:'deployment-gpu-oom',type:'system',category:'Infrastructure',q:'Deploy a GPU model service that must survive OOM and rolling upgrades.',rubric:['Requests/limits and admission','Readiness after warmup','Bound batching/concurrency','Canary and rollback'],followUps:['How do you avoid loading two copies during rollout?','What metric should drive autoscaling?']},
+ {id:'ml-leakage',type:'rapid',category:'Machine Learning',q:'Validation is excellent but production accuracy collapses. Diagnose the ML pipeline.',rubric:['Check leakage and split strategy','Compare serving preprocessing','Slice drift and class balance','Reproduce with time-aware holdout'],followUps:['How can feature scaling leak data?','What monitoring would catch this earlier?']},
+ {id:'cv-small-objects',type:'rapid',category:'Computer Vision',q:'A detector misses small license plates at distance. What do you change first?',rubric:['Inspect labels and resolution','Sampling/crop/tiling trade-off','Class/object-size metrics','Latency and false-positive impact'],followUps:['Would a larger model necessarily help?','How does tracking change event-level recall?']},
+ {id:'rag-hallucination',type:'system',category:'RAG & LLM Systems',q:'A RAG answer cites a document that does not support the claim. Fix the system.',rubric:['Separate retrieval from faithfulness','Rerank and constrain context','Claim-level citation validation','Golden evaluation set'],followUps:['What if the answer is absent from the corpus?','How do you measure retrieval recall?']},
+ {id:'agent-critical-path',type:'system',category:'RAG & LLM Systems',q:'An agent takes 18 seconds and six model calls. Optimize the harness.',rubric:['Trace each stage','Remove redundant calls/context','Parallelize independent work','Route/cache/bound retries'],followUps:['Which verification step must remain?','How do you prevent optimization from reducing safety?']},
+ {id:'gpu-low-util-queue',type:'rapid',category:'GPU Inference',q:'GPU utilization is 35% while requests queue. What could be wrong?',rubric:['Separate queue/preprocess/transfer/compute','Batch and concurrency mismatch','CPU or serialization bottleneck','Memory/admission constraints'],followUps:['How do TTFT and tokens/sec differ for LLM serving?','When can higher batching hurt the SLO?']},
+ {id:'incident-p99',type:'system',category:'Production Incidents',q:'p50 latency is healthy but p99 is terrible. Lead the investigation.',rubric:['Confirm histogram and scope','Trace slow exemplars','Check saturation/locks/GC/retries','Mitigate before deep fix'],followUps:['Why can averages hide this?','Which recent change would you compare?']},
+ {id:'incident-redis-loss',type:'system',category:'Production Incidents',q:'Your Redis server dies. What breaks and how does the system recover?',rubric:['Inventory cache/state/queue roles','Distinguish disposable from durable','Fallback and overload risk','Recovery and data-loss policy'],followUps:['How do you prevent a cache stampede?','Would Redis persistence make a queue fully reliable?']},
+ {id:'leadership-video-cto',type:'cto',category:'Architecture Leadership',q:'Explain a video analytics platform to a CTO in two minutes.',rubric:['Business outcome first','Five-box data flow','Scale/bottleneck','Reliability/cost trade-off'],followUps:['What would you defer in version one?','Which metric proves the design works?']}
+];
+D.mockQuestions.push(...advancedMocks);
+
+function mockCategory(q){
+ const text=q.q.toLowerCase();
+ if(/python|async|coroutine/.test(text))return 'Python';
+ if(/postgres|database|index|sql/.test(text))return 'PostgreSQL';
+ if(/kafka|redis|queue|broker|mqtt|rabbit/.test(text))return 'Messaging';
+ if(/gpu|triton|inference/.test(text))return 'GPU Inference';
+ if(/rag|agent|llm|vlm/.test(text))return 'RAG & LLM Systems';
+ if(/yolo|video|vision|face|ocr/.test(text))return 'Computer Vision';
+ if(q.type==='cto')return 'Architecture Leadership';
+ if(q.type==='system')return 'Distributed Systems';
+ return 'Backend';
+}
+D.mockQuestions.forEach((q,i)=>{
+ if(!q.id)q.id=`mock-${String(i+1).padStart(3,'0')}`;
+ if(!q.category)q.category=mockCategory(q);
+ if(!q.followUps)q.followUps=['What would fail first at ten times the load?','How would you verify the decision with production evidence?'];
+});
+
+const phaseByDomain={'python-core':'foundations','cs-core':'foundations',database:'backend-db',distributed:'distributed',messaging:'distributed','ai-runtime':'ai-runtime',inference:'inference','ml-foundations':'ml','vision-ai':'vision','system-design':'system-design',platform:'advanced'};
+const mappedTopics=new Set(D.curriculumPhases.flatMap(p=>p.topics));
+D.topics.forEach(t=>{if(mappedTopics.has(t.id))return;const phase=D.curriculumPhases.find(p=>p.id===phaseByDomain[t.domain]);if(phase){phase.topics.push(t.id);mappedTopics.add(t.id);}});
+
 D.cheatsheets.push(
  {id:'python-async-cheat',title:'Python Async Decision Sheet',bullets:['I/O wait → async client/coroutine','Independent I/O → TaskGroup/gather','CPU-heavy Python → process/worker','Blocking legacy SDK → threadpool as bridge','GPU model → central serving process','Cap concurrency with Semaphore','Bound queues; measure oldest age','Propagate deadlines/cancellation','Pool wait is a saturation signal']},
  {id:'cv-cheat',title:'Computer Vision Debugging Order',bullets:['1. Visualize labels and preprocessing','2. Check RGB/BGR, HWC/CHW, resize/letterbox','3. Overfit a tiny subset','4. Inspect precision/recall/mAP by class','5. Inspect false positive/negative images','6. Slice by camera/light/object size','7. Verify NMS/conf thresholds','8. Profile detector vs recognizer vs tracking','9. Validate event-level metric, not just frame metric']},
@@ -257,8 +303,9 @@ D.sources.push(
  {id:'ultralytics-docs',group:'Official docs',title:'Ultralytics YOLO Documentation',url:'https://docs.ultralytics.com/',note:'YOLO training/prediction workflow and detection concepts.'},
  {id:'github-ml',group:'Your GitHub evidence',title:'MachineLearning repository',url:'https://github.com/Moshiuzzaman4135/MachineLearning',note:'Includes face-recognition Siamese-network and neural-style-transfer learning work.'},
  {id:'github-cv',group:'Your GitHub evidence',title:'ComputerVisionMSC repository',url:'https://github.com/Moshiuzzaman4135/ComputerVisionMSC',note:'Academic computer-vision/ML notebooks including CIFAR-10 work and related exercises.'},
- {id:'github-anpr-load',group:'Your GitHub evidence',title:'ANPR automation / load-test repository',url:'https://github.com/Moshiuzzaman4135/Automate_number_recognition_scripts',note:'Historical ANPR load-test scripts and latency/output evidence.'},
- {id:'github-football',group:'Your GitHub evidence',title:'Football Intelligence repository',url:'https://github.com/Moshiuzzaman4135/football-intelligence',note:'Recent video-intelligence architecture work: resumable upload, tracking, OCR consensus, event clips and evidence fusion.'}
+ {id:'github-football',group:'Your GitHub evidence',title:'Football Intelligence repository',url:'https://github.com/Moshiuzzaman4135/football-intelligence',note:'Public video-intelligence architecture work: resumable multipart upload, restartable chunks, tracking, scoreboard OCR observations, event evidence and clips, with capability limits documented.'},
+ {id:'github-python-utility',group:'Your GitHub evidence',title:'Python Utility repository',url:'https://github.com/Moshiuzzaman4135/python_utility',note:'Public repository structure provides historical examples of Flask API, MQTT subscription, RTSP capture, ROI cropping and Pillow utilities.'},
+ {id:'github-docker-basics',group:'Your GitHub evidence',title:'Docker Basics repository',url:'https://github.com/Moshiuzzaman4135/Docker_basics',note:'Public learning repository documents basic Docker image, pull and run commands; it is evidence of study, not a production-system claim.'}
 );
 
 D.version='2.0';
