@@ -66,14 +66,7 @@ Linux/macOS/Git Bash:
 PowerShell:
 
 ```powershell
-node --check js/data.js
-node --check js/expanded-data.js
-node --check js/store.js
-node --check js/scheduler.js
-node --check js/simulations.js
-node --check js/diagrams.js
-node --check js/app.js
-node --test tests/*.test.js
+./tests/run-all.ps1
 ```
 
 Before a public release, also inspect representative routes at every documented viewport, check for page-level overflow and console errors, validate production resource responses, scan for confidential material, and test a newly extracted ZIP rather than the working directory.

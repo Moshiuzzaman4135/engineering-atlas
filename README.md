@@ -88,7 +88,7 @@ Node 20 or newer is recommended. No package installation is required.
 ./tests/run-all.sh
 ```
 
-On Windows PowerShell, run the equivalent commands documented in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). The suite checks JavaScript syntax, content integrity, routes, storage migration and import validation, all simulations, responsive CSS contracts, PWA resources, public branding, and privacy heuristics. Release verification additionally uses a real browser across representative routes and viewports.
+On Windows PowerShell, run `./tests/run-all.ps1`. The equivalent individual commands are documented in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). The suite checks JavaScript syntax, content integrity, routes, storage migration and import validation, all simulations, responsive CSS contracts, PWA resources, public branding, and privacy heuristics. Release verification additionally uses a real browser across representative routes and viewports.
 
 ## Privacy
 
@@ -101,4 +101,3 @@ Project descriptions are sanitized educational summaries. Public repository evid
 - Expand automated accessibility checks without adding a runtime dependency.
 - Split data by domain only when direct-file loading can remain deterministic and maintainable.
 - Preserve portable progress exports as the storage schema evolves.
-
