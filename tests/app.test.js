@@ -115,3 +115,7 @@ test('top bar exposes an explicit persisted theme toggle',()=>{
   assert.match(html,/data-action="toggle-theme"/);
   assert.match(html,/aria-label="Switch to (dark|light) theme"/);
 });
+test('mode chip re-renders to the active review mode after toggling',()=>{
+  const source=fs.readFileSync('js/app.js','utf8');
+  assert.match(source,/getElementById\('study-mode'\).*state\.settings\.mode==='sprint'\?'Sprint mode':'Long-term mode'/s);
+});
