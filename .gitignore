@@ -1,0 +1,12 @@
+.DS_Store
+Thumbs.db
+node_modules/
+coverage/
+playwright-report/
+test-results/
+.cache/
+*.log
+Engineering_Atlas.zip
+release-extract-*/
+screenshots/
+
