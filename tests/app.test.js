@@ -119,3 +119,9 @@ test('mode chip re-renders to the active review mode after toggling',()=>{
   const source=fs.readFileSync('js/app.js','utf8');
   assert.match(source,/getElementById\('study-mode'\).*state\.settings\.mode==='sprint'\?'Sprint mode':'Long-term mode'/s);
 });
+test('light theme keeps roadmap tiles and hover states readable',()=>{
+  const css=fs.readFileSync('css/styles.css','utf8');
+  assert.match(css,/\[data-theme="light"\] \.topic-tile\{background:var\(--surface-soft\)/);
+  assert.match(css,/\[data-theme="light"\] \.topic-tile:hover\{background:#eef2f8/);
+  assert.match(css,/\[data-theme="light"\] \.badge,\[data-theme="light"\] \.tag\{background:#fff;color:#344258/);
+});
