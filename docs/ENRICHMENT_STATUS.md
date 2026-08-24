@@ -21,7 +21,7 @@ DOMAINS_REMAINING: python-core, database, messaging, distributed, system-design,
 RESEARCH_COMPLETED: Python docs asyncio-task.html + asyncio-future.html (see docs/SOURCES.md)
 GITHUB_REPOS_ALREADY_INSPECTED: none this session (repo-local reference/ only)
 DIAGRAM_GROUPS_COMPLETED: coroutine/task/future (3), event-loop cycle+timeline, TaskGroup scope+failure timeline, cancellation flow+deadline budget
-LESSON_GROUPS_COMPLETED: python-coroutines-tasks, python-event-loop, python-taskgroup, python-cancellation-timeouts, async-semaphore-queue, python-gil, python-threading, python-multiprocessing, python-iterators-generators (all benchmark depth)
+LESSON_GROUPS_COMPLETED: python-coroutines-tasks, python-event-loop, python-taskgroup, python-cancellation-timeouts, async-semaphore-queue, python-gil, python-threading, python-multiprocessing, python-iterators-generators, python-exceptions (all benchmark depth)
 LABS_COMPLETED: unchanged (all lab diagrams still render; registry kept)
 
 KNOWN_ISSUES:
@@ -33,12 +33,31 @@ KNOWN_ISSUES:
   - app.test.js diagram mock extended (renderVisual/has) — keep in sync with diagrams API.
 CURRENT_FAILURE: none
 NEXT_EXACT_TASK: Wave 2 continued — remaining python-core by priority:
-  python-exceptions (P4), python-oop-solid (P4), python-object-model (P4),
-  python-mutable-immutable (P4), python-profiling (P3), python-closures-decorators (P3),
-  python-context-managers (P3), python-typing-dataclasses (P3), python-copying (P3),
-  python-args-kwargs, python-scope-methods, then fastapi-lifecycle + async-db-pools.
-  Research each topic's official docs first; verify code with python3 (3.10);
-  label 3.11+ features honestly; add to APPROVED after browser inspection.
+  python-oop-solid (P4), python-object-model (P4), python-mutable-immutable (P4),
+  python-profiling (P3), python-closures-decorators (P3), python-context-managers (P3),
+  python-typing-dataclasses (P3), python-copying (P3), python-args-kwargs,
+  python-scope-methods, then fastapi-lifecycle + async-db-pools (Wave 3 bridge).
+  Per-lesson recipe (proven 10×, follow exactly):
+    1. fetch the topic's official docs page; extract facts; append entry to
+       D.sources.push in js/expanded-data.js (id: python-<topic>-docs style)
+    2. rewrite the mk({...}) lesson: intuition/technical/deepDive (multi-
+       paragraph, \n\n separated)/terms/functions/remember/tradeoffs/
+       failureModes/scaling/security/traps/usedByYou/code+codeTitle/
+       sources/prereqs/nextTopics/interviewAnswer/visuals[2+]
+    3. visuals: {type:'flow'|'lanes'|'states', id:'py-<topic>-<slug>', w,h,
+       title,purpose, nodes/edges|rows/segments/marks, howToRead[4],
+       interviewerNotice[2]} — hand-tuned coordinates; check label collisions
+    4. extract code via node -e and RUN with python3 (/usr/bin/python3 = 3.10);
+       label 3.11+ features 'syntax-reviewed' honestly
+    5. add id to APPROVED in BOTH tools/visual-audit.mjs and
+       tests/visual-semantics.test.js; run node tools/visual-audit.mjs
+    6. bash tests/run-all.sh → 62+ green; screenshot via
+       /tmp/opencode/visual-review.html?t=<id> at 1280px; FIX collisions
+    7. commit 'feat: rebuild <topic> lesson to benchmark depth'
+  KNOWN TRAPS: avoid 'fetch(' in Python examples (offline test); avoid 'sk-'
+  followed by long token in any id (release secret scan); nextTopics ids must
+  exist (expansion test); lanes with 4 rows need h≈352 (mark labels clip);
+  flow/states container nodes accept top:true for top-aligned labels.
   NOTE: local python3 is 3.10 — examples using TaskGroup/timeout()/except* are
   labeled 'syntax-reviewed, not executed locally' (verified behaviorally on 3.10
   where possible).
@@ -83,7 +102,7 @@ NEXT_EXACT_TASK: Wave 2 continued — remaining python-core by priority:
   failure modes, traps, trade-offs, adversarial interview answer.
 - New tests/visual-semantics.test.js (fallback removal, expected/forbidden terms,
   teaching apparatus) — the Coroutine regression is now automated.
-- tools/visual-audit.mjs → docs/VISUAL_AUDIT.md (APPROVED 9 / GENERIC-REGISTRY 54 / MISSING 104).
+- tools/visual-audit.mjs → docs/VISUAL_AUDIT.md (APPROVED 10 / GENERIC-REGISTRY 54 / MISSING 103).
 - Browser inspection at 1280 dark+light and 390 mobile; fixed 3 label-collision
   defects found in inspection.
 
