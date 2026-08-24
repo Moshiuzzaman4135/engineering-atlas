@@ -12,7 +12,7 @@ new Function('window', fs.readFileSync('js/diagrams.js', 'utf8'))(window);
 const Diag = window.InterviewDiagrams;
 
 // Ratchet list shared with tests/visual-semantics.test.js
-const APPROVED = new Set(['python-coroutines-tasks']);
+const APPROVED = new Set(['python-coroutines-tasks','python-event-loop','python-taskgroup','python-cancellation-timeouts']);
 
 const rows = [];
 for (const t of D.topics) {

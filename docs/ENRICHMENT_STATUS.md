@@ -7,8 +7,8 @@ recorded in `docs/SOURCES.md`.
 ```
 CURRENT_BRANCH: main
 CURRENT_COMMIT: (this wave — see git log)
-CURRENT_DOMAIN: diagram infrastructure (Wave 1) → next: python-core depth (Wave 2)
-LAST_COMPLETED_WAVE: Wave 1 — typed diagram system + coroutine lesson benchmark
+CURRENT_DOMAIN: python-core depth (Wave 2, in progress)
+LAST_COMPLETED_WAVE: Wave 1 done; Wave 2 in progress — 4 python-core lessons rebuilt
 LAST_FULL_TEST_RESULT: PASS — 62/62 (node --check all + node --test), incl. new visual-semantics tests
 LAST_BROWSER_RESULT: PASS — coroutine lesson visuals inspected at 1280px dark + light, 390px mobile;
   fixed overlapping timeline mark labels, clipped segment labels, colliding state-edge labels
@@ -20,8 +20,8 @@ DOMAINS_REMAINING: python-core, database, messaging, distributed, system-design,
 
 RESEARCH_COMPLETED: Python docs asyncio-task.html + asyncio-future.html (see docs/SOURCES.md)
 GITHUB_REPOS_ALREADY_INSPECTED: none this session (repo-local reference/ only)
-DIAGRAM_GROUPS_COMPLETED: coroutine/task/future (3 visuals: relationship, timeline, states)
-LESSON_GROUPS_COMPLETED: python-coroutines-tasks (full rewrite to benchmark depth)
+DIAGRAM_GROUPS_COMPLETED: coroutine/task/future (3), event-loop cycle+timeline, TaskGroup scope+failure timeline, cancellation flow+deadline budget
+LESSON_GROUPS_COMPLETED: python-coroutines-tasks, python-event-loop, python-taskgroup, python-cancellation-timeouts (all benchmark depth)
 LABS_COMPLETED: unchanged (all lab diagrams still render; registry kept)
 
 KNOWN_ISSUES:
@@ -32,11 +32,12 @@ KNOWN_ISSUES:
     (pre-existing); revisit ergonomics in the whole-product review wave.
   - app.test.js diagram mock extended (renderVisual/has) — keep in sync with diagrams API.
 CURRENT_FAILURE: none
-NEXT_EXACT_TASK: Wave 2 — Python core depth pass, starting with python-event-loop
-  (research docs.python.org event loop reference first), then python-taskgroup and
-  python-cancellation-timeouts using the same visuals+depth standard; add each to
-  APPROVED in tools/visual-audit.mjs AND tests/visual-semantics.test.js only after
-  browser inspection.
+NEXT_EXACT_TASK: Wave 2 continued — rebuild async-semaphore-queue (research asyncio
+  synchronization primitives + Queues docs first), then python-gil/threading/
+  multiprocessing; keep adding to APPROVED only after browser inspection.
+  NOTE: local python3 is 3.10 — examples using TaskGroup/timeout()/except* are
+  labeled 'syntax-reviewed, not executed locally' (verified behaviorally on 3.10
+  where possible).
 ```
 
 ## Wave plan (order may adapt)
@@ -78,10 +79,21 @@ NEXT_EXACT_TASK: Wave 2 — Python core depth pass, starting with python-event-l
   failure modes, traps, trade-offs, adversarial interview answer.
 - New tests/visual-semantics.test.js (fallback removal, expected/forbidden terms,
   teaching apparatus) — the Coroutine regression is now automated.
-- tools/visual-audit.mjs → docs/VISUAL_AUDIT.md (APPROVED 1 / GENERIC-REGISTRY 55 /
-  MISSING 111).
+- tools/visual-audit.mjs → docs/VISUAL_AUDIT.md (APPROVED 4 / GENERIC-REGISTRY 54 / MISSING 109).
 - Browser inspection at 1280 dark+light and 390 mobile; fixed 3 label-collision
   defects found in inspection.
+
+### 2026-08-24 — Wave 2 (in progress)
+
+- python-event-loop, python-taskgroup, python-cancellation-timeouts rebuilt to
+  benchmark depth from the asyncio docs research already recorded in SOURCES.md.
+- 7 new purpose-built visuals; 3 renderer improvements (top-label containers,
+  staggered timeline marks, lane-height fix for clipped mark labels).
+- Code examples verified: event-loop example executed on 3.10 (0.1s overlapped vs
+  0.2s with blocking call); cancel() semantics verified; TaskGroup/except* examples
+  labeled honestly as 3.11+ syntax-reviewed (no 3.11+ runtime available locally).
+- Offline-safety test false positive resolved by renaming Python example functions
+  (kept the strict no-fetch guard).
 
 ### 2026-08-24 — Wave 0
 

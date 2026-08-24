@@ -13,9 +13,9 @@ diagram keys render nothing and appear here as MISSING.
 
 | Status | Lessons |
 |--------|---------|
-| GENERIC-REGISTRY | 55 |
-| MISSING | 111 |
-| APPROVED | 1 |
+| GENERIC-REGISTRY | 54 |
+| MISSING | 109 |
+| APPROVED | 4 |
 | **Total** | 167 |
 
 ## Per-lesson status
@@ -92,10 +92,10 @@ diagram keys render nothing and appear here as MISSING.
 | python-gil | GIL, Threads & CPU-bound Work | P5 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | python-threading | Threading, Locks & Race Conditions | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | python-multiprocessing | Multiprocessing & Worker Pools | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| python-event-loop | Asyncio Event Loop Mental Model | P5 | eventloop | GENERIC-REGISTRY | named renderer "eventloop" — semantic fit unreviewed |
+| python-event-loop | Asyncio Event Loop Mental Model | P5 | generic | APPROVED | 2 purpose-built visuals |
 | python-coroutines-tasks | Coroutine vs Task vs Future | P5 | generic | APPROVED | 3 purpose-built visuals |
-| python-taskgroup | Structured Concurrency with TaskGroup | P5 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| python-cancellation-timeouts | Cancellation, Timeouts & Deadlines | P5 | generic | MISSING | references unregistered "generic" (renders nothing) |
+| python-taskgroup | Structured Concurrency with TaskGroup | P5 | generic | APPROVED | 2 purpose-built visuals |
+| python-cancellation-timeouts | Cancellation, Timeouts & Deadlines | P5 | generic | APPROVED | 2 purpose-built visuals |
 | async-semaphore-queue | Async Semaphore, Queue & Backpressure | P5 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | async-db-pools | Async Database Pools & Transaction Scope | P5 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | fastapi-lifecycle | FastAPI Dependency Injection, Lifespan & Worker Model | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |

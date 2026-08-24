@@ -6,7 +6,10 @@ const esc=s=>String(s||'').replace(/[&<>"']/g,c=>'&'+ENT[c]+';');
 /* ---------- primitives ---------- */
 function defs(){return '<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#52617e"/></marker><marker id="arrow-hot" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#8b5cf6"/></marker></defs>';}
 function node(x,y,w,h,label,cls){return `<rect class="arch-node ${cls||''}" x="${x}" y="${y}" rx="10" width="${w}" height="${h}"/><text x="${x+w/2}" y="${y+h/2+4}" text-anchor="middle">${esc(label)}</text>`;}
-function labeled(x,y,w,h,label,sub,cls){let t=`<text x="${x+w/2}" y="${sub?y+h/2-2:y+h/2+4}" text-anchor="middle" font-weight="600">${esc(label)}</text>`;if(sub)t+=`<text class="arch-label" x="${x+w/2}" y="${y+h/2+13}" text-anchor="middle">${esc(sub)}</text>`;return `<rect class="arch-node ${cls||''}" x="${x}" y="${y}" rx="10" width="${w}" height="${h}"/>${t}`;}
+function labeled(x,y,w,h,label,sub,cls,top){
+ if(top){let t=`<text x="${x+w/2}" y="${y+18}" text-anchor="middle" font-weight="600">${esc(label)}</text>`;if(sub)t+=`<text class="arch-label" x="${x+w/2}" y="${y+32}" text-anchor="middle">${esc(sub)}</text>`;return `<rect class="arch-node ${cls||''}" x="${x}" y="${y}" rx="10" width="${w}" height="${h}"/>${t}`;}
+ let t=`<text x="${x+w/2}" y="${sub?y+h/2-2:y+h/2+4}" text-anchor="middle" font-weight="600">${esc(label)}</text>`;if(sub)t+=`<text class="arch-label" x="${x+w/2}" y="${y+h/2+13}" text-anchor="middle">${esc(sub)}</text>`;return `<rect class="arch-node ${cls||''}" x="${x}" y="${y}" rx="10" width="${w}" height="${h}"/>${t}`;
+}
 function edge(x1,y1,x2,y2,cls,label){const m=`url(#${/hot/.test(cls||'')?'arrow-hot':'arrow'})`;return `<path class="arch-edge ${cls||''}" d="M${x1},${y1} L${x2},${y2}" marker-end="${m}"/>${label?`<text class="arch-label" x="${(x1+x2)/2}" y="${(y1+y2)/2-5}" text-anchor="middle">${esc(label)}</text>`:''}`;}
 function polyline(pts,cls,label){const d='M'+pts.map(p=>p.join(',')).join(' L');const mid=pts[Math.floor(pts.length/2)-Math.max(1,pts.length%2)];const a=pts[Math.floor((pts.length-1)/2)],b=pts[Math.ceil((pts.length-1)/2)+ (pts.length>2?0:0)]||a;const lx=(a[0]+b[0])/2,ly=(a[1]+b[1])/2;const m=`url(#${/hot/.test(cls||'')?'arrow-hot':'arrow'})`;return `<path class="arch-edge ${cls||''}" d="${d}" marker-end="${m}"/>${label?`<text class="arch-label" x="${lx}" y="${ly-5}" text-anchor="middle">${esc(label)}</text>`:''}`;}
 function svgWrap(body,o){o=o||{};const id=(o.id||'diagram').replace(/[^a-z0-9-]/gi,'-');return `<svg class="arch-svg" viewBox="0 0 ${o.w||760} ${o.h||300}" role="img" aria-labelledby="${id}-t ${id}-d"><title id="${id}-t">${esc(o.title||'Diagram')}</title><desc id="${id}-d">${esc(o.desc||o.title||'')}</desc>${defs()}${body}</svg>`;}
@@ -40,7 +43,7 @@ function renderFlow(v){
 }
 function renderStates(v){
  let b='';const nodes=v.nodes||[],edges=v.edges||[];const pos={};
- nodes.forEach(n=>{pos[n.id]=n;if(n.start)b+=`<circle cx="${n.x-12}" cy="${n.y+n.h/2}" r="4" fill="#8b5cf6"/>`;b+=labeled(n.x,n.y,n.w,n.h,n.label,n.sub,n.cls);});
+ nodes.forEach(n=>{pos[n.id]=n;if(n.start)b+=`<circle cx="${n.x-12}" cy="${n.y+n.h/2}" r="4" fill="#8b5cf6"/>`;b+=labeled(n.x,n.y,n.w,n.h,n.label,n.sub,n.cls,n.top);});
  edges.forEach(e=>{
   const a=pos[e.from],c=pos[e.to];if(!a||!c)return;
   const pts=e.points||[[a.x+a.w,a.y+a.h/2],[c.x,c.y+c.h/2]];

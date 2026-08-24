@@ -10,7 +10,7 @@ const D=window.InterviewOSData;
 
 // Lessons that passed the visual quality bar. Ratchet: add ids only after
 // purpose-built, semantically validated visuals exist.
-const APPROVED=['python-coroutines-tasks'];
+const APPROVED=['python-coroutines-tasks','python-event-loop','python-taskgroup','python-cancellation-timeouts'];
 
 test('generic diagram fallback is removed at the root',()=>{
   assert.equal(Diagrams.render('generic'),'','unknown/generic keys must not render a fake pipeline');

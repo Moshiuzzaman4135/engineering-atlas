@@ -44,7 +44,84 @@ mk({id:'python-oop-solid',domain:'python-core',title:'OOP & SOLID in Python',pri
 mk({id:'python-gil',domain:'python-core',title:'GIL, Threads & CPU-bound Work',priority:5,intuition:'Python threads are excellent for waiting on I/O, but one CPython process does not execute multiple Python bytecode threads in parallel for CPU-heavy work.',technical:'The Global Interpreter Lock protects CPython interpreter state. Threads can overlap I/O because blocking C/OS calls release the GIL, but CPU-bound Python code usually needs multiprocessing, native extensions or external workers for parallelism.',remember:['GIL limits CPU-bound Python bytecode parallelism, not all concurrency.','I/O threads can still be useful.','GPU/C extensions may execute outside the GIL.'],terms:['GIL','thread','CPU-bound','I/O-bound'],functions:['threading.Thread','concurrent.futures.ThreadPoolExecutor'],interview:'For I/O-bound API or network work, threads/async are fine. For CPU-heavy frame transforms in Python, I use multiprocessing, C-backed libraries or distributed workers rather than adding threads and expecting linear CPU scaling.',usedByYou:['OpenCV/NumPy operations and Celery/multiprocessing in video pipelines make this distinction practical.'],nextTopics:['python-threading','python-multiprocessing','python-event-loop']}),
 mk({id:'python-threading',domain:'python-core',title:'Threading, Locks & Race Conditions',priority:4,intuition:'Threads share memory, which is convenient until two of them change the same state at the same time.',technical:'Threading is useful for blocking I/O or C extensions. Shared mutable state requires synchronization with Lock/RLock/Condition/Semaphore, but excessive locking creates contention and deadlocks.',remember:['Race conditions come from interleavings, not only “simultaneous” CPU execution.','Keep critical sections small.','Prefer queues/message passing when ownership can be isolated.'],terms:['race condition','critical section','deadlock','mutex'],functions:['threading.Lock','threading.Semaphore','queue.Queue'],interview:'I minimize shared state and use queues for handoff. When I must lock, I keep the critical section small and use a fixed acquisition order to reduce deadlock risk.',prerequisites:['python-gil']}),
 mk({id:'python-multiprocessing',domain:'python-core',title:'Multiprocessing & Worker Pools',priority:4,intuition:'Processes trade memory and communication overhead for true CPU parallelism and fault isolation.',technical:'multiprocessing starts separate interpreters with separate memory. Work is serialized across process boundaries. ProcessPoolExecutor is useful for coarse CPU tasks; tiny tasks can lose to serialization/startup overhead.',remember:['Separate memory avoids the GIL but requires IPC.','Large models duplicated per process can exhaust RAM/VRAM.','Use coarse work units.'],terms:['process','IPC','serialization','worker pool'],functions:['multiprocessing.Process','ProcessPoolExecutor','multiprocessing.Queue'],interview:'I choose processes for CPU-bound Python work when tasks are coarse enough to justify IPC. For GPU inference I usually centralize the model in a serving process such as Triton instead of loading a GPU model per Python process.',usedByYou:['Your Triton-based ANPR design centralizes model serving instead of duplicating models in every worker.']}),
-mk({id:'python-event-loop',domain:'python-core',title:'Asyncio Event Loop Mental Model',priority:5,diagram:'eventloop',intuition:'The event loop is one coordinator that lets many tasks make progress by switching whenever a task waits.',technical:'asyncio is cooperative concurrency. A coroutine runs until it awaits something that actually yields control; the event loop then schedules ready callbacks/tasks. Blocking CPU or synchronous I/O on the loop delays every other request.',remember:['Async is concurrency, not automatic parallelism.','Only await operations that yield can let other tasks run.','Never block the event loop with long CPU work or sync I/O.'],terms:['event loop','coroutine','cooperative scheduling','awaitable'],functions:['asyncio.run','asyncio.get_running_loop','await'],interview:'In FastAPI, async helps when requests spend time waiting on network or database I/O. If I call a blocking SDK or run CPU-heavy OpenCV work directly inside async def, I stall the event loop and hurt all concurrent requests.',codeTitle:'Cooperative concurrency',code:'async def handler():\n    data = await http_client.get(url)  # yields control\n    return data\n\n# CPU-heavy sync work should go to a process/worker, not block the loop.',sources:['python-asyncio'],nextTopics:['python-coroutines-tasks','python-taskgroup','python-cancellation-timeouts']}),
+mk({id:'python-event-loop',domain:'python-core',title:'Asyncio Event Loop Mental Model',priority:5,
+intuition:'The event loop is the single coordinator of an asyncio program: one thread, one loop, many tasks that take turns — and a turn ends only at an await.',
+technical:'Per the official docs, the event loop "runs asynchronous tasks and callbacks, performs network IO operations, and runs subprocesses." It is the core of every asyncio application. Scheduling is cooperative: a coroutine keeps the loop until it awaits something that actually suspends (usually a Future). When it does, control returns to the loop, which polls I/O readiness, runs due timer callbacks, and resumes whichever task became runnable. Application code should use asyncio.run() and rarely touch the loop object; the loop methods (call_soon, call_later, create_task, run_in_executor…) are the machinery underneath.',
+deepDive:'A useful mental model is a loop cycle with three inputs and one rule.\n\nInputs: (1) ready callbacks — scheduled via call_soon, run in registration order on the next iteration; (2) timers — call_later/call_at on a monotonic clock (docs note callbacks may fire up to one clock-resolution early); (3) I/O readiness — the loop asks the OS which sockets/fds are readable or writable (selector on Unix, IOCP proactor on Windows) and schedules the waiting tasks. Tasks are Future-like objects whose "I/O readiness" is their awaited Future resolving. The one rule: the loop runs exactly one callback/task step at a time, single-threaded. A step runs until it returns or awaits — nothing preempts it.\n\nThat rule explains every asyncio performance story. time.sleep(2), heavy JSON parsing, PIL/OpenCV work, or a synchronous DB driver inside a coroutine do not yield — so the loop cannot poll I/O or run other tasks: every concurrent request, timer and health-check stalls behind them. Awaiting a real async I/O call suspends cheaply, and asyncio.sleep(0) is the documented way to yield without waiting. The debug tooling exists precisely for this failure: loop.set_debug(True) (or PYTHONASYNCIODEBUG / python -X dev) logs callbacks slower than loop.slow_callback_duration, 100 ms by default.\n\nWhat the loop cannot do at all: there is no asynchronous file I/O in asyncio — the docs say to use run_in_executor for regular files. DNS is a hidden trap: loop.getaddrinfo()/getnameinfo execute the synchronous resolvers in the loop\'s default thread-pool executor, so a saturated default executor shows up as mysterious connection timeouts in high-level libraries.\n\nOffloading rules from the docs\' own example: blocking I/O → default or custom ThreadPoolExecutor (loop.run_in_executor(None, fn) or asyncio.to_thread), CPU-bound → ProcessPoolExecutor (separate interpreters, so the GIL is not contended), and long-running CPU services should probably not share a loop with latency-sensitive I/O at all. run_in_executor returns an asyncio Future, so it composes with await, gather and timeouts.\n\nLifecycle and safety: asyncio.run() creates the loop, runs the main coroutine, and handles shutdown (async generators, default executor). Manual loops must call loop.close() (idempotent, irreversible — pending callbacks are discarded) and ideally shutdown_asyncgens()/shutdown_default_executor() first. call_soon is not thread-safe; other threads must use call_soon_threadsafe or run_coroutine_threadsafe. Unhandled callback exceptions go to the loop exception handler (set_exception_handler) — the hook where production deployments log and alert.\n\nInterview framing: the loop is a scheduler, not a thread pool. Concurrency comes from interleaving steps during waits; parallelism comes only from executors/processes. FastAPI\'s async endpoints share one loop per worker process — one blocking call degrades the whole worker.',
+terms:['event loop','callback','ready queue','selector','monotonic clock','cooperative scheduling','executor','blocking call'],
+functions:['asyncio.run','loop.call_soon','loop.call_later','loop.create_task','loop.create_future','loop.run_in_executor','loop.time','asyncio.get_running_loop','loop.set_debug'],
+remember:['The loop runs one task step at a time, single-threaded — nothing preempts a running step.','A step yields only at an await that actually suspends; sync I/O and CPU work block everything.','Blocking I/O → to_thread/run_in_executor; CPU-bound → ProcessPoolExecutor; files have no async I/O at all.','DNS (getaddrinfo) runs in the default thread pool — a saturated executor masquerades as slow connections.','Enable loop debug mode (100 ms slow-callback threshold) to find loop-blocking code in dev.'],
+tradeoffs:['Single loop vs threads: no preemption, no data races on loop state — but one blocking call stalls all tasks.','asyncio.run vs manual loop management: automatic lifecycle vs control in embedding/library code.','Thread-pool offload vs process pool: cheap for I/O-shaped blocking vs needed for CPU (GIL), at serialization/pickling cost.','In-process async work vs separate worker service: shared-loop latency risk vs isolation and independent scaling.'],
+failureModes:['Blocking call in a coroutine: whole worker freezes — health checks time out, load balancer marks instance dead, cascade of restarts.','Default executor saturation: getaddrinfo and run_in_executor work queue up; connections appear to "hang".','Long timer backlog: many call_later handles plus a busy loop delay timer firing; timeouts fire late.','Swallowed exceptions in callbacks: failures invisible until set_exception_handler is configured.','Calling non-threadsafe loop APIs from another thread: undefined behavior/crashes; must use *_threadsafe variants.'],
+scaling:['One loop per process; scale by worker processes (uvicorn --workers, containers), not by adding threads to a loop.','Keep per-step CPU small (parse/stream in chunks); measure event-loop lag (scheduled vs actual callback time) as a first-class metric.'],
+security:['Signal handlers via loop.add_signal_handler must be set in the main thread; loop-bound state (request context via contextvars) is copied per task — do not share mutable per-request state across tasks.'],
+traps:['"async def makes it parallel." It does not — the loop interleaves steps on one thread.','time.sleep in async code instead of asyncio.sleep.','Assuming file reads are async — regular file I/O always needs an executor.','Blaming the database for timeouts that are actually executor saturation or loop blocking.','Calling loop methods after close(), or call_soon from another thread.'],
+usedByYou:['FastAPI services (football-intelligence API, OCR endpoints) run one event loop per worker; heavy frame/model work is deliberately kept out of async handlers or pushed to executors/GPU services so request handling keeps looping.'],
+codeTitle:'See blocking vs yielding (verified runnable)',
+code:`import asyncio, time
+
+async def io_work():
+    await asyncio.sleep(0.1)          # suspends: loop is free meanwhile
+    return 'io done'
+
+async def blocking_work():
+    time.sleep(0.1)                   # does NOT yield: stalls the loop
+    return 'block done'
+
+async def heartbeat():
+    for _ in range(6):
+        print('tick', asyncio.current_task().get_name())
+        await asyncio.sleep(0.04)
+
+async def main():
+    hb = asyncio.create_task(heartbeat(), name='hb')
+    t0 = time.perf_counter()
+    await asyncio.gather(io_work(), io_work())            # overlaps: ~0.1s
+    print('concurrent awaits:', round(time.perf_counter()-t0, 2), 's')
+    t0 = time.perf_counter()
+    await asyncio.gather(blocking_work(), io_work())      # serialized by blocking call
+    print('with blocking call:', round(time.perf_counter()-t0, 2), 's')
+    await hb
+
+asyncio.run(main())`,
+sources:['python-asyncio-eventloop-docs','python-asyncio'],
+prerequisites:[],
+nextTopics:['python-coroutines-tasks','python-taskgroup','python-cancellation-timeouts'],
+interviewAnswer:'The event loop is a single-threaded cooperative scheduler: it runs one task step at a time, interleaving progress whenever a task awaits something that suspends. Each cycle it drains ready callbacks in registration order, fires due timers on a monotonic clock, and polls the OS for socket readiness. Because nothing preempts a running step, any blocking call — time.sleep, sync DB driver, heavy CPU — stalls every task on that loop, which is why blocking I/O goes through to_thread or run_in_executor and CPU work goes to a process pool. Files have no async I/O, and DNS runs in the default thread pool, so executor saturation can look like network timeouts. In FastAPI that means one blocking call in an async handler degrades the whole worker; scale loops by processes, keep steps small, and watch event-loop lag.',
+visuals:[
+ {type:'lanes',id:'py-eventloop-cycle-timeline',w:800,h:352,axis:{label:'time →'},
+  title:'Visual A — One loop, three tasks: interleaving vs blocking',
+  purpose:'Show how the loop interleaves three tasks while each awaits I/O — and how one blocking call freezes every other task on the same loop.',
+  rows:[
+   {label:'request A',segments:[{from:0,to:55,label:'run'},{from:55,to:300,label:'await DB',cls:'cyan'},{from:300,to:360,label:'resume'},{from:360,to:420,label:'done',cls:'green'}]},
+   {label:'request B',segments:[{from:20,to:75,label:'run'},{from:75,to:340,label:'await HTTP',cls:'cyan'},{from:340,to:400,label:'resume · done',cls:'green'}]},
+   {label:'request C',segments:[{from:120,to:180,label:'blocking',cls:'accent'},{from:180,to:240,label:'resume · done',cls:'green'}]},
+   {label:'event loop',segments:[{from:0,to:120,label:'A/B + timers',cls:'green'},{from:120,to:180,label:'frozen',cls:'accent'},{from:180,to:420,label:'loop resumes polling',cls:'green'}]}
+  ],
+  marks:[{at:55,label:'A suspends'},{at:120,label:'C starts blocking'},{at:300,label:'DB ready → A resumes'}],
+  howToRead:['Time flows left→right; each lane shows what that task or the loop is doing.','From t≈0–120 the loop overlaps A and B nicely: while one awaits, the other runs.','At t≈120 task C executes a blocking call. It never awaits, so it owns the CPU until t≈180 — and the loop lane shows nothing else can run.','Even though the DB answered A at t≈300, A cannot resume until C yields: blocking hurts tasks that did nothing wrong.'],
+  interviewerNotice:['You distinguish awaiting (cheap suspension) from blocking (loop-wide stall).','You can explain why one bad handler degrades every concurrent request in the same worker.']},
+ {type:'flow',id:'py-eventloop-cycle-map',w:780,h:330,
+  title:'Visual B — Inside one loop iteration',
+  purpose:'Show the repeating cycle: drain ready callbacks in order, fire due timers, poll the OS for I/O readiness, and resume the tasks whose futures resolved.',
+  nodes:[
+   {id:'ready',x:20,y:20,w:225,h:64,label:'1 · Ready callbacks',sub:'call_soon — FIFO, next iteration',cls:'cyan'},
+   {id:'timers',x:275,y:20,w:225,h:64,label:'2 · Due timers',sub:'call_later/call_at · monotonic clock'},
+   {id:'poll',x:530,y:20,w:225,h:64,label:'3 · Poll I/O',sub:'selector/IOCP asks the OS which fds ready',cls:'green'},
+   {id:'run',x:285,y:150,w:205,h:70,label:'4 · Run task steps',sub:'one at a time · until return or await',cls:'accent'},
+   {id:'futures',x:530,y:150,w:225,h:70,label:'5 · Resolve futures',sub:'awaited Future done → task runnable',cls:'green'},
+   {id:'off',x:20,y:150,w:225,h:70,label:'Off-loop escape hatches',sub:'to_thread / run_in_executor / process pool',cls:'cyan'}
+  ],
+  edges:[
+   {from:'ready',to:'run',points:[[132,84],[132,150],[310,150]],label:'drain FIFO'},
+   {from:'timers',to:'run',points:[[387,84],[387,150]],label:'expired → schedule'},
+   {from:'poll',to:'futures',points:[[642,84],[642,150]],label:'readable/writable'},
+   {from:'futures',to:'run',points:[[530,185],[490,185]],label:'wake',cls:'hot'},
+   {from:'off',to:'futures',points:[[132,220],[132,268],[642,268],[642,220]],label:'executor result returns as a Future',cls:'arch-flow'}
+  ],
+  howToRead:['Follow 1→5 each iteration: callbacks, timers, I/O poll, then run task steps.','Step 4 is the only place user code executes — and only one step runs at a time.','A task that awaits parks itself in step 5\'s world: it moves again only when its Future resolves.','Step 6 (left) is how blocking/CPU work leaves the loop entirely: executors return results as Futures.'],
+  interviewerNotice:['You can explain the loop without hand-waving: FIFO callbacks, monotonic timers, OS readiness polling, single-step execution.','You know where work must NOT run: anything long belongs in an executor, not in step 4.']}
+]}),
 mk({id:'python-coroutines-tasks',domain:'python-core',title:'Coroutine vs Task vs Future',priority:5,
 intuition:'A coroutine is suspended resumable work that does nothing until driven; a Task is a coroutine scheduled and run by the event loop; a Future is a low-level placeholder for a result that will arrive later.',
 technical:'Calling an async def function creates a coroutine object but executes nothing. asyncio.create_task(coro) wraps that object in a Task — "a Future-like object that runs a Python coroutine" per the official docs — and schedules it on the running loop. A Future represents an eventual result of an asynchronous operation and exists mainly to bridge callback-based code with async/await. The three awaitables differ in who drives them: you await coroutines inline, the loop runs Tasks, and library/loop internals resolve Futures.',
@@ -136,8 +213,159 @@ visuals:[
   howToRead:['Follow the arrows left to right: pending → running ⇄ suspended is the normal cycle.','Upper exit is success or failure — both land in done(); check exception() to tell them apart.','Lower exit happens only if the CancelledError thrown by cancel() actually propagates out; suppressed cancellation means cancelled() stays False.'],
   interviewerNotice:['cancel() is a request delivered at the next await, not an immediate kill.','done() covers three endings: return, raise, cancel — result() re-raises the exception.']}
 ]}),
-mk({id:'python-taskgroup',domain:'python-core',title:'Structured Concurrency with TaskGroup',priority:5,intuition:'A TaskGroup gives child tasks a clear lifetime: they belong to the current operation and are cleaned up together.',technical:'asyncio.TaskGroup creates a structured scope for concurrent tasks. On an unhandled child failure, sibling tasks are cancelled and exceptions are combined, which is safer than orphaned fire-and-forget tasks.',remember:['Child tasks should not outlive their owner accidentally.','TaskGroup provides coordinated failure/cancellation.'],terms:['structured concurrency','TaskGroup','ExceptionGroup'],functions:['asyncio.TaskGroup','tg.create_task'],interview:'For concurrent sub-operations of one request, I prefer TaskGroup because lifetime and failure propagation are explicit. It avoids background tasks silently continuing after the parent has failed.',code:'async with asyncio.TaskGroup() as tg:\n    a = tg.create_task(fetch_a())\n    b = tg.create_task(fetch_b())\n# both completed or group raised',sources:['python-asyncio'],prerequisites:['python-coroutines-tasks']}),
-mk({id:'python-cancellation-timeouts',domain:'python-core',title:'Cancellation, Timeouts & Deadlines',priority:5,intuition:'A timeout is not just an error—it is a signal that work is no longer worth continuing.',technical:'asyncio cancellation raises CancelledError at await points. timeout()/wait_for bound work. Propagate deadlines across dependencies instead of stacking independent timeouts that can exceed the request budget.',remember:['Cancellation must release resources.','Use one end-to-end deadline budget.','Do not swallow CancelledError blindly.'],terms:['cancellation','deadline','timeout budget'],functions:['asyncio.timeout','asyncio.wait_for','Task.cancel'],interview:'I set an end-to-end deadline and allocate it across DB/model/tool calls. When the client or parent operation cancels, child work should stop and return connections/locks instead of continuing useless side effects.',sources:['python-asyncio'],prerequisites:['python-taskgroup']}),
+mk({id:'python-taskgroup',domain:'python-core',title:'Structured Concurrency with TaskGroup',priority:5,
+intuition:'A TaskGroup gives child tasks a clear lifetime: they belong to the current operation, are awaited together, and fail together.',
+technical:'asyncio.TaskGroup (3.11+) is an async context manager combining task creation with reliable waiting: the async with block does not exit until every created task finishes. If any child fails with a non-CancelledError exception, the group cancels the remaining children, waits for them, and re-raises their exceptions combined in an ExceptionGroup (caught with except*). The docs position it as the safer alternative to gather for related subtasks because it keeps strong references and propagates exceptions instead of leaking orphans.',
+deepDive:'Structured concurrency means child tasks cannot outlive the lexical scope that created them. With create_task alone, a fire-and-forget task may keep running after the request that spawned it returned, hold a DB connection, or raise into the void ("Task exception was never retrieved"). TaskGroup makes ownership syntactic: the parent coroutine physically cannot proceed past the async with until all children are done.\n\nFailure semantics, precisely from the docs: the first child failure cancels every remaining task in the group; no new tasks can be added after that; if the body of the async with is still active, the task containing the group is also cancelled — but that internal CancelledError interrupts only the current await and does not bubble out of the async with. Once all tasks finish, failures are combined into an ExceptionGroup (KeyboardInterrupt/SystemExit are re-raised instead). Catch groups with except* TypeError as eg: — plain except Exception does not match ExceptionGroup members.\n\nCancellation accounting: TaskGroup uses Task.uncancel() internally to distinguish its own shutdown-cancellation from external cancellation, so an outer timeout still works while the group cleans up children. Nested groups process their own exceptions before the outer group sees a cancellation.\n\ngather comparison (interviewers probe this): gather(return_exceptions=False) propagates the first exception immediately but leaves siblings running unawaited; return_exceptions=True collects results and exceptions but still does not cancel anything on failure. TaskGroup cancels siblings on failure — the semantics you almost always want for "parallel sub-steps of one request": if the profile fetch failed, stop fetching the avatar.\n\nProduction usage: per-request fan-out (DB + cache + upstream calls), bounded fan-out with a Semaphore inside the group, and shutdown paths where you want children cancelled and observed rather than orphaned. Cost: less flexibility — you cannot easily add tasks after the block exits, and one fragile child failing cancels useful siblings; when siblings are genuinely independent, gather(return_exceptions=True) or explicit task sets remain reasonable.',
+terms:['structured concurrency','TaskGroup','ExceptionGroup','except*','sibling cancellation','task ownership'],
+functions:['asyncio.TaskGroup','TaskGroup.create_task','except*','asyncio.gather (contrast)'],
+remember:['async with does not exit until all group tasks finish — lifetime is structural.','First non-cancel failure cancels siblings, then raises ExceptionGroup — catch with except*.','TaskGroup holds strong references; fire-and-forget create_task does not.','gather leaves siblings running after a failure; TaskGroup cancels them.','Adding tasks after the block exits is not possible — plan the scope.'],
+tradeoffs:['TaskGroup vs gather: coordinated cancellation + grouped exceptions vs per-child flexibility and fire-and-forget.','TaskGroup vs raw create_task sets: guaranteed cleanup vs custom ownership logic you must write and test correctly.','Strict scoping cost: a failing optional child cancels required siblings unless you isolate it in its own group or shield it.'],
+failureModes:['Catching ExceptionGroup with except Exception: nothing is caught — must use except* (or unwrap .exceptions).','One optional child failing cancels the whole request: wrap optional work in its own nested group or handle its exceptions inside the child.','Long cleanup: group waits for cancelled children to finish — a child that ignores cancellation stalls the parent (pair with timeout()).','Creating tasks in a finished group raises RuntimeError — restructure scope.'],
+scaling:['Fan-out cost is per-task object; thousands of group children are fine, but bound concurrent I/O with a Semaphore shared inside the group to protect downstream services.'],
+security:['Children copy the current contextvars context at creation — request-scoped auth/log context propagates safely without sharing mutable state.'],
+traps:['Expecting gather-like "siblings keep running" behavior — TaskGroup cancels them deliberately.','Using except instead of except* for ExceptionGroup.','Assuming the group cancels the parent silently — the internal cancellation interrupts the await but is contained; your outer code keeps running unless a real failure re-raises.','Putting genuinely independent long-lived workers in a request-scoped group — they get killed when the request ends.'],
+usedByYou:['Request-scoped fan-out in FastAPI services (e.g., football-intelligence endpoints calling several downstream APIs) is exactly the TaskGroup shape: children owned by the request, cancelled together on failure or client disconnect.'],
+codeTitle:'Fan-out with coordinated failure (Python 3.11+; syntax-reviewed, not executed locally)',
+code:`import asyncio
+
+async def load(name, delay, fail=False):
+    try:
+        await asyncio.sleep(delay)
+        if fail:
+            raise ValueError(f'{name} failed')
+        return f'{name} ok'
+    except asyncio.CancelledError:
+        print(f'{name}: cancelled by group')
+        raise
+
+async def main():
+    try:
+        async with asyncio.TaskGroup() as tg:
+            t1 = tg.create_task(load('profiles', 0.05))
+            t2 = tg.create_task(load('avatar', 0.10, fail=True))
+            t3 = tg.create_task(load('stats', 0.20))   # will be cancelled
+        print('results:', t1.result(), t3.result())
+    except* ValueError as eg:
+        print('group failed:', [str(e) for e in eg.exceptions])
+        print('profiles result anyway:', t1.done() and not t1.cancelled(), t1.result())
+
+asyncio.run(main())`,
+sources:['python-coroutines-tasks-docs','python-asyncio'],
+prerequisites:['python-coroutines-tasks'],
+nextTopics:['python-cancellation-timeouts'],
+interviewAnswer:'TaskGroup is structured concurrency for asyncio: tasks created inside the async with cannot outlive it, the block awaits all of them, and the first non-cancellation failure cancels the remaining siblings before re-raising everything as an ExceptionGroup you catch with except*. I prefer it over gather for sub-steps of one request because gather leaves siblings running after a failure and raw create_task leaks ownership — unawaited exceptions, tasks outliving requests. The trade-off is strictness: an optional failing child cancels required siblings, so genuinely independent or optional work needs its own scope or internal error handling.',
+visuals:[
+ {type:'lanes',id:'py-taskgroup-failure-timeline',w:800,h:352,axis:{label:'time →'},
+  title:'Visual A — One child fails: siblings are cancelled, parent gets an ExceptionGroup',
+  purpose:'Show the moment a group child fails: the group cancels running siblings, waits for them to finish, and only then raises ExceptionGroup to the parent.',
+  rows:[
+   {label:'parent',segments:[{from:0,to:60,label:'enter'},{from:60,to:520,label:'async with — blocked until children settle',cls:'accent'},{from:520,to:580,label:'except* ValueError',cls:'hot'}]},
+   {label:'child A (ok)',segments:[{from:30,to:90,label:'runs'},{from:90,to:440,label:'await … keeps running',cls:'cyan'},{from:440,to:470,label:'finishes',cls:'green'}]},
+   {label:'child B (fails)',segments:[{from:30,to:200,label:'runs'},{from:200,to:240,label:'raises',cls:'accent'},{from:240,to:560,label:'(failed — recorded)',cls:''}]},
+   {label:'child C (ok)',segments:[{from:30,to:200,label:'runs'},{from:200,to:255,label:'cancel',cls:'accent'},{from:255,to:315,label:'cleanup',cls:'green'}]}
+  ],
+  marks:[{at:200,label:'B raises → group cancels C'},{at:470,label:'all children settled'},{at:520,label:'ExceptionGroup raised'}],
+  howToRead:['The parent lane stays inside async with until every child lane reaches a terminal state — it cannot exit early.','At t≈200 child B raises. The group immediately cancels child C (not child A, already finished).','C gets CancelledError at its next await, cleans up, and exits — the group waits for that.','Only after the last child settles does the parent resume — directly into except*, holding B\'s ValueError.'],
+  interviewerNotice:['Cancellation of siblings is automatic and ordered: fail → cancel → wait → raise grouped.','Cleanup of cancelled children happens before the parent sees the exception — resources are released by then.']},
+ {type:'states',id:'py-taskgroup-scope-map',w:800,h:250,
+  title:'Visual B — Task scope: owned vs orphaned',
+  purpose:'Contrast where tasks live with TaskGroup (bounded by the async with scope) versus raw create_task (ownership unclear, exceptions can vanish).',
+  nodes:[
+   {id:'parent',x:20,y:20,w:220,h:56,label:'parent coroutine',cls:'cyan'},
+   {id:'group',x:20,y:130,w:340,h:120,label:'async with TaskGroup()',sub:'strong refs · awaits all · cancels on failure',cls:'accent',top:true},
+   {id:'c1',x:60,y:186,w:120,h:44,label:'child 1',cls:'green'},
+   {id:'c2',x:200,y:186,w:120,h:44,label:'child 2',cls:'green'},
+   {id:'loose',x:470,y:130,w:290,h:56,label:'bare create_task(...)',sub:'weak ref · who awaits? who cancels?',cls:'accent'},
+   {id:'gone',x:470,y:210,w:290,h:56,label:'risk: GC mid-run · exception never retrieved',cls:''}
+  ],
+  edges:[
+   {from:'parent',to:'group',points:[[130,76],[130,130]],label:'enters scope'},
+   {from:'parent',to:'loose',points:[[240,48],[470,150]],label:'no scope boundary',cls:'arch-flow'},
+   {from:'loose',to:'gone',points:[[615,186],[615,210]],cls:'arch-flow'}
+  ],
+  howToRead:['Left side: children are visually inside the group box — their lifetime is the async with block.','Right side: a bare create_task floats free of any scope; nothing in the language ties its lifetime to the parent.','Follow the right-hand chain to the failure mode: dropped reference → garbage collection mid-run, or an exception nobody retrieves.'],
+  interviewerNotice:['You can articulate WHY structure matters: ownership, strong references, guaranteed observation of failures.','You know the escape hatch (task sets + done callbacks) when fire-and-forget is truly intended.']}
+]}),
+mk({id:'python-cancellation-timeouts',domain:'python-core',title:'Cancellation, Timeouts & Deadlines',priority:5,
+intuition:'Cancellation is how asyncio reclaims work that is no longer worth doing; a timeout is just scheduled cancellation with a name.',
+technical:'task.cancel() arranges for CancelledError to be raised inside the coroutine at its next await point; the task is only "cancelled" if that exception propagates out. asyncio.timeout(delay) (3.11+) cancels the enclosing task at the deadline and converts the resulting CancelledError into TimeoutError at the context-manager boundary; wait_for(aw, t) cancels aw on timeout and raises TimeoutError. shield() lets an outer cancellation pass through while the inner awaitable continues. Because TaskGroup and timeout() are built on cancellation, swallowing CancelledError breaks structured shutdown.',
+deepDive:'Mechanics, per the docs: cancel() does not kill anything immediately — it arranges CancelledError to be thrown into the coroutine "on the next cycle of the event loop", which means at its next suspension point. A coroutine can catch it for cleanup (try/finally is the recommended pattern) but should re-raise; suppressing it requires calling uncancel() and is discouraged precisely because TaskGroup and asyncio.timeout() implement their semantics via cancellation. cancelled() returns True only when the CancelledError actually propagated.\n\nTimeouts are cancellation with a deadline. async with asyncio.timeout(2): cancels the current task when the deadline passes; the context manager catches that internal CancelledError and raises TimeoutError outside the block — so TimeoutError can only be caught outside the async with. wait_for is the older per-call form: on timeout it cancels the awaitable and raises TimeoutError (since 3.12 implemented via timeout(), no longer wrapping the coroutine in a Task). asyncio.wait(timeout=…) is different again: it never cancels anything and never raises — it returns (done, pending) sets.\n\nDeadline budgeting is the production skill. Stack five layers each with a 5s timeout and your worst case is 25s — worse than the client\'s patience. Budget one end-to-end deadline (often from the client\'s original request or a header), then allocate sub-deadlines: async with asyncio.timeout(remaining()) around each stage, rescheduling with Timeout.reschedule() when needed. shield is the surgical tool for "this work must survive this particular cancellation" — e.g., persisting a checkpoint while the request handler is being cancelled — and its docs note the caller still sees CancelledError even though the shielded task continues.\n\nCleanup correctness: connections, locks, semaphores, temp files must be released on cancellation — async with handles most of it; for manual paths use try/finally. In finally blocks, avoid awaits that can themselves be cancelled (use short, shielded operations). Un-retrieved exceptions of cancelled tasks are not logged (cancellation is not failure), but exceptions from failed background tasks still need retrieval.\n\nObservability: count cancellations per endpoint (client disconnects, timeouts), track where they spike — a rise usually means a downstream dependency got slow, and the timeout did its job. Distinguish TimeoutError (your budget expired) from CancelledError bubbling (someone above you gave up).',
+terms:['cancellation','CancelledError','uncancel()','deadline','timeout budget','shield','TimeoutError'],
+functions:['Task.cancel()','task.cancelled()','task.uncancel()','asyncio.timeout()','asyncio.timeout_at()','asyncio.wait_for()','asyncio.shield()','asyncio.wait()'],
+remember:['cancel() raises CancelledError at the next await — it is a request, delivered cooperatively.','Cancelled only if CancelledError propagates; catch → clean up → re-raise.','timeout() converts its internal cancellation into TimeoutError at the block boundary.','Budget one end-to-end deadline and allocate it; stacked independent timeouts multiply.','shield() protects inner work from outer cancellation; the caller is still cancelled.'],
+tradeoffs:['timeout() vs wait_for: reusable/reschedulable scope vs one-shot call wrapper.','Fail fast vs shield: bounded latency vs letting critical writes finish during shutdown.','Broad sub-timeouts vs deadline propagation: simple vs predictable end-to-end latency.'],
+failureModes:['Swallowed CancelledError: TaskGroup cleanup hangs, timeout() raises late or misbehaves, shutdown stalls.','Timeouts stacked per dependency: worst-case latency multiplies beyond any client budget.','await inside finally during cancellation: cleanup itself hangs — shield or make it synchronous.','Treating wait(timeout=) like wait_for: it neither cancels nor raises; pending tasks keep running.','Catching TimeoutError inside the async with block: impossible — the conversion happens at block exit.'],
+scaling:['At high RPS, timeout storms correlate with downstream slowness — keep per-stage budgets derived from one root deadline and emit metrics for deadline-exhaustion per dependency.'],
+security:['On client disconnect, cancellation must also stop privileged work (writes, side effects) — check cancellation before committing side effects, not only after.'],
+traps:['Assuming cancel() is immediate — work continues until the next await.','Suppressing CancelledError "to be safe" — breaks structured concurrency.','Confusing asyncio.wait (no cancel, no raise) with wait_for (cancels, raises).','Budgeting each dependency 5s and calling the API "5s" — the tail is the sum.','Using shield everywhere to "fix" flaky cancellations instead of fixing the underlying slowness.'],
+usedByYou:['Video-processing endpoints (football-intelligence) accept long jobs but the HTTP request itself stays deadline-bounded; client disconnects cancel handlers while job state persists — the shield-checkpoint pattern in miniature.'],
+codeTitle:'Timeout → TimeoutError (Python 3.11+; cancel() portion verified on 3.10)',
+code:`import asyncio
+
+async def slow_upstream():
+    await asyncio.sleep(5)
+    return 'too late'
+
+async def with_cleanup():
+    try:
+        async with asyncio.timeout(0.2):
+            result = await slow_upstream()
+            return result
+    except TimeoutError:
+        print('deadline hit; TimeoutError caught OUTSIDE the block scope')
+        return None
+    finally:
+        print('cleanup ran (connections/locks released)')
+
+async def main():
+    print('result:', await with_cleanup())
+
+    task = asyncio.create_task(asyncio.sleep(5, 'x'))
+    await asyncio.sleep(0.05)
+    task.cancel()                      # request, not immediate kill
+    try:
+        await task
+    except asyncio.CancelledError:
+        print('task cancelled():', task.cancelled())   # True only if it propagated
+
+asyncio.run(main())`,
+sources:['python-coroutines-tasks-docs','python-asyncio'],
+prerequisites:['python-taskgroup'],
+nextTopics:['async-semaphore-queue'],
+interviewAnswer:'Cancellation in asyncio is cooperative: cancel() arranges a CancelledError at the next await, the coroutine cleans up and re-raises, and the task only reports cancelled() if it propagated. Timeouts are scheduled cancellation — asyncio.timeout() cancels the enclosing task at the deadline and re-raises TimeoutError at the block boundary, so I budget one end-to-end deadline and allocate it to stages rather than stacking independent per-call timeouts whose tails multiply. I never swallow CancelledError because TaskGroup and timeout() are built on it, I use shield only where work must survive an outer cancellation, and I monitor cancellation counts per endpoint — a spike usually means a dependency got slow.',
+visuals:[
+ {type:'states',id:'py-cancellation-flow',w:800,h:250,
+  title:'Visual A — What actually happens on cancel() and on timeout',
+  purpose:'Trace a cancellation request from task.cancel() through the coroutine\'s next await to the two possible endings, and where asyncio.timeout() converts it into TimeoutError.',
+  nodes:[
+   {id:'req',x:16,y:96,w:150,h:52,label:'task.cancel()',cls:'cyan',start:true},
+   {id:'run',x:216,y:96,w:150,h:52,label:'running normally'},
+   {id:'awaitpt',x:416,y:96,w:170,h:52,label:'next await point',cls:'accent'},
+   {id:'raised',x:636,y:30,w:150,h:56,label:'CancelledError raised',cls:'green'},
+   {id:'suppressed',x:636,y:160,w:150,h:56,label:'suppressed',sub:'(needs uncancel — discouraged)',cls:''}
+  ],
+  edges:[
+   {from:'req',to:'run',points:[[166,122],[216,122]],label:'request pending'},
+   {from:'run',to:'awaitpt',points:[[366,122],[416,122]],label:'keeps running until…'},
+   {from:'awaitpt',to:'raised',points:[[586,116],[636,58]],label:'propagates',cls:'hot'},
+   {from:'awaitpt',to:'suppressed',points:[[586,128],[636,182]],label:'caught + not re-raised',cls:'arch-flow'}
+  ],
+  howToRead:['cancel() marks a pending request — nothing happens while the coroutine is running.','Only at the next await does the CancelledError appear, at a point the code chose to suspend.','Upper path: cleanup in finally, re-raise → task.cancelled() is True.','Lower path: swallowing the error "works" locally but breaks TaskGroup/timeout accounting — the discouraged path.'],
+  interviewerNotice:['You know cancellation is delivered at suspension points, not preemptively.','You know suppressed cancellation requires uncancel() and why structured tools break without it.']},
+ {type:'lanes',id:'py-cancellation-deadline-budget',w:800,h:352,axis:{label:'time →'},
+  title:'Visual B — One end-to-end deadline, allocated — not stacked',
+  purpose:'Show a 1.2s request budget divided across stages with asyncio.timeout(remaining): each stage gets whatever budget is left, so the total can never exceed the root deadline.',
+  rows:[
+   {label:'client budget',segments:[{from:0,to:600,label:'1.2 s end-to-end deadline',cls:'cyan'}]},
+   {label:'auth check',segments:[{from:0,to:80,label:'timeout(1.2)',cls:'green'}]},
+   {label:'DB query',segments:[{from:80,to:280,label:'timeout(remaining≈1.1)',cls:'green'},{from:280,to:320,label:'timed out',cls:'accent'}]},
+   {label:'fallback path',segments:[{from:320,to:480,label:'timeout(remaining≈0.7)',cls:'green'},{from:480,to:600,label:'respond (degraded)',cls:'cyan'}]}
+  ],
+  marks:[{at:280,label:'DB exceeded its share → cancelled'},{at:480,label:'answer ships inside the root deadline'}],
+  howToRead:['The top lane is the only real budget: 1.2s from the client.','Each stage wraps its work in asyncio.timeout() with the REMAINING budget, not a fresh constant.','The DB stage overruns its share at t≈280 and is cancelled — by design.','The handler degrades gracefully and still answers within the client\'s deadline.'],
+  interviewerNotice:['You propagate deadlines instead of stacking independent timeouts that multiply worst-case latency.','You treat a timeout as a routing decision (degrade), not just an error.']}
+]}),
 mk({id:'async-semaphore-queue',domain:'python-core',title:'Async Semaphore, Queue & Backpressure',priority:5,intuition:'Async lets you start thousands of operations; a semaphore and bounded queue stop you from overwhelming the dependency they all call.',technical:'asyncio.Semaphore caps concurrent access. asyncio.Queue(maxsize=N) makes producers await when consumers fall behind, turning unbounded memory growth into explicit backpressure.',remember:['Concurrency needs a limit tied to downstream capacity.','Bounded queues expose overload early.','Queue length and oldest-item age are saturation signals.'],terms:['semaphore','bounded queue','backpressure'],functions:['asyncio.Semaphore','asyncio.Queue','queue.put','queue.get'],interview:'I never equate “async” with “unlimited concurrency.” For GPU/model/DB calls I cap in-flight work with a semaphore or worker pool and use bounded queues so overload becomes measurable rather than memory growth.',usedByYou:['Your analytics queues and GPU services are exactly the kind of dependency that needs bounded concurrency.'],prerequisites:['python-event-loop','backpressure']}),
 mk({id:'async-db-pools',domain:'python-core',title:'Async Database Pools & Transaction Scope',priority:5,intuition:'A pool is a small set of expensive DB connections shared by many requests; making it huge does not create more database capacity.',technical:'Async drivers such as asyncpg/SQLAlchemy async acquire a connection per active DB operation. Pool size should match DB capacity and service replicas. Transactions should be short and never span slow external calls.',remember:['Pool size is a concurrency budget, not a throughput knob.','Too many app replicas × large pools can overwhelm Postgres.','Release connections before slow model/network work.'],terms:['connection pool','transaction scope','pool exhaustion'],functions:['asyncpg.create_pool','AsyncSession','async with session.begin()'],interview:'I size the pool from total database connection budget across replicas, set acquisition timeouts, keep transactions short, and expose pool wait time because a saturated pool is often the first sign the DB tier is under pressure.',usedByYou:['This directly connects your FastAPI/PostgreSQL services with the DB-load questions you were asked.'],prerequisites:['python-event-loop','db-connection-pooling']}),
 mk({id:'fastapi-lifecycle',domain:'python-core',title:'FastAPI Dependency Injection, Lifespan & Worker Model',priority:4,intuition:'Expensive clients should be created once per process and reused, while request-scoped resources should be opened and closed per request.',technical:'FastAPI dependencies express request-scoped contracts; lifespan manages app startup/shutdown. Uvicorn/Gunicorn workers are separate processes, so each gets its own clients, caches and memory.',remember:['One process = separate event loop and memory.','Use lifespan for DB/HTTP/model client initialization.','Do not create a new DB pool or HTTP client per request.'],terms:['lifespan','dependency injection','ASGI worker'],functions:['FastAPI(lifespan=...)','Depends','yield dependency'],interview:'I initialize reusable pools/clients in lifespan, inject request-scoped sessions with dependencies, and remember that multiple worker processes duplicate in-memory state—so shared coordination belongs in Redis/DB rather than a global dict.',usedByYou:['Vision Relay/FastAPI job-control services are a natural example.'],prerequisites:['fastapi-async','async-db-pools']}),
@@ -388,6 +616,7 @@ Object.assign(glossaryRaw,{
 D.glossary=Object.entries(glossaryRaw).map(([term,definition])=>({term,definition})).sort((a,b)=>a.term.localeCompare(b.term));
 
 D.sources.push(
+ {id:'python-asyncio-eventloop-docs',group:'Official docs',title:'Python docs — Event Loop',url:'https://docs.python.org/3/library/asyncio-eventloop.html',note:'Read for loop mechanics: call_soon FIFO ordering, monotonic call_later/call_at, selector-based I/O polling, run_in_executor offloading rules, getaddrinfo running in the default thread pool, debug mode and the 100ms slow-callback threshold.'},
  {id:'python-coroutines-tasks-docs',group:'Official docs',title:'Python docs — Coroutines and Tasks',url:'https://docs.python.org/3/library/asyncio-task.html',note:'Read for precise Task/Future semantics: create_task scheduling, weak references, cancellation, TaskGroup vs gather, Task inheriting Future APIs except set_result/set_exception.'},
  {id:'python-asyncio-futures-docs',group:'Official docs',title:'Python docs — Futures',url:'https://docs.python.org/3/library/asyncio-future.html',note:'Read for what a raw Future is: eventual-result holder bridging callback code with async/await; why app code should rarely create or expose Futures.'},
  {id:'python-asyncio',group:'Official docs',title:'Python asyncio — conceptual overview',url:'https://docs.python.org/3/howto/a-conceptual-overview-of-asyncio.html',note:'Event loop, coroutines, tasks and cooperative scheduling mental model.'},
