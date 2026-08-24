@@ -13,9 +13,9 @@ diagram keys render nothing and appear here as MISSING.
 
 | Status | Lessons |
 |--------|---------|
-| CUSTOM | 25 |
-| GENERIC-REGISTRY | 41 |
-| MISSING | 79 |
+| CUSTOM | 43 |
+| GENERIC-REGISTRY | 26 |
+| MISSING | 76 |
 | APPROVED | 22 |
 | **Total** | 167 |
 
@@ -43,19 +43,19 @@ diagram keys render nothing and appear here as MISSING.
 | reliability-patterns | Retries, Circuit Breakers, Bulkheads, DLQ & Outbox | P5 | reliability | MISSING | references unregistered "reliability" (renders nothing) |
 | load-balancing | Load Balancing | P5 | scale | GENERIC-REGISTRY | named renderer "scale" — semantic fit unreviewed |
 | horizontal-scaling | Horizontal vs Vertical Scaling & Statelessness | P5 | scale | GENERIC-REGISTRY | named renderer "scale" — semantic fit unreviewed |
-| redis-zset | Redis ZSET as a Work Queue | P5 | broker | GENERIC-REGISTRY | named renderer "broker" — semantic fit unreviewed |
-| redis-streams | Redis Streams & Consumer Groups | P5 | broker | GENERIC-REGISTRY | named renderer "broker" — semantic fit unreviewed |
-| rabbitmq-deep-dive | RabbitMQ: Exchanges, Ack, Prefetch, DLQ & Quorum Queues | P5 | broker | GENERIC-REGISTRY | named renderer "broker" — semantic fit unreviewed |
-| kafka-deep-dive | Kafka: Partitions, Keys, Offsets & Consumer Groups | P5 | kafka | MISSING | references unregistered "kafka" (renders nothing) |
-| mqtt | MQTT & Lightweight Pub/Sub | P4 | broker | GENERIC-REGISTRY | named renderer "broker" — semantic fit unreviewed |
-| broker-decision | Kafka vs RabbitMQ vs Redis vs MQTT vs Celery | P5 | broker | GENERIC-REGISTRY | named renderer "broker" — semantic fit unreviewed |
-| postgres-explain | PostgreSQL Query Planning & EXPLAIN | P5 | planner | GENERIC-REGISTRY | named renderer "planner" — semantic fit unreviewed |
-| postgres-indexes | PostgreSQL Indexes: Composite, Partial & Covering | P5 | db | GENERIC-REGISTRY | named renderer "db" — semantic fit unreviewed |
-| sql-joins | Join & Query Optimization | P4 | db | GENERIC-REGISTRY | named renderer "db" — semantic fit unreviewed |
-| db-connection-pooling | Connection Pooling | P5 | db | GENERIC-REGISTRY | named renderer "db" — semantic fit unreviewed |
-| db-load-reduction | Reduce Database Load: Cache, Replicas & Precomputation | P5 | db | GENERIC-REGISTRY | named renderer "db" — semantic fit unreviewed |
-| partitioning | Partitioning, Retention & Hot Tables | P4 | db | GENERIC-REGISTRY | named renderer "db" — semantic fit unreviewed |
-| transactions-locks | Transactions, Isolation, Locks & Contention | P4 | db | GENERIC-REGISTRY | named renderer "db" — semantic fit unreviewed |
+| redis-zset | Redis ZSET as a Work Queue | P5 | broker | CUSTOM | 2 visual spec(s) — review pending |
+| redis-streams | Redis Streams & Consumer Groups | P5 | broker | CUSTOM | 2 visual spec(s) — review pending |
+| rabbitmq-deep-dive | RabbitMQ: Exchanges, Ack, Prefetch, DLQ & Quorum Queues | P5 | broker | CUSTOM | 2 visual spec(s) — review pending |
+| kafka-deep-dive | Kafka: Partitions, Keys, Offsets & Consumer Groups | P5 | kafka | CUSTOM | 2 visual spec(s) — review pending |
+| mqtt | MQTT & Lightweight Pub/Sub | P4 | broker | CUSTOM | 2 visual spec(s) — review pending |
+| broker-decision | Kafka vs RabbitMQ vs Redis vs MQTT vs Celery | P5 | broker | CUSTOM | 1 visual spec(s) — review pending |
+| postgres-explain | PostgreSQL Query Planning & EXPLAIN | P5 | planner | CUSTOM | 2 visual spec(s) — review pending |
+| postgres-indexes | PostgreSQL Indexes: Composite, Partial & Covering | P5 | db | CUSTOM | 2 visual spec(s) — review pending |
+| sql-joins | Join & Query Optimization | P4 | db | CUSTOM | 2 visual spec(s) — review pending |
+| db-connection-pooling | Connection Pooling | P5 | db | CUSTOM | 2 visual spec(s) — review pending |
+| db-load-reduction | Reduce Database Load: Cache, Replicas & Precomputation | P5 | db | CUSTOM | 2 visual spec(s) — review pending |
+| partitioning | Partitioning, Retention & Hot Tables | P4 | db | CUSTOM | 2 visual spec(s) — review pending |
+| transactions-locks | Transactions, Isolation, Locks & Contention | P4 | db | CUSTOM | 2 visual spec(s) — review pending |
 | api-security | API Security: OAuth/OIDC, JWT, RBAC, mTLS & Secrets | P4 | security | MISSING | references unregistered "security" (renders nothing) |
 | multi-tenancy | Multi-Tenancy & Data Isolation | P4 | security | MISSING | references unregistered "security" (renders nothing) |
 | observability-slos | Metrics, Logs, Traces, SLOs & Alerting | P5 | trace | MISSING | references unregistered "trace" (renders nothing) |
@@ -68,9 +68,9 @@ diagram keys render nothing and appear here as MISSING.
 | context-engineering | Context Engineering | P4 | harness | CUSTOM | 2 visual spec(s) — review pending |
 | model-caching | AI Caching & Request Deduplication | P3 | scale | CUSTOM | 2 visual spec(s) — review pending |
 | queueing-capacity | Capacity Planning & Queueing Intuition | P4 | scale | GENERIC-REGISTRY | named renderer "scale" — semantic fit unreviewed |
-| idempotency | Idempotency & Delivery Semantics | P5 | reliability | MISSING | references unregistered "reliability" (renders nothing) |
-| cache-patterns | Caching Patterns & Stampede Control | P4 | db | GENERIC-REGISTRY | named renderer "db" — semantic fit unreviewed |
-| read-replicas | Read Replicas & Consistency | P4 | db | GENERIC-REGISTRY | named renderer "db" — semantic fit unreviewed |
+| idempotency | Idempotency & Delivery Semantics | P5 | reliability | CUSTOM | 2 visual spec(s) — review pending |
+| cache-patterns | Caching Patterns & Stampede Control | P4 | db | CUSTOM | 2 visual spec(s) — review pending |
+| read-replicas | Read Replicas & Consistency | P4 | db | CUSTOM | 2 visual spec(s) — review pending |
 | microservices-boundaries | Monolith vs Microservices & Boundaries | P4 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
 | api-rate-limits | Rate Limiting, Quotas & Fairness | P4 | scale | GENERIC-REGISTRY | named renderer "scale" — semantic fit unreviewed |
 | docker-cicd | Docker, CI/CD & Safe Releases | P3 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
@@ -184,8 +184,8 @@ diagram keys render nothing and appear here as MISSING.
 | testing-pyramid | Testing Pyramid, Contracts & Integration Tests | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | python-args-kwargs | Python *args, **kwargs & Function Signatures | P4 | generic | APPROVED | 2 purpose-built visuals |
 | python-scope-methods | LEGB Scope, classmethod, staticmethod & Dunder Methods | P4 | generic | APPROVED | 2 purpose-built visuals |
-| db-normalization-bcnf | Database Normalization: 1NF → 2NF → 3NF → BCNF | P5 | db | GENERIC-REGISTRY | named renderer "db" — semantic fit unreviewed |
-| sql-window-cte | SQL CTEs, Window Functions & Pagination | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
+| db-normalization-bcnf | Database Normalization: 1NF → 2NF → 3NF → BCNF | P5 | db | CUSTOM | 2 visual spec(s) — review pending |
+| sql-window-cte | SQL CTEs, Window Functions & Pagination | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
 | docker-fundamentals | Docker Fundamentals: Image, Container, Layers & Namespaces | P5 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
 | docker-network-volumes | Docker Networking, Volumes & Health Checks | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | kubernetes-core | Kubernetes Core: Pod, Deployment, Service, Config & Probes | P5 | scale | GENERIC-REGISTRY | named renderer "scale" — semantic fit unreviewed |
