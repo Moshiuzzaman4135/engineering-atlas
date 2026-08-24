@@ -242,7 +242,107 @@ visuals:[
   interviewerNotice:['You never reach for a retry loop before asking what KIND of failure occurred.','You know why CancelledError/KeyboardInterrupt must not be caught by broad handlers.']}
 ]}),
 mk({id:'python-typing-dataclasses',domain:'python-core',title:'Type Hints, Dataclasses & Pydantic Boundaries',priority:3,intuition:'Types make contracts visible; validation libraries enforce data at runtime where external input enters.',technical:'Python annotations aid static analysis but do not enforce runtime types by themselves. dataclasses reduce boilerplate for internal records; Pydantic validates/parses external API/config data and produces schemas.',remember:['Type hints document and check contracts statically.','Validate untrusted input at boundaries.','Do not turn every internal object into a heavy validation model.'],terms:['type annotation','dataclass','schema validation'],functions:['@dataclass','typing.Protocol','pydantic.BaseModel'],interview:'I use Pydantic at FastAPI boundaries and lighter dataclasses or typed objects internally. That keeps validation where it adds value without coupling the entire domain to the web schema.'}),
-mk({id:'python-oop-solid',domain:'python-core',title:'OOP & SOLID in Python',priority:4,intuition:'Good OOP groups behavior with the state it owns and hides unstable details behind clear interfaces.',technical:'Encapsulation protects invariants; polymorphism lets callers depend on contracts; composition is often safer than deep inheritance. SOLID is a set of design heuristics, not laws.',remember:['Prefer composition over deep inheritance.','Dependency inversion means domain code depends on abstractions, not infrastructure details.','Single responsibility is about reasons to change.'],terms:['encapsulation','polymorphism','composition','dependency inversion'],functions:['abc.ABC','typing.Protocol','super()'],interview:'In Python I often use Protocols or small interfaces and inject adapters—for example a vector-store or model-provider abstraction—so business logic is testable and infrastructure can change.',usedByYou:['Provider abstraction in your AI gateway/RAG work is a natural dependency-inversion example.']}),
+mk({id:'python-oop-solid',domain:'python-core',title:'OOP & SOLID in Python',priority:4,
+intuition:'Good OOP groups behavior with the state it owns and lets callers depend on contracts instead of concrete classes — in Python, contracts are usually Protocols, not inheritance trees.',
+technical:'Python classes are runtime objects with attribute dictionaries; all methods are effectively virtual (a base-class method calling self.helper() dispatches to any override), attribute lookup checks the instance before the class, and multiple inheritance is linearized by the dynamic MRO so super() cooperates across diamonds. There is no enforced privacy: _name is convention, __name is mangled to _Class__name to avoid subclass clashes, not to hide. SOLID maps to Python as: small classes (SRP), extend via new implementations not edits (OCP), respect override contracts (LSP), narrow Protocols (ISP), and depend on Protocol/ABC abstractions injected from outside (DIP).',
+deepDive:'The mechanics first, because SOLID debates collapse without them. Attribute lookup reads instance __dict__ before class, then walks the MRO. All methods are virtual — the tutorial is explicit that a base method calling another base method "may end up calling a method of a derived class that overrides it". That makes template-method patterns work AND makes fragile-base-class problems real: refactor a base class\'s internal helper and subclasses that overrode it silently change behavior. super() is not "call my parent" — it is "call the next class in the MRO", which in diamonds (class D(B, C), B and C both extend A) visits each class exactly once, enabling cooperative multiple inheritance like mixins.\n\nThe mutable class-variable trap is the classic Python OOP bug (the tutorial\'s Dog.tricks example): class attributes are SHARED, so tricks = [] at class level gives every instance the same list. Class variables are for constants and shared state; per-instance state belongs in __init__ via self. Also remember there is no data hiding: clients can stamp on your attributes; privacy is convention (_prefix) plus name mangling (__prefix → _Class__prefix) whose real purpose is letting subclasses override methods without breaking intraclass calls.\n\nNow SOLID, honestly weighted for Python. SRP: one reason to change per class/module — in Python, a module IS a unit of cohesion; god-objects grow around request handlers. OCP: open for extension — Pythonic OCP is usually "accept a callable/Protocol and add implementations", not class hierarchies. LSP: because methods are virtual, every subclass is a live substitution risk — overrides must honor pre/post-conditions, or isinstance-based dispatch upstream breaks. ISP: Python\'s typing.Protocol makes small interfaces nearly free — a consumer defines the 2 methods it needs, and any object satisfying them works without declaration (structural typing). DIP: domain code declares Protocols; infrastructure adapters implement them; composition roots (FastAPI dependencies, __init__ injection) wire concretes — this is exactly provider abstraction in model gateways and vector stores.\n\nComposition vs inheritance: default to composition — a VideoProcessor HAS a Detector, a Tracker, a Store; it is not a subclass of any of them. Inheritance earns its place for genuine is-a with shared invariant (exception hierarchies, ABC collections, Django-style frameworks, mixins used sparingly). Deep hierarchies + virtual methods + mutable class state are where Python OOP codebases rot.\n\nTesting payoff: DIP done via Protocol makes fakes trivial — a FakeVectorStore implementing the 3-method Protocol replaces ChromaDB in tests with no mocking library, because the domain never imported the concrete class.',
+terms:['MRO','virtual method','structural typing','Protocol','ABC','name mangling','composition over inheritance','mixin','cooperative super()'],
+functions:['typing.Protocol','abc.ABC/abstractmethod','super()','isinstance/issubclass','@dataclass','__slots__','classmethod/staticmethod','property'],
+remember:['All Python methods are virtual — overrides change base-class behavior silently; design LSP seriously.','Instance attribute shadows class attribute; mutable class variables are shared state, not defaults.','Protocol = structural interface: small, declaration-free, ideal for ISP/DIP.','super() follows the MRO (cooperative), not "the parent".','Privacy is convention (_x) or clash-avoidance (__x mangling) — never a security boundary.'],
+tradeoffs:['Inheritance vs composition: shared invariant and framework hooks vs flexibility and testability — compose by default.','Protocol vs ABC: structural, no inheritance required vs nominal with shared behavior and runtime checks.','Duck typing vs isinstance: flexible vs explicit contracts at boundaries (validate with Protocol/isinstance where inputs are untrusted).'],
+failureModes:['Mutable class variable shared across instances (the tricks=[] bug).','Fragile base class: internal refactor breaks overriding subclasses — virtual methods cut both ways.','God object accumulating request parsing, business rules and persistence — SRP death by a thousand commits.','LSP violation: subclass raising NotImplementedError for an inherited method — callers explode.'],
+scaling:['As teams grow, Protocols at module edges keep coupling low — infrastructure swaps stop being cross-team incidents.','__slots__ cuts per-instance memory for millions of small objects; dataclasses(slots=True) combines ergonomics with the win.'],
+security:['Name mangling is NOT access control — secrets in __attributes remain readable; keep secrets out of objects entirely.','Validate untrusted input at boundaries (Pydantic/Protocol checks) rather than trusting duck typing from external sources.'],
+traps:['Declaring "Python has no OOP enforcement so SOLID does not apply" — the principles are about change management, not language features.','super().__init__() forgotten in subclass __init__ — inherited setup silently skipped.','Using inheritance to reuse 2 lines of code — the strongest coupling Python offers, bought for the weakest reason.','isinstance chains instead of polymorphism — every new type edits the dispatcher (OCP violation).'],
+usedByYou:['The AI gateway / RAG provider abstraction (model providers, vector stores behind one interface) is textbook DIP: domain code depends on a Protocol, concrete providers are injected — swap OpenAI-compatible endpoints, Ollama or Triton without touching business logic.'],
+codeTitle:'DIP with Protocol: swap infrastructure without touching domain (verified runnable)',
+code:`from typing import Protocol, runtime_checkable
+
+@runtime_checkable
+class Notifier(Protocol):                    # the DOMAIN owns this contract
+    def send(self, to: str, message: str) -> None: ...
+
+class EmailNotifier:                          # infrastructure adapter
+    def send(self, to, message):
+        print(f'email -> {to}: {message}')
+
+class SmsNotifier:
+    def send(self, to, message):
+        print(f'sms   -> {to}: {message}')
+
+class FakeNotifier:                           # test double — no mocking lib
+    def __init__(self): self.sent = []
+    def send(self, to, message):
+        self.sent.append((to, message))
+
+class AlertService:                           # domain: depends on Protocol only
+    def __init__(self, notifier: Notifier):
+        self.notifier = notifier              # composition + injection
+    def alert(self, to, message):
+        self.notifier.send(to, f'[alert] {message}')
+
+# composition root wires concretes:
+service = AlertService(EmailNotifier())
+service.alert('ops@example.com', 'GPU queue depth high')
+
+test_service = AlertService(FakeNotifier())
+test_service.alert('ops@example.com', 'disk almost full')
+print('fake captured:', test_service.notifier.sent)
+print('structural check:', isinstance(test_service.notifier, Notifier))`,
+sources:['python-tutorial-classes','python-typing-protocol-docs'],
+prerequisites:['python-object-model'],
+nextTopics:['python-typing-dataclasses','python-exceptions'],
+interviewAnswer:'Python makes every method virtual and every attribute overridable, so my OOP discipline is about managing change: compose by default, inherit only for genuine is-a with shared invariants, and treat SOLID as heuristics — SRP as one reason to change, OCP as accepting implementations instead of editing dispatchers, LSP seriously because overrides silently change base behavior, and ISP/DIP through typing.Protocol: the domain declares small structural interfaces, infrastructure adapters implement them, and a composition root injects concretes. That gives me free test doubles — a Fake implementing the Protocol replaces the real vector store with no mocking library. I also respect the sharp edges: mutable class variables are shared state, super() follows the MRO not "the parent", and name mangling is clash avoidance, not privacy.',
+visuals:[
+ {type:'flow',id:'py-oop-composition-map',w:800,h:320,
+  title:'Visual A — Composition + Protocol vs inheritance tree',
+  purpose:'Contrast a deep inheritance tree (coupled, fragile base class) with composition around a Protocol (independent, swappable parts).',
+  nodes:[
+   {id:'base',x:60,y:20,w:180,h:50,label:'BaseProcessor',cls:'cyan'},
+   {id:'mid',x:30,y:110,w:110,h:46,label:'ImageProc'},
+   {id:'vid',x:160,y:110,w:110,h:46,label:'VideoProc'},
+   {id:'leaf',x:95,y:196,w:110,h:46,label:'ANPRProc',cls:'accent'},
+   {id:'dom',x:430,y:100,w:150,h:60,label:'AlertService',sub:'depends on Protocol',cls:'green'},
+   {id:'prot',x:620,y:100,w:150,h:60,label:'Notifier Protocol',sub:'send() — that is all',cls:'accent'},
+   {id:'e1',x:430,y:200,w:120,h:46,label:'Email',cls:'green'},
+   {id:'e2',x:570,y:200,w:120,h:46,label:'SMS',cls:'green'},
+   {id:'e3',x:710,y:200,w:80,h:46,label:'Fake',cls:'green'}
+  ],
+  edges:[
+   {from:'mid',to:'base',points:[[85,110],[120,70]],cls:'arch-flow'},
+   {from:'vid',to:'base',points:[[215,110],[170,70]],cls:'arch-flow'},
+   {from:'leaf',to:'vid',points:[[150,196],[200,156]],label:'override risk',cls:'hot'},
+   {from:'dom',to:'prot',points:[[580,130],[620,130]],label:'uses',cls:'hot'},
+   {from:'e1',to:'dom',points:[[490,200],[490,160]],cls:'arch-flow'},
+   {from:'e2',to:'dom',points:[[630,200],[540,160]],cls:'arch-flow'},
+   {from:'e3',to:'dom',points:[[750,200],[560,160]],label:'tests',cls:'arch-flow'}
+  ],
+  howToRead:['Left: a tree. ANPRProc inherits from VideoProc which overrides BaseProcessor — every override can change what base methods do (virtual dispatch).','One refactor of BaseProcessor ripples through the whole tree: the fragile base class.','Right: AlertService knows ONE method — the Protocol. Email, SMS and a test Fake plug in without the domain ever importing them.','New behavior = new adapter, not edits to a hierarchy: that is OCP in practice.'],
+  interviewerNotice:['You justify composition with the virtual-method/fragile-base argument, not fashion.','You know Protocol gives DIP without forcing an inheritance relationship.']},
+ {type:'flow',id:'py-oop-solid-map',w:800,h:300,
+  title:'Visual B — SOLID translated into Python mechanisms',
+  purpose:'Map each SOLID principle to the concrete Python tool that expresses it, so the principles become reviewable code decisions.',
+  nodes:[
+   {id:'srp',x:20,y:30,w:170,h:56,label:'SRP',sub:'one reason to change',cls:'cyan'},
+   {id:'ocp',x:20,y:110,w:170,h:56,label:'OCP',sub:'extend without editing'},
+   {id:'lsp',x:20,y:190,w:170,h:56,label:'LSP',sub:'overrides keep contracts'},
+   {id:'isp',x:290,y:70,w:170,h:56,label:'ISP',sub:'small consumer-defined',cls:'cyan'},
+   {id:'dip',x:290,y:170,w:170,h:56,label:'DIP',sub:'depend on abstractions',cls:'cyan'},
+   {id:'m1',x:560,y:30,w:210,h:56,label:'modules · small classes',cls:'green'},
+   {id:'m2',x:560,y:110,w:210,h:56,label:'Protocol + new adapters',cls:'green'},
+   {id:'m3',x:560,y:190,w:210,h:56,label:'virtual methods + tests',cls:'green'},
+   {id:'m4',x:290,y:250,w:170,h:44,label:'1–2 method Protocols',cls:'green'}
+  ],
+  edges:[
+   {from:'srp',to:'m1',points:[[190,58],[560,58]],cls:'arch-flow'},
+   {from:'ocp',to:'m2',points:[[190,138],[560,138]],label:'typing',cls:'hot'},
+   {from:'lsp',to:'m3',points:[[190,218],[560,218]],cls:'arch-flow'},
+   {from:'isp',to:'m4',points:[[375,126],[375,250]],cls:'arch-flow'},
+   {from:'dip',to:'m4',points:[[375,226],[375,250]],cls:'arch-flow'}
+  ],
+  howToRead:['Each principle lands on a concrete Python mechanism — not vibes.','SRP: modules and small classes are the units of cohesion in Python.','OCP + DIP: Protocols with injected adapters (the composition root wires concretes).','LSP is enforced by tests on subclasses precisely because all methods are virtual.','ISP: consumers define the 1–2 method Protocol THEY need — providers just satisfy it.'],
+  interviewerNotice:['You can name the Python tool for each principle without hesitation.','You treat SOLID as change-management heuristics with mechanisms, not commandments.']}
+]}),
 mk({id:'python-gil',domain:'python-core',title:'GIL, Threads & CPU-bound Work',priority:5,
 intuition:'Python threads are excellent for waiting, but in standard CPython only one thread executes Python bytecode at any instant — so CPU-heavy Python code does not get faster by adding threads.',
 technical:'Per the official glossary, the global interpreter lock is "the mechanism used by CPython to assure that only one thread executes Python bytecode at a time." It makes the object model implicitly safe against concurrent access, at the cost of CPU parallelism. The GIL is released during blocking I/O and by extension modules that deliberately drop it for heavy C work (NumPy, hashing, compression). Since Python 3.13 a free-threaded build (--disable-gil, PEP 703) can run bytecode on multiple cores with per-object locking.',
@@ -1168,6 +1268,8 @@ Object.assign(glossaryRaw,{
 D.glossary=Object.entries(glossaryRaw).map(([term,definition])=>({term,definition})).sort((a,b)=>a.term.localeCompare(b.term));
 
 D.sources.push(
+ {id:'python-tutorial-classes',group:'Official docs',title:'Python tutorial — Classes',url:'https://docs.python.org/3/tutorial/classes.html',note:'Read for class/instance variables, virtual-method semantics, MRO and cooperative super(), private-by-convention and name mangling, dataclass records.'},
+ {id:'python-typing-protocol-docs',group:'Official docs',title:'Python docs — typing.Protocol',url:'https://docs.python.org/3/library/typing.html#typing.Protocol',note:'Structural subtyping: declaration-free interfaces for ISP/DIP, runtime_isinstance with @runtime_checkable.'},
  {id:'python-tutorial-errors',group:'Official docs',title:'Python tutorial — Errors and Exceptions',url:'https://docs.python.org/3/tutorial/errors.html',note:'Read for except matching order and subclass rules, implicit/explicit chaining (raise from / from None), finally return-swallowing (PEP 765 warning), ExceptionGroup/except*, add_note().'},
  {id:'python-glossary-generators',group:'Official docs',title:'Python glossary — generator / iterator terms',url:'https://docs.python.org/3/glossary.html#term-generator',note:'Read for precise definitions: generator function/iterator/expression, yield suspending frame state, send()/throw(), single-pass semantics.'},
  {id:'python-reference-generators',group:'Official docs',title:'Python language reference — Yield expressions',url:'https://docs.python.org/3/reference/expressions.html#yieldexpr',note:'Authoritative yield/yield from semantics: frame suspension, StopIteration.value from return, generator close/throw protocol.'},
