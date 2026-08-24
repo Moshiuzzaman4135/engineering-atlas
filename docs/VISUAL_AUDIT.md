@@ -13,9 +13,9 @@ diagram keys render nothing and appear here as MISSING.
 
 | Status | Lessons |
 |--------|---------|
-| CUSTOM | 102 |
+| CUSTOM | 122 |
 | APPROVED | 22 |
-| MISSING | 36 |
+| MISSING | 16 |
 | GENERIC-REGISTRY | 7 |
 | **Total** | 167 |
 
@@ -101,26 +101,26 @@ diagram keys render nothing and appear here as MISSING.
 | async-db-pools | Async Database Pools & Transaction Scope | P5 | generic | APPROVED | 2 purpose-built visuals |
 | fastapi-lifecycle | FastAPI Dependency Injection, Lifespan & Worker Model | P4 | generic | APPROVED | 2 purpose-built visuals |
 | python-profiling | Python Profiling: CPU, Memory & Event-loop Lag | P4 | generic | APPROVED | 2 purpose-built visuals |
-| ml-train-val-test | Train / Validation / Test Splits | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| ml-bias-variance | Bias–Variance Trade-off | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| ml-overfitting-regularization | Overfitting & Regularization | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| ml-gradient-descent | Gradient Descent, Learning Rate & Optimizers | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| ml-loss-functions | Loss Functions: Cross-Entropy, BCE, MSE & Focal Loss | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| ml-metrics | Precision, Recall, F1, ROC-AUC & PR-AUC | P5 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| ml-regression-metrics | Regression Metrics: MAE, MSE, RMSE & R² | P2 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| ml-cross-validation | Cross-Validation & Hyperparameter Search | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| ml-feature-scaling | Feature Scaling & Normalization | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| ml-data-leakage | Data Leakage & Shortcut Learning | P5 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| ml-class-imbalance | Class Imbalance & Threshold Tuning | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| ml-embeddings | Embeddings: Turning Meaning into Vectors | P5 | vector | MISSING | references unregistered "vector" (renders nothing) |
-| cosine-similarity | Cosine Similarity & Thresholds | P5 | vector | MISSING | references unregistered "vector" (renders nothing) |
-| ml-knn | K-Nearest Neighbors | P2 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| ml-svm | SVM, Margin & Kernels | P2 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| ml-tree-ensembles | Decision Trees, Random Forest & Gradient Boosting | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| ml-neural-net-basics | Neural Network Fundamentals | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| ml-cnn-basics | CNN Fundamentals: Convolution, Receptive Field & Pooling | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| ml-transfer-learning | Transfer Learning & Fine-Tuning | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| ml-drift | Data Drift, Concept Drift & Model Monitoring | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
+| ml-train-val-test | Train / Validation / Test Splits | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| ml-bias-variance | Bias–Variance Trade-off | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| ml-overfitting-regularization | Overfitting & Regularization | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| ml-gradient-descent | Gradient Descent, Learning Rate & Optimizers | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| ml-loss-functions | Loss Functions: Cross-Entropy, BCE, MSE & Focal Loss | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| ml-metrics | Precision, Recall, F1, ROC-AUC & PR-AUC | P5 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| ml-regression-metrics | Regression Metrics: MAE, MSE, RMSE & R² | P2 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| ml-cross-validation | Cross-Validation & Hyperparameter Search | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| ml-feature-scaling | Feature Scaling & Normalization | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| ml-data-leakage | Data Leakage & Shortcut Learning | P5 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| ml-class-imbalance | Class Imbalance & Threshold Tuning | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| ml-embeddings | Embeddings: Turning Meaning into Vectors | P5 | vector | CUSTOM | 1 visual spec(s) — review pending |
+| cosine-similarity | Cosine Similarity & Thresholds | P5 | vector | CUSTOM | 1 visual spec(s) — review pending |
+| ml-knn | K-Nearest Neighbors | P2 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| ml-svm | SVM, Margin & Kernels | P2 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| ml-tree-ensembles | Decision Trees, Random Forest & Gradient Boosting | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| ml-neural-net-basics | Neural Network Fundamentals | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| ml-cnn-basics | CNN Fundamentals: Convolution, Receptive Field & Pooling | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| ml-transfer-learning | Transfer Learning & Fine-Tuning | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| ml-drift | Data Drift, Concept Drift & Model Monitoring | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
 | cv-image-representation | Images as Tensors: Shape, Color & Normalization | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | cv-preprocessing | Resize, Letterbox, Augmentation & Preprocessing Parity | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | yolo-architecture | YOLO Architecture: Backbone, Neck & Detection Head | P5 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |

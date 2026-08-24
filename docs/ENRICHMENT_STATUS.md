@@ -10,7 +10,7 @@ CURRENT_COMMIT: (this wave — see git log)
 CURRENT_DOMAIN: all domains enriched except ml-foundations (20) + vision-ai (23)
 LAST_COMPLETED_WAVE: Waves 0–2 done; ai-runtime/inference/database/messaging/
   distributed/system-design/platform/cs-core ALL have purpose-built visuals
-  + deepDives (131/167 lessons now render visuals; 36 remain: ml+vision)
+  + deepDives (151/167 lessons now render visuals; vision-ai's 16 remain)
 LAST_FULL_TEST_RESULT: PASS — 66/66 (node --check all + node --test)
 LAST_BROWSER_RESULT: PASS — smoke test (route/topic/lab render + spec bounds)
   clean; screenshots inspected for agent-runtime, model-routing, vllm-serving,
@@ -18,9 +18,16 @@ LAST_BROWSER_RESULT: PASS — smoke test (route/topic/lab render + spec bounds)
   object-model, mutable-immutable, copying at 1280px dark
 
 DOMAINS_COMPLETED: ai-runtime, inference, database, messaging, distributed,
-  system-design, platform, cs-core, python-core (Wave 2)
+  system-design, platform, cs-core, python-core, ml-foundations (ALL 20 ml
+  lessons now have 2 purpose-built visuals + deepDives)
 DOMAINS_IN_PROGRESS: none (between waves)
-DOMAINS_REMAINING: ml-foundations (20 lessons), vision-ai (23 lessons)
+DOMAINS_REMAINING: vision-ai ONLY (23 lessons: cv-image-representation,
+  cv-preprocessing, yolo-architecture, yolo-loss, iou-nms, yolo-anchorfree,
+  yolo-training-debug, object-tracking, sort-deepsort, kalman-filter,
+  hungarian, anpr-end-to-end, plate-recognition, temporal-voting,
+  mmc-pipeline, motion-detection, scene-detection, face-recognition-pipeline,
+  arcface, faiss-ann, multimodal-embeddings, video-sampling,
+  video-context-fusion)
 
 RESEARCH_COMPLETED: see docs/SOURCES.md — datamodel, contextlib, dataclasses,
   profile, FastAPI lifespan, asyncpg, PG EXPLAIN recorded; in-app curated
@@ -57,16 +64,19 @@ NEXT_EXACT_TASK: ml-foundations + vision-ai batches, using the proven pipeline:
     7. Then: add all new ids to APPROVED in tools/visual-audit.mjs AND
        tests/visual-semantics.test.js; regenerate docs/VISUAL_AUDIT.md;
        update this file; final commit.
-    ML visual ideas (1-2 per lesson, purpose-first): train/val/test = matrix
-    of data splits + leakage arrows; bias-variance = plot (2 curves +
-    sweet spot); gradient descent = plot (loss surface contours → steps);
-    metrics = matrix (confusion matrix) + plot (PR curve); embeddings =
-    flow (text→vector→space) + plot (cosine geometry); drift = plot
-    (distribution shift over time); CNN = flow (conv/pool/feature maps);
-    YOLO = flow (backbone→neck→head grid); IoU/NMS = matrix of boxes or
-    flow (score-sorted suppression); tracking = lanes (detections→tracks
-    over frames); ANPR end-to-end = flow with failure paths; FAISS =
-    flow (index build→query→rerank); ArcFace = plot (angular margin).
+    ML is DONE (batch /tmp/opencode/batchN.mjs pattern — copy its structure).
+    Vision visual ideas (2 per lesson, purpose-first): YOLO = flow
+    (backbone→neck→head grid cells); IoU/NMS = flow (score-sorted
+    suppression steps) + matrix (IoU thresholds); tracking = lanes
+    (detections→tracks over frames); Kalman = states (predict/update
+    cycle); Hungarian = matrix (cost grid + assignments); ANPR end-to-end
+    = flow WITH FAILURE PATHS; plate OCR = flow (crop→rectify→sequence
+    model→confidence); temporal voting = lanes (frames→votes→decision);
+    MMC = flow (multi-task heads); motion = flow (frame diff→bg model);
+    face pipeline = flow (detect→align→embed→search with thresholds);
+    ArcFace = plot (angular margin geometry); FAISS = flow (build→query
+    →rerank); CLIP = flow (two towers→shared space); video-sampling =
+    plot (fps vs cost/accuracy); scene detection = lanes (shots→sampling).
     Vision lessons live in js/data.js (T() format) — verify with grep first.
     NOTE: patch-lessons.mjs merges extraTraps/extraFailureModes via T()/mk()
     (T() already patched to merge). Keep deepDives 2-3 paragraphs, honest
