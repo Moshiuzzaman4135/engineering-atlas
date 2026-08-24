@@ -6,9 +6,16 @@ const esc=s=>String(s||'').replace(/[&<>"']/g,c=>'&'+ENT[c]+';');
 /* ---------- primitives ---------- */
 function defs(){return '<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#52617e"/></marker><marker id="arrow-hot" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#8b5cf6"/></marker></defs>';}
 function node(x,y,w,h,label,cls){return `<rect class="arch-node ${cls||''}" x="${x}" y="${y}" rx="10" width="${w}" height="${h}"/><text x="${x+w/2}" y="${y+h/2+4}" text-anchor="middle">${esc(label)}</text>`;}
+function fitFont(text,px,max,bold){if(!text)return max;const per=bold?0.62:0.55;return Math.max(6.5,Math.min(max,px/(text.length*per)));}
 function labeled(x,y,w,h,label,sub,cls,top){
- if(top){let t=`<text x="${x+w/2}" y="${y+18}" text-anchor="middle" font-weight="600">${esc(label)}</text>`;if(sub)t+=`<text class="arch-label" x="${x+w/2}" y="${y+32}" text-anchor="middle">${esc(sub)}</text>`;return `<rect class="arch-node ${cls||''}" x="${x}" y="${y}" rx="10" width="${w}" height="${h}"/>${t}`;}
- let t=`<text x="${x+w/2}" y="${sub?y+h/2-2:y+h/2+4}" text-anchor="middle" font-weight="600">${esc(label)}</text>`;if(sub)t+=`<text class="arch-label" x="${x+w/2}" y="${y+h/2+13}" text-anchor="middle">${esc(sub)}</text>`;return `<rect class="arch-node ${cls||''}" x="${x}" y="${y}" rx="10" width="${w}" height="${h}"/>${t}`;
+ if(top){const ls=fitFont(label,w,w,true),ss=sub?fitFont(sub,w,9.5,false):0;
+  let t=`<text x="${x+w/2}" y="${y+18}" text-anchor="middle" font-weight="600" style="font-size:${ls}px">${esc(label)}</text>`;
+  if(sub)t+=`<text class="arch-label" x="${x+w/2}" y="${y+18+(ls>11?14:12)}" text-anchor="middle" style="font-size:${ss}px">${esc(sub)}</text>`;
+  return `<rect class="arch-node ${cls||''}" x="${x}" y="${y}" rx="10" width="${w}" height="${h}"/>${t}`;}
+ const ls=fitFont(label,w,12,true),ss=sub?fitFont(sub,w,9.5,false):0;
+ let t=`<text x="${x+w/2}" y="${sub?y+h/2-2:y+h/2+4}" text-anchor="middle" font-weight="600" style="font-size:${ls}px">${esc(label)}</text>`;
+ if(sub)t+=`<text class="arch-label" x="${x+w/2}" y="${y+h/2+13}" text-anchor="middle" style="font-size:${ss}px">${esc(sub)}</text>`;
+ return `<rect class="arch-node ${cls||''}" x="${x}" y="${y}" rx="10" width="${w}" height="${h}"/>${t}`;
 }
 function edge(x1,y1,x2,y2,cls,label){const m=`url(#${/hot/.test(cls||'')?'arrow-hot':'arrow'})`;return `<path class="arch-edge ${cls||''}" d="M${x1},${y1} L${x2},${y2}" marker-end="${m}"/>${label?`<text class="arch-label" x="${(x1+x2)/2}" y="${(y1+y2)/2-5}" text-anchor="middle">${esc(label)}</text>`:''}`;}
 function polyline(pts,cls,label){const d='M'+pts.map(p=>p.join(',')).join(' L');const mid=pts[Math.floor(pts.length/2)-Math.max(1,pts.length%2)];const a=pts[Math.floor((pts.length-1)/2)],b=pts[Math.ceil((pts.length-1)/2)+ (pts.length>2?0:0)]||a;const lx=(a[0]+b[0])/2,ly=(a[1]+b[1])/2;const m=`url(#${/hot/.test(cls||'')?'arrow-hot':'arrow'})`;return `<path class="arch-edge ${cls||''}" d="${d}" marker-end="${m}"/>${label?`<text class="arch-label" x="${lx}" y="${ly-5}" text-anchor="middle">${esc(label)}</text>`:''}`;}
@@ -57,10 +64,11 @@ function renderLanes(v){
  b+=`<text class="arch-label" x="${x0}" y="16">${esc((v.axis&&v.axis.label)||'time →')}</text>`;
  rows.forEach((r,i)=>{
   const y=34+i*64;
-  b+=`<text x="10" y="${y+22}" text-anchor="start" font-weight="600">${esc(r.label)}</text>`;
+  b+=`<text x="10" y="${y+22}" text-anchor="start" font-weight="600" font-size="${fitFont(r.label,150,11,true)}px">${esc(r.label)}</text>`;
   (r.segments||[]).forEach(s=>{
-   const sx=x0+s.from,sx2=x0+s.to;
-   b+=`<rect class="arch-node ${s.cls||''}" x="${sx}" y="${y}" rx="7" width="${Math.max(sx2-sx,4)}" height="44"/><text x="${(sx+sx2)/2}" y="${y+26}" text-anchor="middle" font-size="9px">${esc(s.label)}</text>`;
+   const sx=x0+s.from,sx2=x0+s.to;const segW=Math.max(sx2-sx,4);
+   const fs=Math.max(6.5,Math.min(9,segW/((s.label||'').length*0.55)||9));
+   b+=`<rect class="arch-node ${s.cls||''}" x="${sx}" y="${y}" rx="7" width="${segW}" height="44"/><text x="${(sx+sx2)/2}" y="${y+26}" text-anchor="middle" style="font-size:${fs}px">${esc(s.label)}</text>`;
   });
  });
  (v.marks||[]).forEach((m,i)=>{
@@ -72,9 +80,13 @@ function renderLanes(v){
 function renderMatrix(v){
  let b='';const cols=v.cols||[],rows=v.rows||[];
  const headX=170,colW=(v.w-headX-16)/Math.max(cols.length,1),rowH=v.rowH||52,top=40;
- cols.forEach((c,j)=>{const cx=headX+j*colW;b+=`<text x="${cx+colW/2}" y="${top-14}" text-anchor="middle" font-weight="600">${esc(c.label)}</text>`;if(c.sub)b+=`<text class="arch-label" x="${cx+colW/2}" y="${top-2}" text-anchor="middle" font-size="9px">${esc(c.sub)}</text>`;});
- rows.forEach((r,i)=>{const cy=top+i*rowH;b+=`<text x="10" y="${cy+rowH/2+4}" font-weight="600">${esc(r.label)}</text>`;if(r.sub)b+=`<text class="arch-label" x="10" y="${cy+rowH/2+17}" font-size="9px">${esc(r.sub)}</text>`;
-  (r.cells||[]).forEach((c,j)=>{const cx=headX+j*colW;if(!c)return;const cls=c.cls?` ${c.cls}`:'';b+=`<rect class="arch-node${cls}" x="${cx+3}" y="${cy+3}" rx="8" width="${colW-6}" height="${rowH-6}" ${c.dash?'stroke-dasharray="4 3"':''}/><text x="${cx+colW/2}" y="${cy+(c.sub?rowH/2-2:rowH/2+4)}" text-anchor="middle" font-weight="600" font-size="10px">${esc(c.label)}</text>${c.sub?`<text class="arch-label" x="${cx+colW/2}" y="${cy+rowH/2+12}" text-anchor="middle" font-size="8.5px">${esc(c.sub)}</text>`:''}`;});
+ cols.forEach((c,j)=>{const cx=headX+j*colW;const cs=fitFont(c.label,colW-8,11,true);
+  b+=`<text x="${cx+colW/2}" y="${top-14}" text-anchor="middle" font-weight="600" style="font-size:${cs}px">${esc(c.label)}</text>`;if(c.sub)b+=`<text class="arch-label" x="${cx+colW/2}" y="${top-2}" text-anchor="middle" style="font-size:${fitFont(c.sub,colW-8,8.5,false)}px">${esc(c.sub)}</text>`;});
+ rows.forEach((r,i)=>{const cy=top+i*rowH;const rls=fitFont(r.label,160,11,true);
+  b+=`<text x="10" y="${cy+rowH/2+4}" font-weight="600" style="font-size:${rls}px">${esc(r.label)}</text>`;
+  if(r.sub)b+=`<text class="arch-label" x="10" y="${cy+rowH/2+17}" style="font-size:${fitFont(r.sub,160,8.5,false)}px">${esc(r.sub)}</text>`;
+  (r.cells||[]).forEach((c,j)=>{const cx=headX+j*colW;if(!c)return;const cls=c.cls?` ${c.cls}`:'';const clsz=fitFont(c.label,colW-14,10,true),csz=c.sub?fitFont(c.sub,colW-14,8.5,false):0;
+  b+=`<rect class="arch-node${cls}" x="${cx+3}" y="${cy+3}" rx="8" width="${colW-6}" height="${rowH-6}" ${c.dash?'stroke-dasharray="4 3"':''}/><text x="${cx+colW/2}" y="${cy+(c.sub?rowH/2-2:rowH/2+4)}" text-anchor="middle" font-weight="600" style="font-size:${clsz}px">${esc(c.label)}</text>${c.sub?`<text class="arch-label" x="${cx+colW/2}" y="${cy+rowH/2+12}" text-anchor="middle" style="font-size:${csz}px">${esc(c.sub)}</text>`:''}`;});
  });
  (v.notes||[]).forEach((n,i)=>{b+=`<text class="arch-label" x="${headX}" y="${top+rows.length*rowH+18+i*14}">${esc(n)}</text>`;});
  return svgWrap(b,{w:v.w,h:v.h||top+rows.length*rowH+24+(v.notes||[]).length*14,title:v.title,desc:v.purpose,id:v.id});

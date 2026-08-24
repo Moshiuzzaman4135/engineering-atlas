@@ -13,8 +13,9 @@ diagram keys render nothing and appear here as MISSING.
 
 | Status | Lessons |
 |--------|---------|
-| GENERIC-REGISTRY | 54 |
-| MISSING | 91 |
+| CUSTOM | 25 |
+| GENERIC-REGISTRY | 41 |
+| MISSING | 79 |
 | APPROVED | 22 |
 | **Total** | 167 |
 
@@ -22,21 +23,21 @@ diagram keys render nothing and appear here as MISSING.
 
 | Lesson | Title | Pri | diagram key | Status | Notes |
 |--------|-------|-----|-------------|--------|-------|
-| agent-runtime | Agent Runtime / Harness | P5 | harness | GENERIC-REGISTRY | named renderer "harness" — semantic fit unreviewed |
-| harness-optimization | Harness Optimization | P5 | harness | GENERIC-REGISTRY | named renderer "harness" — semantic fit unreviewed |
-| runtime-orchestration | Runtime Orchestration & Agent Execution | P5 | harness | GENERIC-REGISTRY | named renderer "harness" — semantic fit unreviewed |
-| tool-calling | Tool Calling & Structured Actions | P5 | harness | GENERIC-REGISTRY | named renderer "harness" — semantic fit unreviewed |
-| model-routing | Model Routing & AI Gateways | P5 | router | MISSING | references unregistered "router" (renders nothing) |
-| memory-systems | Agent Memory Systems | P5 | memory | MISSING | references unregistered "memory" (renders nothing) |
-| rag-grounding | RAG & Enterprise Knowledge Grounding | P5 | rag | MISSING | references unregistered "rag" (renders nothing) |
-| evals-guardrails | AI Evaluation, Guardrails & Hallucination Mitigation | P5 | eval | MISSING | references unregistered "eval" (renders nothing) |
-| ai-observability | AI Observability | P5 | trace | MISSING | references unregistered "trace" (renders nothing) |
-| local-llm | Local / Open-Source LLM Deployment | P4 | router | MISSING | references unregistered "router" (renders nothing) |
-| gpu-fundamentals | GPU Inference Fundamentals | P4 | gpu | GENERIC-REGISTRY | named renderer "gpu" — semantic fit unreviewed |
-| triton-optimization | Triton Serving & Dynamic Batching | P5 | gpu | GENERIC-REGISTRY | named renderer "gpu" — semantic fit unreviewed |
-| k8s-ai-scaling | Kubernetes AI Deployment & HPA | P4 | scale | GENERIC-REGISTRY | named renderer "scale" — semantic fit unreviewed |
-| backpressure | Backpressure & Admission Control | P5 | queue | GENERIC-REGISTRY | named renderer "queue" — semantic fit unreviewed |
-| latency-throughput | Latency, Throughput, Concurrency & Cost | P5 | scale | GENERIC-REGISTRY | named renderer "scale" — semantic fit unreviewed |
+| agent-runtime | Agent Runtime / Harness | P5 | harness | CUSTOM | 2 visual spec(s) — review pending |
+| harness-optimization | Harness Optimization | P5 | harness | CUSTOM | 2 visual spec(s) — review pending |
+| runtime-orchestration | Runtime Orchestration & Agent Execution | P5 | harness | CUSTOM | 2 visual spec(s) — review pending |
+| tool-calling | Tool Calling & Structured Actions | P5 | harness | CUSTOM | 2 visual spec(s) — review pending |
+| model-routing | Model Routing & AI Gateways | P5 | router | CUSTOM | 2 visual spec(s) — review pending |
+| memory-systems | Agent Memory Systems | P5 | memory | CUSTOM | 2 visual spec(s) — review pending |
+| rag-grounding | RAG & Enterprise Knowledge Grounding | P5 | rag | CUSTOM | 2 visual spec(s) — review pending |
+| evals-guardrails | AI Evaluation, Guardrails & Hallucination Mitigation | P5 | eval | CUSTOM | 2 visual spec(s) — review pending |
+| ai-observability | AI Observability | P5 | trace | CUSTOM | 2 visual spec(s) — review pending |
+| local-llm | Local / Open-Source LLM Deployment | P4 | router | CUSTOM | 2 visual spec(s) — review pending |
+| gpu-fundamentals | GPU Inference Fundamentals | P4 | gpu | CUSTOM | 2 visual spec(s) — review pending |
+| triton-optimization | Triton Serving & Dynamic Batching | P5 | gpu | CUSTOM | 2 visual spec(s) — review pending |
+| k8s-ai-scaling | Kubernetes AI Deployment & HPA | P4 | scale | CUSTOM | 2 visual spec(s) — review pending |
+| backpressure | Backpressure & Admission Control | P5 | queue | CUSTOM | 2 visual spec(s) — review pending |
+| latency-throughput | Latency, Throughput, Concurrency & Cost | P5 | scale | CUSTOM | 2 visual spec(s) — review pending |
 | fastapi-async | FastAPI Async, Concurrency & Service Boundaries | P4 | api | GENERIC-REGISTRY | named renderer "api" — semantic fit unreviewed |
 | event-driven | Event-Driven Architecture & Producer–Consumer | P5 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
 | reliability-patterns | Retries, Circuit Breakers, Bulkheads, DLQ & Outbox | P5 | reliability | MISSING | references unregistered "reliability" (renders nothing) |
@@ -62,10 +63,10 @@ diagram keys render nothing and appear here as MISSING.
 | leadership-stories | Leadership, Debugging & Incident Stories | P4 | decision | GENERIC-REGISTRY | named renderer "decision" — semantic fit unreviewed |
 | enterprise-agent-system-design | Enterprise AI Runtime: Enterprise Agent Runtime System Design | P5 | priority | MISSING | references unregistered "priority" (renders nothing) |
 | final-simulation | Final Interview Simulation | P5 | decision | GENERIC-REGISTRY | named renderer "decision" — semantic fit unreviewed |
-| rag-chunking | RAG Chunking, Top-k & Reranking | P4 | rag | MISSING | references unregistered "rag" (renders nothing) |
-| prompt-injection | Prompt Injection & Tool Security | P4 | security | MISSING | references unregistered "security" (renders nothing) |
-| context-engineering | Context Engineering | P4 | harness | GENERIC-REGISTRY | named renderer "harness" — semantic fit unreviewed |
-| model-caching | AI Caching & Request Deduplication | P3 | scale | GENERIC-REGISTRY | named renderer "scale" — semantic fit unreviewed |
+| rag-chunking | RAG Chunking, Top-k & Reranking | P4 | rag | CUSTOM | 2 visual spec(s) — review pending |
+| prompt-injection | Prompt Injection & Tool Security | P4 | security | CUSTOM | 2 visual spec(s) — review pending |
+| context-engineering | Context Engineering | P4 | harness | CUSTOM | 2 visual spec(s) — review pending |
+| model-caching | AI Caching & Request Deduplication | P3 | scale | CUSTOM | 2 visual spec(s) — review pending |
 | queueing-capacity | Capacity Planning & Queueing Intuition | P4 | scale | GENERIC-REGISTRY | named renderer "scale" — semantic fit unreviewed |
 | idempotency | Idempotency & Delivery Semantics | P5 | reliability | MISSING | references unregistered "reliability" (renders nothing) |
 | cache-patterns | Caching Patterns & Stampede Control | P4 | db | GENERIC-REGISTRY | named renderer "db" — semantic fit unreviewed |
@@ -73,11 +74,11 @@ diagram keys render nothing and appear here as MISSING.
 | microservices-boundaries | Monolith vs Microservices & Boundaries | P4 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
 | api-rate-limits | Rate Limiting, Quotas & Fairness | P4 | scale | GENERIC-REGISTRY | named renderer "scale" — semantic fit unreviewed |
 | docker-cicd | Docker, CI/CD & Safe Releases | P3 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
-| voice-ai | Voice AI Pipeline & Real-Time Latency | P4 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
-| vector-search | Vector Search: Chroma, FAISS & Metadata | P4 | rag | MISSING | references unregistered "rag" (renders nothing) |
+| voice-ai | Voice AI Pipeline & Real-Time Latency | P4 | pipeline | CUSTOM | 2 visual spec(s) — review pending |
+| vector-search | Vector Search: Chroma, FAISS & Metadata | P4 | rag | CUSTOM | 2 visual spec(s) — review pending |
 | system-design-process | System Design Interview Process | P5 | decision | GENERIC-REGISTRY | named renderer "decision" — semantic fit unreviewed |
-| cost-optimization | AI Cost Optimization | P4 | router | MISSING | references unregistered "router" (renders nothing) |
-| fine-tuning-vs-rag | RAG vs Fine-Tuning vs Prompting | P3 | decision | GENERIC-REGISTRY | named renderer "decision" — semantic fit unreviewed |
+| cost-optimization | AI Cost Optimization | P4 | router | CUSTOM | 2 visual spec(s) — review pending |
+| fine-tuning-vs-rag | RAG vs Fine-Tuning vs Prompting | P3 | decision | CUSTOM | 2 visual spec(s) — review pending |
 | data-pipelines | Data Pipelines & Workflow Orchestration | P3 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
 | object-storage | Object Storage vs Database vs Cache | P3 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
 | python-object-model | Python Object Model: Names, Objects & References | P4 | generic | APPROVED | 2 purpose-built visuals |
@@ -141,8 +142,8 @@ diagram keys render nothing and appear here as MISSING.
 | arcface | ArcFace & Metric Learning | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | faiss-ann | FAISS & Approximate Nearest-Neighbor Search | P5 | vector | MISSING | references unregistered "vector" (renders nothing) |
 | multimodal-embeddings | CLIP-style Multimodal Embeddings | P4 | vector | MISSING | references unregistered "vector" (renders nothing) |
-| vlm-vs-vllm | VLM vs vLLM — Do Not Confuse Them | P5 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| vllm-serving | vLLM Serving: KV Cache, Continuous Batching & Throughput | P5 | inference | MISSING | references unregistered "inference" (renders nothing) |
+| vlm-vs-vllm | VLM vs vLLM — Do Not Confuse Them | P5 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| vllm-serving | vLLM Serving: KV Cache, Continuous Batching & Throughput | P5 | inference | CUSTOM | 2 visual spec(s) — review pending |
 | video-sampling | Video Sampling, FPS & Cost/Accuracy Trade-off | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | video-context-fusion | Fusing Specialized Models into Video Context | P5 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
 | system-design-requirements | System Design Step 1: Functional & Non-functional Requirements | P5 | generic | MISSING | references unregistered "generic" (renders nothing) |
