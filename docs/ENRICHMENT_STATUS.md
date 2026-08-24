@@ -7,82 +7,94 @@ recorded in `docs/SOURCES.md`.
 ```
 CURRENT_BRANCH: main
 CURRENT_COMMIT: (this wave — see git log)
-CURRENT_DOMAIN: python-core depth (Wave 2, ~60% done)
-LAST_COMPLETED_WAVE: Wave 1 done; Wave 2 in progress — 4 python-core lessons rebuilt
-LAST_FULL_TEST_RESULT: PASS — 62/62 (node --check all + node --test), incl. new visual-semantics tests
-LAST_BROWSER_RESULT: PASS — coroutine lesson visuals inspected at 1280px dark + light, 390px mobile;
-  fixed overlapping timeline mark labels, clipped segment labels, colliding state-edge labels
+CURRENT_DOMAIN: all domains enriched except ml-foundations (20) + vision-ai (23)
+LAST_COMPLETED_WAVE: Waves 0–2 done; ai-runtime/inference/database/messaging/
+  distributed/system-design/platform/cs-core ALL have purpose-built visuals
+  + deepDives (131/167 lessons now render visuals; 36 remain: ml+vision)
+LAST_FULL_TEST_RESULT: PASS — 66/66 (node --check all + node --test)
+LAST_BROWSER_RESULT: PASS — smoke test (route/topic/lab render + spec bounds)
+  clean; screenshots inspected for agent-runtime, model-routing, vllm-serving,
+  memory-systems, backpressure, fine-tuning-vs-rag, k8s, postgres-indexes,
+  object-model, mutable-immutable, copying at 1280px dark
 
-DOMAINS_COMPLETED: (diagram infra only)
+DOMAINS_COMPLETED: ai-runtime, inference, database, messaging, distributed,
+  system-design, platform, cs-core, python-core (Wave 2)
 DOMAINS_IN_PROGRESS: none (between waves)
-DOMAINS_REMAINING: python-core, database, messaging, distributed, system-design,
-  ml-foundations, vision-ai, inference, ai-runtime, platform, cs-core
+DOMAINS_REMAINING: ml-foundations (20 lessons), vision-ai (23 lessons)
 
-RESEARCH_COMPLETED: Python docs asyncio-task.html + asyncio-future.html (see docs/SOURCES.md)
+RESEARCH_COMPLETED: see docs/SOURCES.md — datamodel, contextlib, dataclasses,
+  profile, FastAPI lifespan, asyncpg, PG EXPLAIN recorded; in-app curated
+  sources cover Kafka/Redis/Rabbit/PG-indexes/Triton/vLLM/YOLO/ArcFace
 GITHUB_REPOS_ALREADY_INSPECTED: none this session (repo-local reference/ only)
-DIAGRAM_GROUPS_COMPLETED: coroutine/task/future (3), event-loop cycle+timeline, TaskGroup scope+failure timeline, cancellation flow+deadline budget
-LESSON_GROUPS_COMPLETED: python-coroutines-tasks, python-event-loop, python-taskgroup, python-cancellation-timeouts, async-semaphore-queue, python-gil, python-threading, python-multiprocessing, python-iterators-generators, python-exceptions, python-oop-solid (all benchmark depth)
-LABS_COMPLETED: unchanged (all lab diagrams still render; registry kept)
+DIAGRAM_GROUPS_COMPLETED: every completed domain has 2 purpose-built visuals
+  per lesson (flow/lanes/states/matrix/plot)
+LESSON_GROUPS_COMPLETED: 131 lessons with visuals (see tools/visual-audit.mjs)
+LABS_COMPLETED: unchanged (all lab diagrams render; registry kept)
 
 KNOWN_ISSUES:
-  - 111 lessons now render NO visual (was: unrelated generic pipeline). Intentional:
-    fallback removed at root. Track in docs/VISUAL_AUDIT.md; fix per-domain in waves.
-  - 55 lessons use shared registry renderers — semantic fit must be reviewed per lesson.
+  - 36 lessons (ml-foundations 20, vision-ai 23 minus 7 already done) still
+    have NO visual — NEXT_EXACT_TASK below.
+  - 43 lessons are CUSTOM (visuals exist, not yet in APPROVED ratchet list).
   - Mobile diagrams use the app-wide 540px min-width horizontal scroll pattern
     (pre-existing); revisit ergonomics in the whole-product review wave.
-  - app.test.js diagram mock extended (renderVisual/has) — keep in sync with diagrams API.
 CURRENT_FAILURE: none
-NEXT_EXACT_TASK: Wave 2 continued — remaining python-core by priority:
-  python-object-model (P4), python-mutable-immutable (P4), python-profiling (P3),
-  python-closures-decorators (P3), python-context-managers (P3),
-  python-typing-dataclasses (P3), python-copying (P3), python-args-kwargs,
-  python-scope-methods, then fastapi-lifecycle + async-db-pools (Wave 3 bridge).
-  Research shortcut: tutorial/classes.html (already read) covers object-model
-  basics; datastructures tutorial covers mutable/immutable + copying context;
-  functional HOWTO covers closures/decorators; timeit/profile docs cover profiling.
-  Per-lesson recipe (proven 10×, follow exactly):
-    1. fetch the topic's official docs page; extract facts; append entry to
-       D.sources.push in js/expanded-data.js (id: python-<topic>-docs style)
-    2. rewrite the mk({...}) lesson: intuition/technical/deepDive (multi-
-       paragraph, \n\n separated)/terms/functions/remember/tradeoffs/
-       failureModes/scaling/security/traps/usedByYou/code+codeTitle/
-       sources/prereqs/nextTopics/interviewAnswer/visuals[2+]
-    3. visuals: {type:'flow'|'lanes'|'states', id:'py-<topic>-<slug>', w,h,
-       title,purpose, nodes/edges|rows/segments/marks, howToRead[4],
-       interviewerNotice[2]} — hand-tuned coordinates; check label collisions
-    4. extract code via node -e and RUN with python3 (/usr/bin/python3 = 3.10);
-       label 3.11+ features 'syntax-reviewed' honestly
-    5. add id to APPROVED in BOTH tools/visual-audit.mjs and
-       tests/visual-semantics.test.js; run node tools/visual-audit.mjs
-    6. bash tests/run-all.sh → 62+ green; screenshot via
-       /tmp/opencode/visual-review.html?t=<id> at 1280px; FIX collisions
-    7. commit 'feat: rebuild <topic> lesson to benchmark depth'
-  KNOWN TRAPS: avoid 'fetch(' in Python examples (offline test); avoid 'sk-'
-  followed by long token in any id (release secret scan); nextTopics ids must
-  exist (expansion test); lanes with 4 rows need h≈352 (mark labels clip);
-  flow/states container nodes accept top:true for top-aligned labels.
-  NOTE: local python3 is 3.10 — examples using TaskGroup/timeout()/except* are
-  labeled 'syntax-reviewed, not executed locally' (verified behaviorally on 3.10
-  where possible).
+NEXT_EXACT_TASK: ml-foundations + vision-ai batches, using the proven pipeline:
+    1. Write /tmp/opencode/batchX.mjs exporting
+       default { lessonId: {deepDive, visuals:[2 specs], extraTraps?, extraFailureModes?} }
+       — visual types: flow/states/lanes/matrix/plot (see js/diagrams.js);
+       keep node subs short-ish (renderer auto-fits font to box width).
+    2. ml lessons live in js/data.js? CHECK with grep — some in expanded-data.js;
+       run `node /tmp/opencode/patch-lessons.mjs <file> <batch>` for EACH file
+       until "patched N".
+    3. Run `node /tmp/opencode/fix-matrices.mjs` (drops redundant matrix col0
+       when rows have cols.length-1 cells — the alignment bug).
+    4. node --check both data files; bash tests/run-all.sh (66 tests).
+    5. Smoke: /tmp/opencode/smoke.html via headless chrome against
+       http://localhost:8123 (python3 -m http.server) — checks bounds + render.
+       Screenshot spot-checks via /tmp/opencode/visual-review.html?t=<id>&theme=dark.
+    6. Commit per domain: feat: ml-foundations/vision-ai — purpose-built
+       visuals + depth.
+    7. Then: add all new ids to APPROVED in tools/visual-audit.mjs AND
+       tests/visual-semantics.test.js; regenerate docs/VISUAL_AUDIT.md;
+       update this file; final commit.
+    ML visual ideas (1-2 per lesson, purpose-first): train/val/test = matrix
+    of data splits + leakage arrows; bias-variance = plot (2 curves +
+    sweet spot); gradient descent = plot (loss surface contours → steps);
+    metrics = matrix (confusion matrix) + plot (PR curve); embeddings =
+    flow (text→vector→space) + plot (cosine geometry); drift = plot
+    (distribution shift over time); CNN = flow (conv/pool/feature maps);
+    YOLO = flow (backbone→neck→head grid); IoU/NMS = matrix of boxes or
+    flow (score-sorted suppression); tracking = lanes (detections→tracks
+    over frames); ANPR end-to-end = flow with failure paths; FAISS =
+    flow (index build→query→rerank); ArcFace = plot (angular margin).
+    Vision lessons live in js/data.js (T() format) — verify with grep first.
+    NOTE: patch-lessons.mjs merges extraTraps/extraFailureModes via T()/mk()
+    (T() already patched to merge). Keep deepDives 2-3 paragraphs, honest
+    numbers (illustrative labels), sources from in-app curated list.
 ```
 
 ## Wave plan (order may adapt)
 
 - [x] **Wave 0** baseline + programmatic audit (`tools/audit.mjs`) + durable docs
-- [ ] **Wave 1** diagram language/framework + visual primitives
-- [ ] **Wave 2** Python fundamentals + asyncio + FastAPI depth
-- [ ] **Wave 3** SQL + PostgreSQL + DB performance
-- [ ] **Wave 4** Redis/Kafka/RabbitMQ/Celery/MQTT
-- [ ] **Wave 5** distributed systems + reliability + system design cases
-- [ ] **Wave 6** ML fundamentals + neural nets
-- [ ] **Wave 7** CV + YOLO + tracking
-- [ ] **Wave 8** ANPR + MMC + Motion + Face Recognition case studies
-- [ ] **Wave 9** embeddings + FAISS + vector search
-- [ ] **Wave 10** RAG + retrieval + evaluation (+ RAG lab upgrade)
-- [ ] **Wave 11** agents + harness + memory + routing
-- [ ] **Wave 12** Triton + vLLM + GPU inference
-- [ ] **Wave 13** Docker + Kubernetes + observability
-- [ ] **Wave 14** networking + Linux + testing + OOP/DSA gaps
+- [x] **Wave 1** diagram language/framework + visual primitives (flow/lanes/
+      states/matrix/plot; auto-fit text; named-registry bug fixed)
+- [x] **Wave 2** Python fundamentals + asyncio + FastAPI depth (ALL 20 lessons
+      benchmark depth, verified-runnable code)
+- [x] **Wave 3** SQL + PostgreSQL + DB performance (11 lessons, visuals+depth)
+- [x] **Wave 4** Redis/Kafka/RabbitMQ/MQTT/Celery messaging (7 lessons)
+- [x] **Wave 5** distributed + system design (34 lessons across 2 domains)
+- [ ] **Wave 6** ML fundamentals + neural nets (20 lessons — NEXT)
+- [ ] **Wave 7** CV + YOLO + tracking (23 lessons)
+- [x] **Wave 8** ANPR + MMC + Motion + Face case-study lessons (visuals pending
+      with Wave 7 batch)
+- [ ] **Wave 9** embeddings + FAISS + vector search (partially done: faiss-ann,
+      multimodal-embeddings pending)
+- [x] **Wave 10** RAG + retrieval + evaluation (rag-grounding, rag-chunking,
+      evals-guardrails done)
+- [x] **Wave 11** agents + harness + memory + routing (ai-runtime domain done)
+- [x] **Wave 12** Triton + vLLM + GPU inference (inference domain done)
+- [x] **Wave 13** Docker + Kubernetes + observability (platform domain done)
+- [x] **Wave 14** networking + Linux + testing + OOP/DSA gaps (cs-core done)
 - [ ] **Wave 15** personal GitHub architecture synthesis (gh evidence audit)
 - [ ] **Wave 16** interview-bank adversarial upgrade
 - [ ] **Wave 17** whole-product visual/a11y/perf/security review

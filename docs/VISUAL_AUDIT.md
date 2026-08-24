@@ -13,10 +13,10 @@ diagram keys render nothing and appear here as MISSING.
 
 | Status | Lessons |
 |--------|---------|
-| CUSTOM | 43 |
-| GENERIC-REGISTRY | 26 |
-| MISSING | 76 |
+| CUSTOM | 102 |
 | APPROVED | 22 |
+| MISSING | 36 |
+| GENERIC-REGISTRY | 7 |
 | **Total** | 167 |
 
 ## Per-lesson status
@@ -38,17 +38,17 @@ diagram keys render nothing and appear here as MISSING.
 | k8s-ai-scaling | Kubernetes AI Deployment & HPA | P4 | scale | CUSTOM | 2 visual spec(s) — review pending |
 | backpressure | Backpressure & Admission Control | P5 | queue | CUSTOM | 2 visual spec(s) — review pending |
 | latency-throughput | Latency, Throughput, Concurrency & Cost | P5 | scale | CUSTOM | 2 visual spec(s) — review pending |
-| fastapi-async | FastAPI Async, Concurrency & Service Boundaries | P4 | api | GENERIC-REGISTRY | named renderer "api" — semantic fit unreviewed |
-| event-driven | Event-Driven Architecture & Producer–Consumer | P5 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
-| reliability-patterns | Retries, Circuit Breakers, Bulkheads, DLQ & Outbox | P5 | reliability | MISSING | references unregistered "reliability" (renders nothing) |
-| load-balancing | Load Balancing | P5 | scale | GENERIC-REGISTRY | named renderer "scale" — semantic fit unreviewed |
-| horizontal-scaling | Horizontal vs Vertical Scaling & Statelessness | P5 | scale | GENERIC-REGISTRY | named renderer "scale" — semantic fit unreviewed |
+| fastapi-async | FastAPI Async, Concurrency & Service Boundaries | P4 | api | CUSTOM | 2 visual spec(s) — review pending |
+| event-driven | Event-Driven Architecture & Producer–Consumer | P5 | pipeline | CUSTOM | 2 visual spec(s) — review pending |
+| reliability-patterns | Retries, Circuit Breakers, Bulkheads, DLQ & Outbox | P5 | reliability | CUSTOM | 2 visual spec(s) — review pending |
+| load-balancing | Load Balancing | P5 | scale | CUSTOM | 2 visual spec(s) — review pending |
+| horizontal-scaling | Horizontal vs Vertical Scaling & Statelessness | P5 | scale | CUSTOM | 2 visual spec(s) — review pending |
 | redis-zset | Redis ZSET as a Work Queue | P5 | broker | CUSTOM | 2 visual spec(s) — review pending |
 | redis-streams | Redis Streams & Consumer Groups | P5 | broker | CUSTOM | 2 visual spec(s) — review pending |
 | rabbitmq-deep-dive | RabbitMQ: Exchanges, Ack, Prefetch, DLQ & Quorum Queues | P5 | broker | CUSTOM | 2 visual spec(s) — review pending |
 | kafka-deep-dive | Kafka: Partitions, Keys, Offsets & Consumer Groups | P5 | kafka | CUSTOM | 2 visual spec(s) — review pending |
 | mqtt | MQTT & Lightweight Pub/Sub | P4 | broker | CUSTOM | 2 visual spec(s) — review pending |
-| broker-decision | Kafka vs RabbitMQ vs Redis vs MQTT vs Celery | P5 | broker | CUSTOM | 1 visual spec(s) — review pending |
+| broker-decision | Kafka vs RabbitMQ vs Redis vs MQTT vs Celery | P5 | broker | CUSTOM | 2 visual spec(s) — review pending |
 | postgres-explain | PostgreSQL Query Planning & EXPLAIN | P5 | planner | CUSTOM | 2 visual spec(s) — review pending |
 | postgres-indexes | PostgreSQL Indexes: Composite, Partial & Covering | P5 | db | CUSTOM | 2 visual spec(s) — review pending |
 | sql-joins | Join & Query Optimization | P4 | db | CUSTOM | 2 visual spec(s) — review pending |
@@ -56,31 +56,31 @@ diagram keys render nothing and appear here as MISSING.
 | db-load-reduction | Reduce Database Load: Cache, Replicas & Precomputation | P5 | db | CUSTOM | 2 visual spec(s) — review pending |
 | partitioning | Partitioning, Retention & Hot Tables | P4 | db | CUSTOM | 2 visual spec(s) — review pending |
 | transactions-locks | Transactions, Isolation, Locks & Contention | P4 | db | CUSTOM | 2 visual spec(s) — review pending |
-| api-security | API Security: OAuth/OIDC, JWT, RBAC, mTLS & Secrets | P4 | security | MISSING | references unregistered "security" (renders nothing) |
-| multi-tenancy | Multi-Tenancy & Data Isolation | P4 | security | MISSING | references unregistered "security" (renders nothing) |
-| observability-slos | Metrics, Logs, Traces, SLOs & Alerting | P5 | trace | MISSING | references unregistered "trace" (renders nothing) |
-| architecture-tradeoffs | Architecture Decision-Making & Trade-offs | P5 | decision | GENERIC-REGISTRY | named renderer "decision" — semantic fit unreviewed |
-| leadership-stories | Leadership, Debugging & Incident Stories | P4 | decision | GENERIC-REGISTRY | named renderer "decision" — semantic fit unreviewed |
-| enterprise-agent-system-design | Enterprise AI Runtime: Enterprise Agent Runtime System Design | P5 | priority | MISSING | references unregistered "priority" (renders nothing) |
-| final-simulation | Final Interview Simulation | P5 | decision | GENERIC-REGISTRY | named renderer "decision" — semantic fit unreviewed |
+| api-security | API Security: OAuth/OIDC, JWT, RBAC, mTLS & Secrets | P4 | security | CUSTOM | 2 visual spec(s) — review pending |
+| multi-tenancy | Multi-Tenancy & Data Isolation | P4 | security | CUSTOM | 2 visual spec(s) — review pending |
+| observability-slos | Metrics, Logs, Traces, SLOs & Alerting | P5 | trace | CUSTOM | 2 visual spec(s) — review pending |
+| architecture-tradeoffs | Architecture Decision-Making & Trade-offs | P5 | decision | CUSTOM | 2 visual spec(s) — review pending |
+| leadership-stories | Leadership, Debugging & Incident Stories | P4 | decision | CUSTOM | 2 visual spec(s) — review pending |
+| enterprise-agent-system-design | Enterprise AI Runtime: Enterprise Agent Runtime System Design | P5 | priority | CUSTOM | 2 visual spec(s) — review pending |
+| final-simulation | Final Interview Simulation | P5 | decision | CUSTOM | 2 visual spec(s) — review pending |
 | rag-chunking | RAG Chunking, Top-k & Reranking | P4 | rag | CUSTOM | 2 visual spec(s) — review pending |
 | prompt-injection | Prompt Injection & Tool Security | P4 | security | CUSTOM | 2 visual spec(s) — review pending |
 | context-engineering | Context Engineering | P4 | harness | CUSTOM | 2 visual spec(s) — review pending |
 | model-caching | AI Caching & Request Deduplication | P3 | scale | CUSTOM | 2 visual spec(s) — review pending |
-| queueing-capacity | Capacity Planning & Queueing Intuition | P4 | scale | GENERIC-REGISTRY | named renderer "scale" — semantic fit unreviewed |
+| queueing-capacity | Capacity Planning & Queueing Intuition | P4 | scale | CUSTOM | 2 visual spec(s) — review pending |
 | idempotency | Idempotency & Delivery Semantics | P5 | reliability | CUSTOM | 2 visual spec(s) — review pending |
 | cache-patterns | Caching Patterns & Stampede Control | P4 | db | CUSTOM | 2 visual spec(s) — review pending |
 | read-replicas | Read Replicas & Consistency | P4 | db | CUSTOM | 2 visual spec(s) — review pending |
-| microservices-boundaries | Monolith vs Microservices & Boundaries | P4 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
-| api-rate-limits | Rate Limiting, Quotas & Fairness | P4 | scale | GENERIC-REGISTRY | named renderer "scale" — semantic fit unreviewed |
-| docker-cicd | Docker, CI/CD & Safe Releases | P3 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
+| microservices-boundaries | Monolith vs Microservices & Boundaries | P4 | pipeline | CUSTOM | 2 visual spec(s) — review pending |
+| api-rate-limits | Rate Limiting, Quotas & Fairness | P4 | scale | CUSTOM | 2 visual spec(s) — review pending |
+| docker-cicd | Docker, CI/CD & Safe Releases | P3 | pipeline | CUSTOM | 2 visual spec(s) — review pending |
 | voice-ai | Voice AI Pipeline & Real-Time Latency | P4 | pipeline | CUSTOM | 2 visual spec(s) — review pending |
 | vector-search | Vector Search: Chroma, FAISS & Metadata | P4 | rag | CUSTOM | 2 visual spec(s) — review pending |
-| system-design-process | System Design Interview Process | P5 | decision | GENERIC-REGISTRY | named renderer "decision" — semantic fit unreviewed |
+| system-design-process | System Design Interview Process | P5 | decision | CUSTOM | 2 visual spec(s) — review pending |
 | cost-optimization | AI Cost Optimization | P4 | router | CUSTOM | 2 visual spec(s) — review pending |
 | fine-tuning-vs-rag | RAG vs Fine-Tuning vs Prompting | P3 | decision | CUSTOM | 2 visual spec(s) — review pending |
-| data-pipelines | Data Pipelines & Workflow Orchestration | P3 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
-| object-storage | Object Storage vs Database vs Cache | P3 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
+| data-pipelines | Data Pipelines & Workflow Orchestration | P3 | pipeline | CUSTOM | 2 visual spec(s) — review pending |
+| object-storage | Object Storage vs Database vs Cache | P3 | pipeline | CUSTOM | 2 visual spec(s) — review pending |
 | python-object-model | Python Object Model: Names, Objects & References | P4 | generic | APPROVED | 2 purpose-built visuals |
 | python-mutable-immutable | Mutable vs Immutable Objects | P4 | generic | APPROVED | 2 purpose-built visuals |
 | python-copying | Shallow Copy vs Deep Copy | P3 | generic | APPROVED | 2 purpose-built visuals |
@@ -146,47 +146,47 @@ diagram keys render nothing and appear here as MISSING.
 | vllm-serving | vLLM Serving: KV Cache, Continuous Batching & Throughput | P5 | inference | CUSTOM | 2 visual spec(s) — review pending |
 | video-sampling | Video Sampling, FPS & Cost/Accuracy Trade-off | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | video-context-fusion | Fusing Specialized Models into Video Context | P5 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
-| system-design-requirements | System Design Step 1: Functional & Non-functional Requirements | P5 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| system-design-capacity | Capacity Estimation: QPS, Storage, Bandwidth & Concurrency | P5 | scale | GENERIC-REGISTRY | named renderer "scale" — semantic fit unreviewed |
-| system-design-api | API Design: Resources, Idempotency & Pagination | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| load-balancer-algorithms | Load Balancing Algorithms & Health Checks | P5 | scale | GENERIC-REGISTRY | named renderer "scale" — semantic fit unreviewed |
-| reverse-proxy | Reverse Proxy, API Gateway & Ingress | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| cache-aside-design | Cache-Aside Design & Invalidation | P5 | cache | MISSING | references unregistered "cache" (renders nothing) |
-| consistent-hashing | Consistent Hashing & Partition Movement | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| cdn-design | CDN & Edge Caching | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| db-replication-design | Database Replication: Primary/Replica & Lag | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| sharding-strategies | Sharding Strategies: Range, Hash & Tenant | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| distributed-locks | Distributed Locks & Leases | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| leader-election | Leader Election & Single-Writer Tasks | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| consensus-basics | Consensus Basics: Quorum, Raft & Why It Matters | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| cap-pacelc | CAP & PACELC Without the Meme | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| id-generation | Distributed ID Generation | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| bloom-filter | Bloom Filter | P2 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| rate-limiter-design | Design a Distributed Rate Limiter | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| outbox-pattern | Transactional Outbox Pattern | P5 | queue | GENERIC-REGISTRY | named renderer "queue" — semantic fit unreviewed |
-| saga-pattern | Saga Pattern for Multi-service Workflows | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| bulkhead-pattern | Bulkhead Isolation | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| four-golden-signals | Four Golden Signals & RED/USE Metrics | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| graceful-degradation | Graceful Degradation & Load Shedding | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| large-file-upload-design | Large File Upload: Multipart, Presigned URLs & Resume | P4 | object | MISSING | references unregistered "object" (renders nothing) |
-| search-system-design | Search System Design: Filter + Vector + Ranking | P4 | vector | MISSING | references unregistered "vector" (renders nothing) |
-| big-o | Big-O Time & Space Complexity | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| arrays-hashmaps | Arrays, Lists, Hash Maps & Sets | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| stack-queue | Stack, Queue, Deque & Priority Queue | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| linked-list | Linked Lists & Pointer Trade-offs | P2 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| trees-bst | Trees, BSTs & Balanced Search Trees | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| heap | Heap / Priority Queue | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| graphs-bfs-dfs | Graphs, BFS & DFS | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| binary-search | Binary Search & Search-on-Answer | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| recursion-dp | Recursion, Memoization & Dynamic Programming | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| oop-pillars | OOP Pillars: Encapsulation, Abstraction, Inheritance, Polymorphism | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| design-patterns | Factory, Strategy, Adapter & Observer Patterns | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| testing-pyramid | Testing Pyramid, Contracts & Integration Tests | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
+| system-design-requirements | System Design Step 1: Functional & Non-functional Requirements | P5 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| system-design-capacity | Capacity Estimation: QPS, Storage, Bandwidth & Concurrency | P5 | scale | CUSTOM | 2 visual spec(s) — review pending |
+| system-design-api | API Design: Resources, Idempotency & Pagination | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| load-balancer-algorithms | Load Balancing Algorithms & Health Checks | P5 | scale | CUSTOM | 2 visual spec(s) — review pending |
+| reverse-proxy | Reverse Proxy, API Gateway & Ingress | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| cache-aside-design | Cache-Aside Design & Invalidation | P5 | cache | CUSTOM | 2 visual spec(s) — review pending |
+| consistent-hashing | Consistent Hashing & Partition Movement | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| cdn-design | CDN & Edge Caching | P3 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| db-replication-design | Database Replication: Primary/Replica & Lag | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| sharding-strategies | Sharding Strategies: Range, Hash & Tenant | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| distributed-locks | Distributed Locks & Leases | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| leader-election | Leader Election & Single-Writer Tasks | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| consensus-basics | Consensus Basics: Quorum, Raft & Why It Matters | P3 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| cap-pacelc | CAP & PACELC Without the Meme | P3 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| id-generation | Distributed ID Generation | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| bloom-filter | Bloom Filter | P2 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| rate-limiter-design | Design a Distributed Rate Limiter | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| outbox-pattern | Transactional Outbox Pattern | P5 | queue | CUSTOM | 2 visual spec(s) — review pending |
+| saga-pattern | Saga Pattern for Multi-service Workflows | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| bulkhead-pattern | Bulkhead Isolation | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| four-golden-signals | Four Golden Signals & RED/USE Metrics | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| graceful-degradation | Graceful Degradation & Load Shedding | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| large-file-upload-design | Large File Upload: Multipart, Presigned URLs & Resume | P4 | object | CUSTOM | 2 visual spec(s) — review pending |
+| search-system-design | Search System Design: Filter + Vector + Ranking | P4 | vector | CUSTOM | 2 visual spec(s) — review pending |
+| big-o | Big-O Time & Space Complexity | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| arrays-hashmaps | Arrays, Lists, Hash Maps & Sets | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| stack-queue | Stack, Queue, Deque & Priority Queue | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| linked-list | Linked Lists & Pointer Trade-offs | P2 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| trees-bst | Trees, BSTs & Balanced Search Trees | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| heap | Heap / Priority Queue | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| graphs-bfs-dfs | Graphs, BFS & DFS | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| binary-search | Binary Search & Search-on-Answer | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| recursion-dp | Recursion, Memoization & Dynamic Programming | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| oop-pillars | OOP Pillars: Encapsulation, Abstraction, Inheritance, Polymorphism | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| design-patterns | Factory, Strategy, Adapter & Observer Patterns | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
+| testing-pyramid | Testing Pyramid, Contracts & Integration Tests | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
 | python-args-kwargs | Python *args, **kwargs & Function Signatures | P4 | generic | APPROVED | 2 purpose-built visuals |
 | python-scope-methods | LEGB Scope, classmethod, staticmethod & Dunder Methods | P4 | generic | APPROVED | 2 purpose-built visuals |
 | db-normalization-bcnf | Database Normalization: 1NF → 2NF → 3NF → BCNF | P5 | db | CUSTOM | 2 visual spec(s) — review pending |
 | sql-window-cte | SQL CTEs, Window Functions & Pagination | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| docker-fundamentals | Docker Fundamentals: Image, Container, Layers & Namespaces | P5 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
-| docker-network-volumes | Docker Networking, Volumes & Health Checks | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| kubernetes-core | Kubernetes Core: Pod, Deployment, Service, Config & Probes | P5 | scale | GENERIC-REGISTRY | named renderer "scale" — semantic fit unreviewed |
-| linux-process-memory | Linux Process, Thread, Memory & Signals | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
+| docker-fundamentals | Docker Fundamentals: Image, Container, Layers & Namespaces | P5 | pipeline | CUSTOM | 2 visual spec(s) — review pending |
+| docker-network-volumes | Docker Networking, Volumes & Health Checks | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| kubernetes-core | Kubernetes Core: Pod, Deployment, Service, Config & Probes | P5 | scale | CUSTOM | 2 visual spec(s) — review pending |
+| linux-process-memory | Linux Process, Thread, Memory & Signals | P3 | generic | CUSTOM | 2 visual spec(s) — review pending |
