@@ -32,7 +32,7 @@ function renderFlow(v){
  let b='';
  const nodes=v.nodes||[],edges=v.edges||[];
  const pos={};
- nodes.forEach(n=>{pos[n.id]=n;b+=labeled(n.x,n.y,n.w,n.h,n.label,n.sub,n.cls);});
+ nodes.forEach(n=>{pos[n.id]=n;b+=labeled(n.x,n.y,n.w,n.h,n.label,n.sub,n.cls,n.top);});
  edges.forEach(e=>{
   const a=pos[e.from],c=pos[e.to];
   if(!a||!c)return;

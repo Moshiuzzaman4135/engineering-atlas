@@ -221,7 +221,94 @@ visuals:[
   howToRead:['Ask what the threads actually need from each other before reaching for a lock.','Work handoff → queue.Queue (thread-safe, no lock bookkeeping) plus an Event for shutdown.','Mutual exclusion → Lock; add RLock only when the same thread legitimately re-enters.','Capacity (DB pool, API limit) → BoundedSemaphore so a double-release fails loudly.'],
   interviewerNotice:['You reach for message passing before shared state — the docs recommend the same.','You know the difference between Lock (unowned, unfair) and RLock (owned, reentrant).']}
 ]}),
-mk({id:'python-multiprocessing',domain:'python-core',title:'Multiprocessing & Worker Pools',priority:4,intuition:'Processes trade memory and communication overhead for true CPU parallelism and fault isolation.',technical:'multiprocessing starts separate interpreters with separate memory. Work is serialized across process boundaries. ProcessPoolExecutor is useful for coarse CPU tasks; tiny tasks can lose to serialization/startup overhead.',remember:['Separate memory avoids the GIL but requires IPC.','Large models duplicated per process can exhaust RAM/VRAM.','Use coarse work units.'],terms:['process','IPC','serialization','worker pool'],functions:['multiprocessing.Process','ProcessPoolExecutor','multiprocessing.Queue'],interview:'I choose processes for CPU-bound Python work when tasks are coarse enough to justify IPC. For GPU inference I usually centralize the model in a serving process such as Triton instead of loading a GPU model per Python process.',usedByYou:['Your Triton-based ANPR design centralizes model serving instead of duplicating models in every worker.']}),
+mk({id:'python-multiprocessing',domain:'python-core',title:'Multiprocessing & Worker Pools',priority:4,
+intuition:'Processes trade cheap communication for true CPU parallelism: each worker is a full interpreter with its own memory, so nothing shares the GIL — but everything crossing the boundary must be serialized.',
+technical:'multiprocessing spawns separate interpreter processes with a threading-like API, side-stepping the GIL. Data crosses process boundaries via pickling through Queue/Pipe, shared memory (Value/Array), or a Manager server process. Pool/ProcessPoolExecutor distribute coarse tasks across workers. Start methods matter: spawn (fresh interpreter, safe, default on Windows/macOS), forkserver (default on POSIX since 3.14), fork (legacy, unsafe with threads and no longer default anywhere).',
+deepDive:'The mental model: a thread is "same heap, take turns"; a process is "own heap, talk over a wire". That wire is pickling — every argument, return value and queue item crosses as a serialized copy. Three consequences: (1) work units must be coarse enough that compute time dominates serialization + startup cost; (2) everything passed must be picklable — the docs\' classic failure is defining a target function in a REPL or __main__ without the if __name__ == \'__main__\' guard, so the spawned child cannot import it and dies with AttributeError; (3) results are copies — mutating a "shared" list passed at spawn time does nothing to the parent.\n\nStart methods are an operational minefield the docs treat seriously. fork makes the child a copy-on-write clone of the parent — fast but "safely forking a multithreaded process is problematic" (locks held by other threads at fork time stay locked forever in the child); Python 3.12 warns when forking a multithreaded process, and 3.14 removed fork as the default everywhere (forkserver is now the POSIX default). spawn starts a fresh interpreter — slower (re-imports modules) but safe. Practical rule: if your app runs threads (uvicorn workers do), never rely on fork; set or accept spawn/forkserver explicitly and structure code to be import-safe.\n\nCommunication choices in order of preference: return values from Pool/ProcessPoolExecutor (simplest — pickling handled for you); multiprocessing.Queue/JoinableQueue for streams (feeder thread pickles in the background; qsize() is approximate; joining a process that still has unflushed queue items can deadlock — the docs warn explicitly); Pipe for two-endpoint channels (recv() unpickles untrusted data — a documented security risk); Value/Array for small shared memory with locks; Manager for shared containers (flexible, network-capable, slowest). Never terminate() a process mid-queue-use — SIGTERM skips finally blocks, orphans descendants, and "the pipe or queue is liable to become corrupted".\n\nPool semantics: pool.map chunks input across workers (ordered results); imap_unordered streams results as they finish — better for heterogeneous durations; apply_async + get(timeout) raises multiprocessing.TimeoutError. Pool objects must be used only by their creator. Size pools from os.process_cpu_count() (affinity-aware) or container CPU limits — not blind os.cpu_count(); oversubscription with NumPy/OpenCV inside workers causes thread-thrash (set OMP_NUM_THREADS=1 per worker is the common fix).\n\nWhen NOT to use it: tiny tasks (serialization wins), shared huge models per worker (RAM/VRAM duplication — centralize in a model server instead), or when the bottleneck is I/O (use threads/async). GPU serving belongs in a dedicated process/service (Triton) that workers call, not a model per worker.',
+terms:['process boundary','pickle','IPC','start method','fork safety','worker pool','chunking','exit code'],
+functions:['multiprocessing.Process','multiprocessing.Pool','ProcessPoolExecutor','multiprocessing.Queue/JoinableQueue','multiprocessing.Value/Array','multiprocessing.Manager','set_start_method/get_context','os.process_cpu_count'],
+remember:['Every crossing of a process boundary is a pickle copy — coarse tasks or you lose to overhead.','The __main__ import guard is mandatory for spawn/forkserver; targets must be importable.','fork + threads = held-lock corruption; 3.14 removed fork as default (forkserver on POSIX).','terminate() skips finally and corrupts queues — use cooperative stop or accept data loss.','Size pools from usable CPUs (affinity/cgroup), and pin BLAS threads per worker.'],
+tradeoffs:['Processes vs threads for CPU: real parallelism vs shared-memory cheapness (GIL-bound).','Pool vs raw Process: chunked task distribution + futures vs full control of lifecycles/IPC.','Queue vs Pipe vs Manager vs Value/Array: streams vs two-endpoint vs shared containers vs small scalars — increasing convenience, decreasing speed.','fork vs spawn: startup speed vs safety with threads and cross-platform consistency.'],
+failureModes:['AttributeError in spawned children from un-importable __main__ targets (no guard, REPL, notebook).','Deadlock joining a producer that died with unflushed queue items.','Corrupted queue/pipe after terminate()/kill during transfer — other processes then hang or error.','Oversubscription: N workers × M BLAS threads on N cores — context-switch thrash.','Silent result loss when a child hits an unhandled exception: exitcode 1, parent must check.'],
+scaling:['Pool size ≈ usable cores (cgroup-aware) for CPU-bound; fewer if workers call GPU services.','Chunk large iterables (Pool chunksize) to amortize IPC; keep per-item payloads small (pass paths, not blobs).','Cross-machine scaling means a real broker/job system (Celery, Kafka) — multiprocessing is single-host.'],
+security:['Pipe.recv()/Connection.recv() unpickle untrusted bytes — code-execution risk; only connect authenticated peers (authkey) or avoid recv of foreign data.','Shared memory and named semaphores leak if processes are killed — the resource tracker cleans up only on graceful exit.'],
+traps:['Expecting child mutations of passed-in containers to be visible in the parent.','Using fork in a threaded server because "it worked on my machine" (Linux default pre-3.14).','os.cpu_count() on a 4-core-capped container reporting 64 — pool of 64 workers thrashing.','Loading a GPU model per worker process instead of calling a shared inference service.'],
+usedByYou:['The ANPR/video design keeps GPU models in a centralized Triton service and uses process pools only for CPU stages (frame decode, crop, consensus) — avoiding per-process model duplication is exactly this lesson\'s scaling rule.'],
+codeTitle:'Process pool over coarse CPU work (verified runnable)',
+code:`from multiprocessing import Pool
+import os, time
+
+def heavy(x):
+    # pure-Python CPU work: the shape that NEEDS processes
+    total = 0
+    for i in range(1_200_000):
+        total += (x * i) % 7
+    return total
+
+def parent():
+    print('usable CPUs:', len(os.sched_getaffinity(0)))
+    t0 = time.perf_counter()
+    serial = [heavy(x) for x in range(6)]
+    t_serial = time.perf_counter() - t0
+
+    t0 = time.perf_counter()
+    with Pool(processes=3) as pool:          # 3 workers, coarse chunks
+        parallel = pool.map(heavy, range(6)) # ordered results, pickled both ways
+    t_par = time.perf_counter() - t0
+
+    assert serial == parallel
+    print(f'serial: {t_serial:.2f}s   3-process pool: {t_par:.2f}s')
+
+if __name__ == '__main__':                    # REQUIRED for spawn/forkserver
+    parent()`,
+sources:['python-multiprocessing-docs','python-glossary-gil'],
+prerequisites:['python-gil','python-threading'],
+nextTopics:['python-profiling','python-event-loop'],
+interviewAnswer:'Multiprocessing gives each worker a full interpreter, so pure-Python CPU work finally uses all cores — the price is that every argument and result crosses a pickle boundary. I size work units so compute dominates serialization, keep targets importable (the __main__ guard is not optional under spawn/forkserver), and prefer Pool.map or ProcessPoolExecutor over hand-rolled Process plumbing. I avoid fork in threaded services — forking a process that holds locks corrupts those locks in the child, and 3.14 removed it as the default for that reason. Operationally: check exitcode for silent child failures, never terminate mid-queue-transfer, size pools from usable CPUs not os.cpu_count(), and pin BLAS threads per worker. For shared GPU models I do not duplicate them per process — workers call a centralized inference service.',
+visuals:[
+ {type:'flow',id:'py-multiprocessing-memory-map',w:800,h:330,
+  title:'Visual A — Threads vs processes: where the boundary is',
+  purpose:'Show that threads share one heap behind the GIL while processes each own a separate interpreter and heap, communicating only through pickled IPC.',
+  nodes:[
+   {id:'tbox',x:20,y:30,w:340,h:250,label:'One process · threads',sub:'shared heap · GIL serializes bytecode',cls:'cyan',top:true},
+   {id:'t1',x:50,y:90,w:130,h:50,label:'thread 1'},
+   {id:'t2',x:200,y:90,w:130,h:50,label:'thread 2'},
+   {id:'theap',x:50,y:170,w:280,h:80,label:'shared objects',sub:'lists, dicts, locks — races possible',cls:'accent'},
+   {id:'p1',x:440,y:30,w:160,h:90,label:'process 1',sub:'own interpreter + heap',cls:'green',top:true},
+   {id:'p2',x:620,y:30,w:160,h:90,label:'process 2',sub:'own interpreter + heap',cls:'green',top:true},
+   {id:'ipc',x:440,y:170,w:340,h:60,label:'IPC boundary: pickle copy',sub:'Queue · Pipe · Value/Array · Manager',cls:'accent'}
+  ],
+  edges:[
+   {from:'t1',to:'theap',points:[[115,140],[115,170]],cls:'arch-flow'},
+   {from:'t2',to:'theap',points:[[265,140],[265,170]],cls:'arch-flow'},
+   {from:'p1',to:'ipc',points:[[520,120],[520,170]],label:'send → pickle',cls:'hot'},
+   {from:'ipc',to:'p2',points:[[700,170],[700,120]],label:'→ unpickle',cls:'hot'}
+  ],
+  howToRead:['Left: threads share everything — fast, but the GIL serializes execution and races are your problem.','Right: each process is a complete interpreter — no GIL contention, but no shared state either.','The only path between processes is the IPC boundary, where objects are pickled and copied.','Everything expensive about multiprocessing lives on that boundary — design work units around it.'],
+  interviewerNotice:['You can state exactly what is and is not shared in each model.','You know why IPC cost dictates coarse-grained work.']},
+ {type:'flow',id:'py-multiprocessing-pool-flow',w:800,h:300,
+  title:'Visual B — Pool.map: chunked data parallelism',
+  purpose:'Show how Pool splits an input iterable into chunks, ships each chunk to a worker process, and pickles results back in order.',
+  nodes:[
+   {id:'in',x:20,y:110,w:140,h:70,label:'iterable',sub:'[0..5]',cls:'cyan'},
+   {id:'chunk',x:210,y:110,w:130,h:70,label:'Pool.map',sub:'chunksize split'},
+   {id:'w1',x:420,y:30,w:150,h:56,label:'worker 1',sub:'[0,1]',cls:'green'},
+   {id:'w2',x:420,y:120,w:150,h:56,label:'worker 2',sub:'[2,3]',cls:'green'},
+   {id:'w3',x:420,y:210,w:150,h:56,label:'worker 3',sub:'[4,5]',cls:'green'},
+   {id:'out',x:660,y:110,w:120,h:70,label:'results',sub:'ordered',cls:'accent'}
+  ],
+  edges:[
+   {from:'in',to:'chunk',points:[[160,145],[210,145]],label:'pickle args',cls:'hot'},
+   {from:'chunk',to:'w1',points:[[340,130],[420,58]],cls:'arch-flow'},
+   {from:'chunk',to:'w2',points:[[340,145],[420,148]],cls:'arch-flow'},
+   {from:'chunk',to:'w3',points:[[340,160],[420,238]],cls:'arch-flow'},
+   {from:'w1',to:'out',points:[[570,58],[720,58],[720,110]],label:'pickle results',cls:'hot'},
+   {from:'w2',to:'out',points:[[570,148],[660,148]],cls:'arch-flow'},
+   {from:'w3',to:'out',points:[[570,238],[720,238],[720,180]],cls:'arch-flow'}
+  ],
+  howToRead:['The parent pickles each chunk of arguments and ships it to a worker — that is the hot arrow.','Workers compute in true parallel (separate interpreters, no GIL contention).','Results pickle back and reassemble in input order; imap_unordered would stream them as finished.','If chunks are tiny, the arrows cost more than the compute — that is the sizing rule.'],
+  interviewerNotice:['You know map preserves order while imap_unordered trades order for early results.','You can explain where pickling happens and why it sets the minimum work-unit size.']}
+]}),
 mk({id:'python-event-loop',domain:'python-core',title:'Asyncio Event Loop Mental Model',priority:5,
 intuition:'The event loop is the single coordinator of an asyncio program: one thread, one loop, many tasks that take turns — and a turn ends only at an await.',
 technical:'Per the official docs, the event loop "runs asynchronous tasks and callbacks, performs network IO operations, and runs subprocesses." It is the core of every asyncio application. Scheduling is cooperative: a coroutine keeps the loop until it awaits something that actually suspends (usually a Future). When it does, control returns to the loop, which polls I/O readiness, runs due timer callbacks, and resumes whichever task became runnable. Application code should use asyncio.run() and rarely touch the loop object; the loop methods (call_soon, call_later, create_task, run_in_executor…) are the machinery underneath.',
@@ -879,6 +966,7 @@ Object.assign(glossaryRaw,{
 D.glossary=Object.entries(glossaryRaw).map(([term,definition])=>({term,definition})).sort((a,b)=>a.term.localeCompare(b.term));
 
 D.sources.push(
+ {id:'python-multiprocessing-docs',group:'Official docs',title:'Python docs — multiprocessing',url:'https://docs.python.org/3/library/multiprocessing.html',note:'Read for start methods (spawn/forkserver/fork, 3.14 defaults), pickling boundary, __main__ guard, Queue feeder-thread and terminate-corruption warnings, Pool semantics and shared memory/Manager options.'},
  {id:'python-glossary-gil',group:'Official docs',title:'Python glossary — global interpreter lock / free threading',url:'https://docs.python.org/3/glossary.html#term-global-interpreter-lock',note:'Read for the precise GIL definition, release-on-I/O and release-GIL extension behavior, and PEP 703 free-threaded builds (--disable-gil, per-object locks).'},
  {id:'python-sys-switchinterval',group:'Official docs',title:'Python docs — sys.setswitchinterval',url:'https://docs.python.org/3/library/sys.html#sys.setswitchinterval',note:'Documented thread switch interval (default 5ms) governing how often the GIL is force-released between bytecode threads.'},
  {id:'python-threading-docs',group:'Official docs',title:'Python docs — threading',url:'https://docs.python.org/3/library/threading.html',note:'Thread objects, Lock/RLock/Event/Condition semantics, daemon threads and GIL-era threading model.'},

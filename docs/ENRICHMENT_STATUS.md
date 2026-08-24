@@ -7,7 +7,7 @@ recorded in `docs/SOURCES.md`.
 ```
 CURRENT_BRANCH: main
 CURRENT_COMMIT: (this wave — see git log)
-CURRENT_DOMAIN: python-core depth (Wave 2, in progress)
+CURRENT_DOMAIN: python-core depth (Wave 2, ~60% done)
 LAST_COMPLETED_WAVE: Wave 1 done; Wave 2 in progress — 4 python-core lessons rebuilt
 LAST_FULL_TEST_RESULT: PASS — 62/62 (node --check all + node --test), incl. new visual-semantics tests
 LAST_BROWSER_RESULT: PASS — coroutine lesson visuals inspected at 1280px dark + light, 390px mobile;
@@ -21,7 +21,7 @@ DOMAINS_REMAINING: python-core, database, messaging, distributed, system-design,
 RESEARCH_COMPLETED: Python docs asyncio-task.html + asyncio-future.html (see docs/SOURCES.md)
 GITHUB_REPOS_ALREADY_INSPECTED: none this session (repo-local reference/ only)
 DIAGRAM_GROUPS_COMPLETED: coroutine/task/future (3), event-loop cycle+timeline, TaskGroup scope+failure timeline, cancellation flow+deadline budget
-LESSON_GROUPS_COMPLETED: python-coroutines-tasks, python-event-loop, python-taskgroup, python-cancellation-timeouts, async-semaphore-queue (all benchmark depth)
+LESSON_GROUPS_COMPLETED: python-coroutines-tasks, python-event-loop, python-taskgroup, python-cancellation-timeouts, async-semaphore-queue, python-gil, python-threading, python-multiprocessing (all benchmark depth)
 LABS_COMPLETED: unchanged (all lab diagrams still render; registry kept)
 
 KNOWN_ISSUES:
@@ -32,9 +32,14 @@ KNOWN_ISSUES:
     (pre-existing); revisit ergonomics in the whole-product review wave.
   - app.test.js diagram mock extended (renderVisual/has) — keep in sync with diagrams API.
 CURRENT_FAILURE: none
-NEXT_EXACT_TASK: Wave 2 continued — rebuild python-gil, python-threading,
-  python-multiprocessing (research docs.python.org concurrency pages first);
-  keep adding to APPROVED only after browser inspection.
+NEXT_EXACT_TASK: Wave 2 continued — remaining python-core lessons by priority:
+  python-iterators-generators (P4), python-exceptions (P4), python-oop-solid (P4),
+  python-object-model (P4), python-mutable-immutable (P4), python-profiling (P3),
+  python-closures-decorators (P3), python-context-managers (P3),
+  python-typing-dataclasses (P3), python-copying (P3), python-args-kwargs,
+  python-scope-methods, then fastapi-lifecycle + async-db-pools (Wave 3 bridge).
+  Research each topic's official docs first; verify code with python3 (3.10);
+  label 3.11+ features honestly; add to APPROVED after browser inspection.
   NOTE: local python3 is 3.10 — examples using TaskGroup/timeout()/except* are
   labeled 'syntax-reviewed, not executed locally' (verified behaviorally on 3.10
   where possible).
@@ -79,7 +84,7 @@ NEXT_EXACT_TASK: Wave 2 continued — rebuild python-gil, python-threading,
   failure modes, traps, trade-offs, adversarial interview answer.
 - New tests/visual-semantics.test.js (fallback removal, expected/forbidden terms,
   teaching apparatus) — the Coroutine regression is now automated.
-- tools/visual-audit.mjs → docs/VISUAL_AUDIT.md (APPROVED 5 / GENERIC-REGISTRY 54 / MISSING 108).
+- tools/visual-audit.mjs → docs/VISUAL_AUDIT.md (APPROVED 8 / GENERIC-REGISTRY 54 / MISSING 105).
 - Browser inspection at 1280 dark+light and 390 mobile; fixed 3 label-collision
   defects found in inspection.
 
@@ -108,3 +113,14 @@ NEXT_EXACT_TASK: Wave 2 continued — rebuild python-gil, python-threading,
 - Created `tools/audit.mjs` (reproducible depth/coverage audit).
 - Wrote AGENTS.md, docs/CONTENT_QUALITY_REPORT.md, docs/SOURCES.md, this file.
 - Added `.atlas-private/` and root artifact files to `.gitignore`.
+
+### 2026-08-24 — Wave 2 progress 3
+
+- python-gil, python-threading, python-multiprocessing rebuilt to benchmark depth
+  (glossary/threading/multiprocessing docs read and recorded in SOURCES.md).
+- Verified runnable: GIL demo (I/O overlap 0.3s vs CPU no-speedup 0.22s/4 threads;
+  real lost-update race 10000/40000), threading bounded-handoff demo,
+  multiprocessing pool (0.33s serial → 0.14s on 3 workers).
+- Renderer: `top` label flag for container boxes now honored in flow specs too.
+- Fixed nextTopics reference (python-concurrent-futures does not exist).
+- 8 lessons now APPROVED; 62/62 tests; every rebuilt lesson browser-inspected.
