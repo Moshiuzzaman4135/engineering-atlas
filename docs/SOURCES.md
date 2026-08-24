@@ -26,7 +26,8 @@ Triton batching/analyzer/metrics, vLLM, YOLO, ArcFace/MTCNN papers, learning sci
 
 ## External sources verified this session
 
-(none yet — add as researched)
+- asyncio Task/coroutine semantics | Python docs — Coroutines and Tasks | Python Software Foundation | https://docs.python.org/3/library/asyncio-task.html | official | READ 2026-08-24 (v3.14 page). Extracted: calling async def creates object, runs nothing; create_task wraps+schedules, RuntimeError without running loop; loop keeps WEAK refs to tasks (save references / TaskGroup); Task = Future-like, inherits all Future APIs EXCEPT set_result/set_exception; cooperative scheduling; cancel() semantics incl. uncancel()/cancelling(); gather vs TaskGroup failure semantics; shield; wait_for cancels then raises TimeoutError; to_thread GIL note; eager task factory (3.12+).
+- asyncio Future semantics | Python docs — Futures | Python Software Foundation | https://docs.python.org/3/library/asyncio-future.html | official | READ 2026-08-24. Extracted: Future = eventual result holder bridging callback-based code; rule of thumb: never expose Futures in user APIs, create via loop.create_future(); awaitable multiple times, same result; asyncio.Future vs concurrent.futures.Future differences (awaitability, InvalidStateError, call_soon callbacks, cancel msg).
 
 ## Pending research queue
 
