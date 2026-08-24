@@ -130,7 +130,97 @@ visuals:[
   howToRead:['Start at the profile result: the fix depends on WHERE the time goes, not on the framework.','Waiting on network/disk → overlap with asyncio or threads (GIL irrelevant).','Time inside NumPy/OpenCV kernels → threads work because kernels release the GIL.','Time in pure-Python bytecode → only more processes (or an opt-in free-threaded build) add cores.'],
   interviewerNotice:['You reach for multiprocessing based on profiling evidence, not fashion.','You can name the trade: processes give parallelism but cost pickling and startup.']}
 ]}),
-mk({id:'python-threading',domain:'python-core',title:'Threading, Locks & Race Conditions',priority:4,intuition:'Threads share memory, which is convenient until two of them change the same state at the same time.',technical:'Threading is useful for blocking I/O or C extensions. Shared mutable state requires synchronization with Lock/RLock/Condition/Semaphore, but excessive locking creates contention and deadlocks.',remember:['Race conditions come from interleavings, not only “simultaneous” CPU execution.','Keep critical sections small.','Prefer queues/message passing when ownership can be isolated.'],terms:['race condition','critical section','deadlock','mutex'],functions:['threading.Lock','threading.Semaphore','queue.Queue'],interview:'I minimize shared state and use queues for handoff. When I must lock, I keep the critical section small and use a fixed acquisition order to reduce deadlock risk.',prerequisites:['python-gil']}),
+mk({id:'python-threading',domain:'python-core',title:'Threading, Locks & Race Conditions',priority:4,
+intuition:'Threads share memory, which is convenient until two of them change the same state at the same time.',
+technical:'threading runs OS threads in one process sharing one heap — right for blocking I/O and release-GIL C work, not for pure-Python CPU (see the GIL lesson). Shared mutable state needs Lock (mutex, any thread may release), RLock (reentrant, owned by one thread with a recursion level), Condition (wait/notify around a lock), Semaphore/BoundedSemaphore (capacity), Event (flag), Barrier (rendezvous). The docs note threads cannot be killed, suspended or interrupted — cooperation or daemon flags are the only exits.',
+deepDive:'Lifecycle and the sharp edges, straight from the docs: Thread(target=...).start() invokes run() in a new thread of control; start() twice raises RuntimeError. join(timeout) always returns None — check is_alive() afterwards to detect timeout. A thread whose run() raises goes to threading.excepthook (default: print to stderr; SystemExit ignored) — unobserved thread exceptions are the threading equivalent of "Task exception was never retrieved". Daemon threads (daemon=True before start) do not keep the process alive and are "abruptly stopped at shutdown — their resources (open files, database transactions) may not be released properly"; the docs recommend non-daemon workers stopped via an Event instead.\n\nLock semantics matter more than people expect. threading.Lock is not owned: any thread may release it, and when several threads wait, WHICH one proceeds is deliberately unspecified — unlike asyncio.Lock\'s documented FIFO fairness. RLock tracks owner + recursion level: same thread can re-acquire (recursive functions, re-entrant callbacks) and must release once per acquire; mismatched pairs deadlock. Condition.wait() releases the lock, blocks, re-acquires on wake — and the docs require rechecking the predicate in a loop (or use wait_for(predicate)) because another thread can consume the state between notify and wake. notify() does not release the lock: awakened threads return from wait() only when the notifier exits the with block.\n\nThe race-condition core: the GIL guarantees one bytecode stream at a time but NOT multi-statement atomicity. counter += 1 is read-modify-write; check-then-act (if key in d: d[key].append) interleaves between the check and the act. The glossary is explicit that high-level statements are not atomic unless documented. Fixes in order of preference: (1) don\'t share — pass messages through queue.Queue (thread-safe, the docs\' recommended handoff); (2) immutable snapshots; (3) lock the smallest possible critical section, one consistent global acquisition order to avoid deadlock; (4) BoundedSemaphore for capacity (the docs\' own DB-connection-pool example).\n\nPractical production notes: ThreadPoolExecutor wraps most of this — submit() gives you futures instead of hand-rolled result lists; threading.local() gives per-thread state (per-thread DB connections, RNGs) but subclass __init__ runs per thread and __slots__ are NOT thread-local. Name your threads (visible in top/htop on Linux, truncated to 15 bytes) — production debugging depends on it. Daemon=True for "fire and forget" is a smell: abrupt stop mid-transaction is exactly how you corrupt data.',
+terms:['race condition','critical section','deadlock','mutex','reentrant lock','daemon thread','thread-local','spurious wakeup'],
+functions:['threading.Thread','threading.Lock','threading.RLock','threading.Condition','threading.BoundedSemaphore','threading.Event','queue.Queue','ThreadPoolExecutor','threading.excepthook'],
+remember:['Threads cannot be killed — design cooperative stops with Event, or accept daemon abrupt-stop risks.','Lock has no owner and unfair wakeup; RLock is owned/reentrant; Condition.wait needs a predicate loop.','join(timeout) returns None — always re-check is_alive().','Uncaught run() exceptions go to threading.excepthook — observe them.','Prefer queue.Queue handoff over shared-state-plus-locks; lock small, lock in one order.'],
+tradeoffs:['queue.Queue handoff vs locks: ownership isolation vs shared-state flexibility; queues win by default.','Lock vs RLock: cheap mutual exclusion vs re-entrancy for recursive call paths.','Daemon vs cooperative shutdown: convenience vs guaranteed resource release.','ThreadPoolExecutor vs raw Thread: futures, pooling, naming vs full control.'],
+failureModes:['Lost updates and check-then-act races on shared dicts/lists despite the GIL.','Deadlock from inconsistent lock order or unpaired RLock acquire/release.','Daemon thread killed mid-DB-transaction at interpreter shutdown.','Swallowed thread exceptions (nobody overrides excepthook) — worker silently dead, queue stops draining.','Condition.notify() while holding the lock "does nothing" until release — misread as a missed wakeup.'],
+scaling:['Threads are cheap-ish (MB stack each) — pools of tens to low hundreds are normal; thousands of blocked threads waste memory vs asyncio.','Contention is the scaling killer: profile lock hold times; sharded locks or queues restore throughput.'],
+security:['Thread-local state (local()) prevents cross-request credential leakage within a worker; daemon threads dying at shutdown can skip audit/security logging — flush explicitly.'],
+traps:['Assuming Lock wakeups are FIFO like asyncio.Lock — threading makes no such promise.','Setting daemon after start() — RuntimeError; and daemon inheritance surprises (inherits from creating thread).','Locking around long I/O calls — hold times become the throughput ceiling.','Using mutable default or shared class attributes as accidental thread-shared state.'],
+usedByYou:['RTSP frame-grabber threads feeding OpenCV decode (kernels release the GIL) with a bounded queue.Queue handoff to processing — the exact pattern this lesson prescribes; capture threads are named and stopped cooperatively via Event.'],
+codeTitle:'Bounded handoff + cooperative shutdown (verified runnable)',
+code:`import threading, queue, time
+
+def producer(q: queue.Queue, n=6):
+    for i in range(n):
+        time.sleep(0.02)               # blocking I/O-shaped work
+        q.put(f'frame-{i}')
+    q.put(None)                        # sentinel: graceful stop signal
+
+def consumer(name, q: queue.Queue, stop: threading.Event, results):
+    while not stop.is_set():
+        try:
+            item = q.get(timeout=0.2)
+        except queue.Empty:
+            continue
+        if item is None:
+            q.put(None)                # pass sentinel to sibling consumers
+            break
+        results.append((name, item))   # handoff — no shared-state locking needed
+    print(name, 'stopped cleanly')
+
+def main():
+    q = queue.Queue(maxsize=3)
+    stop = threading.Event()
+    results = []
+    cs = [threading.Thread(target=consumer, args=(f'c{i}', q, stop, results),
+                           name=f'consumer-{i}') for i in range(2)]
+    p = threading.Thread(target=producer, args=(q,), name='producer')
+    for t in cs + [p]:
+        t.start()
+    p.join()
+    for t in cs:
+        t.join(timeout=2)
+        assert not t.is_alive(), f'{t.name} did not stop'
+    print('processed:', sorted(x[1] for x in results))
+
+main()`,
+sources:['python-threading-docs','python-glossary-gil'],
+prerequisites:['python-gil'],
+nextTopics:['python-multiprocessing','python-event-loop'],
+interviewAnswer:'Threads in Python share one heap and, on standard CPython, one GIL — so I use them for blocking I/O and release-GIL C work, never for pure-Python CPU. For correctness I minimize shared mutable state: hand off work through queue.Queue, and where locking is unavoidable keep critical sections small, use RLock only when re-entrancy is real, and acquire multiple locks in one global order to prevent deadlock. I remember the operational edges: threads cannot be killed, daemon threads are cut off mid-work at shutdown, join(timeout) returns None so I re-check is_alive, and uncaught run() exceptions vanish into threading.excepthook unless I observe them. The GIL does not make += atomic — races are interleaving bugs, not simultaneity bugs.',
+visuals:[
+ {type:'lanes',id:'py-threading-race-timeline',w:800,h:352,axis:{label:'time →'},
+  title:'Visual A — How a race interleaves despite one GIL',
+  purpose:'Show two threads executing a read-modify-write where a thread switch lands between read and write, losing an update — the GIL serializes bytecodes, not intentions.',
+  rows:[
+   {label:'thread 1',segments:[{from:0,to:100,label:'read = 5',cls:'cyan'},{from:100,to:200,label:'switched out',cls:'accent'},{from:200,to:300,label:'write 6',cls:'hot'}]},
+   {label:'thread 2',segments:[{from:100,to:200,label:'read = 5',cls:'cyan'},{from:200,to:300,label:'write 6',cls:'hot'}]},
+   {label:'counter',segments:[{from:0,to:100,label:'5',cls:'green'},{from:200,to:300,label:'6 (want 7)',cls:'accent'}]}
+  ],
+  marks:[{at:100,label:'GIL switch between read and write'},{at:250,label:'one increment lost'}],
+  howToRead:['Both threads intend counter += 1. Each reads 5.','The GIL switch can land after thread 1 reads but before it writes.','Thread 2 reads the stale 5, both write 6 — one increment vanished.','No "simultaneous execution" was needed: interleaving alone causes the loss.'],
+  interviewerNotice:['You define the race as an interleaving window, not simultaneous execution.','You know the fix is atomicity (lock/queue), not "the GIL will handle it".']},
+ {type:'flow',id:'py-threading-primitive-map',w:800,h:320,
+  title:'Visual B — Which synchronization primitive, when',
+  purpose:'Map each threading primitive to the coordination problem it solves, so the choice is mechanical instead of guesswork.',
+  nodes:[
+   {id:'need',x:20,y:120,w:160,h:64,label:'What do threads need?',cls:'cyan'},
+   {id:'hand',x:250,y:30,w:180,h:56,label:'Hand off work',cls:'green'},
+   {id:'once',x:250,y:120,w:180,h:56,label:'One at a time in a section'},
+   {id:'cap',x:250,y:210,w:180,h:56,label:'At most N at once'},
+   {id:'queue',x:510,y:30,w:170,h:56,label:'queue.Queue',sub:'thread-safe by design',cls:'green'},
+   {id:'lock',x:510,y:120,w:170,h:56,label:'Lock / RLock',sub:'RLock if re-entering',cls:'accent'},
+   {id:'sem',x:510,y:210,w:170,h:56,label:'BoundedSemaphore',sub:'over-release = ValueError',cls:'accent'},
+   {id:'evt',x:710,y:30,w:80,h:56,label:'+ Event',sub:'stop signal',cls:''}
+  ],
+  edges:[
+   {from:'need',to:'hand',points:[[100,120],[100,58],[250,58]],label:'producer → consumer'},
+   {from:'need',to:'once',points:[[180,152],[250,148]],cls:'arch-flow'},
+   {from:'need',to:'cap',points:[[180,152],[250,238]],cls:'arch-flow'},
+   {from:'hand',to:'queue',points:[[430,58],[510,58]],label:'use this first',cls:'hot'},
+   {from:'once',to:'lock',points:[[430,148],[510,148]],label:'smallest section'},
+   {from:'cap',to:'sem',points:[[430,238],[510,238]],label:'pool sizing'},
+   {from:'queue',to:'evt',points:[[680,58],[710,58]],cls:'arch-flow'}
+  ],
+  howToRead:['Ask what the threads actually need from each other before reaching for a lock.','Work handoff → queue.Queue (thread-safe, no lock bookkeeping) plus an Event for shutdown.','Mutual exclusion → Lock; add RLock only when the same thread legitimately re-enters.','Capacity (DB pool, API limit) → BoundedSemaphore so a double-release fails loudly.'],
+  interviewerNotice:['You reach for message passing before shared state — the docs recommend the same.','You know the difference between Lock (unowned, unfair) and RLock (owned, reentrant).']}
+]}),
 mk({id:'python-multiprocessing',domain:'python-core',title:'Multiprocessing & Worker Pools',priority:4,intuition:'Processes trade memory and communication overhead for true CPU parallelism and fault isolation.',technical:'multiprocessing starts separate interpreters with separate memory. Work is serialized across process boundaries. ProcessPoolExecutor is useful for coarse CPU tasks; tiny tasks can lose to serialization/startup overhead.',remember:['Separate memory avoids the GIL but requires IPC.','Large models duplicated per process can exhaust RAM/VRAM.','Use coarse work units.'],terms:['process','IPC','serialization','worker pool'],functions:['multiprocessing.Process','ProcessPoolExecutor','multiprocessing.Queue'],interview:'I choose processes for CPU-bound Python work when tasks are coarse enough to justify IPC. For GPU inference I usually centralize the model in a serving process such as Triton instead of loading a GPU model per Python process.',usedByYou:['Your Triton-based ANPR design centralizes model serving instead of duplicating models in every worker.']}),
 mk({id:'python-event-loop',domain:'python-core',title:'Asyncio Event Loop Mental Model',priority:5,
 intuition:'The event loop is the single coordinator of an asyncio program: one thread, one loop, many tasks that take turns — and a turn ends only at an await.',
