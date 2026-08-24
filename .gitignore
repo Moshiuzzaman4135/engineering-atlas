@@ -10,3 +10,10 @@ Engineering_Atlas.zip
 release-extract-*/
 screenshots/
 
+.atlas-private/
+prompt.text
+request
+response
+server
+size
+target
