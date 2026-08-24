@@ -36,7 +36,97 @@ mk({id:'python-mutable-immutable',domain:'python-core',title:'Mutable vs Immutab
  intuition:'Some objects can change in place; others can only be replaced by a new object.',technical:'Lists, dicts and sets are mutable. Integers, strings, tuples and frozensets are immutable at the object level. Mutability affects hashing, default arguments, caching and concurrent access.',remember:['Mutable default arguments are a classic trap.','Hashable keys must have stable equality/hash behavior.','Immutability reduces accidental shared-state bugs.'],terms:['mutable','immutable','hashable'],functions:['list.append','dict.update','hash(obj)'],interview:'I first ask whether a value is mutated or rebound. That distinction explains shared state, safe dictionary keys and why mutable defaults should be avoided.',codeTitle:'Mutable default trap',code:'def add(x, items=None):\n    if items is None:\n        items = []\n    items.append(x)\n    return items',prerequisites:['python-object-model']}),
 mk({id:'python-copying',domain:'python-core',title:'Shallow Copy vs Deep Copy',priority:3,intuition:'A shallow copy duplicates the outer container but can still share inner objects; a deep copy recursively duplicates the graph.',technical:'copy.copy() copies one level while copy.deepcopy() recursively copies referenced objects using a memo table to avoid cycles. Deep copying can be expensive and sometimes semantically wrong for sockets, locks or model handles.',remember:['Shallow copy shares nested mutable objects.','Deep copy is not automatically safer—it can be expensive or invalid.'],terms:['shallow copy','deep copy','object graph'],functions:['copy.copy','copy.deepcopy','dict.copy'],interview:'I use copying deliberately: shallow copy for a new container with intentionally shared members; deep copy only when I truly need independent nested state.',prerequisites:['python-object-model','python-mutable-immutable']}),
 mk({id:'python-closures-decorators',domain:'python-core',title:'Closures & Decorators',priority:3,intuition:'A closure lets a function remember variables from where it was created. A decorator wraps another function to add behavior.',technical:'A closure captures free variables from lexical scope. Decorators are callables applied at definition time and are useful for cross-cutting concerns such as metrics, auth and retries; functools.wraps preserves metadata.',remember:['Closure = function + captured lexical environment.','Decorator = transform/wrap callable while keeping business logic clean.'],terms:['closure','free variable','decorator'],functions:['functools.wraps','@decorator','nonlocal'],interview:'I use decorators for cross-cutting behavior, but avoid hiding large control flows inside them because that hurts debugging and observability.',code:'from functools import wraps\ndef timed(fn):\n    @wraps(fn)\n    def wrapper(*a, **kw):\n        return fn(*a, **kw)\n    return wrapper'}),
-mk({id:'python-iterators-generators',domain:'python-core',title:'Iterators, Generators & Lazy Processing',priority:4,intuition:'Instead of loading everything into memory, generators produce one item at a time.',technical:'An iterator implements __iter__ and __next__. A generator function uses yield to create a stateful iterator. Laziness is useful for streams, database pages and video frames because memory grows with the working set rather than total input.',remember:['yield pauses and preserves function state.','Generators are single-pass unless recreated.','Lazy iteration is ideal for large video/data pipelines.'],terms:['iterable','iterator','generator','lazy evaluation'],functions:['iter(obj)','next(it)','yield'],interview:'For large media or database results, I prefer streaming generators so memory stays bounded and downstream code can apply backpressure rather than materializing the full dataset.',usedByYou:['Frame-by-frame video processing naturally maps to lazy iteration.']}),
+mk({id:'python-iterators-generators',domain:'python-core',title:'Iterators, Generators & Lazy Pipelines',priority:4,
+intuition:'A generator produces one item at a time, remembering where it stopped — so a pipeline\'s memory is the working set, not the whole dataset.',
+technical:'An iterator implements __iter__ and __next__; __next__ returns items until StopIteration. A generator function (one containing yield) returns a generator iterator: each yield suspends the function, preserving local state and pending try-blocks, and the next call resumes from there. Generators are single-pass; send()/throw() can inject into the suspended frame.',
+deepDive:'The protocol, per the language reference: iter(obj) asks for __iter__ (containers return a fresh iterator each time — that is why you can loop a list twice); next() calls __next__ until StopIteration. A for loop does exactly this dance and swallows the StopIteration. The classic bug class follows directly: an exhausted iterator keeps raising StopIteration — looping it again yields nothing silently. Generator expressions are generator iterators too: sum(i*i for i in range(10)) never builds a list.\n\nWhat yield really does: pauses the frame. Locals, the instruction pointer, and open try/finally state survive between resumptions. This makes generators the natural tool for streaming — read a chunk, transform, emit, suspend, repeat — with O(1) memory per stage instead of O(dataset). The glossary notes send() can resume a generator with a value (making it a coroutine in the old, pre-async sense) and throw() raises inside it at the pause point; both are how asyncio\'s event loops were originally built before async/await — a nice interview connection.\n\nPipeline composition is the production pattern: source generator → generator transformations → sink. Each stage pulls from the previous one lazily; nothing is materialized end-to-end. For video/frame processing this maps perfectly: read frames lazily, decode → resize → infer one at a time. Backpressure is implicit: the consumer\'s pull rate controls the producer.\n\nSharp edges: generators are single-pass — re-iterate and you silently get nothing (wrap in a class or re-create); a generator that raises mid-way loses the rest of the stream; try/finally inside generators runs on close()/GC, not at last yield — resource cleanup belongs in finally with explicit close() or contextlib.closing; return inside a generator raises StopIteration(value) — the value lands in StopIteration.value, not the result. Also: a generator function containing yield cannot also be a coroutine function (async def + yield makes an async generator instead — different protocol, async for).\n\nWhen to prefer what: list comprehension for small, re-used, indexed data; generator expression for large/single-pass/never-ending; itertools (islice, chain, tee, groupby) for composing without materializing. Profile before assuming: generators add per-item overhead — for small data a list is faster; the win is memory and composability, not raw speed.',
+terms:['iterable','iterator','generator function','generator iterator','yield','StopIteration','single-pass','lazy evaluation','send()/throw()'],
+functions:['iter()','next()','yield','yield from','generator expressions','itertools.islice/chain/tee','contextlib.closing','StopIteration.value'],
+remember:['yield pauses the frame — locals, instruction pointer and try-state survive.','Iterators are single-pass: a second loop over a generator yields nothing, silently.','Pipelines compose lazily: memory is per-item, backpressure is the consumer\'s pull rate.','Cleanup inside generators belongs in try/finally plus explicit close().','return value in a generator becomes StopIteration.value — not a returned value.'],
+tradeoffs:['List vs generator: random access, re-use, len() vs O(1) memory and infinite streams.','Generators vs classes implementing the protocol: quick stateful iteration vs reusable, named iteration logic.','yield from vs manual loop-delegation: cleaner sub-iterator delegation with exception propagation.'],
+failureModes:['Silent empty loops from re-using an exhausted generator.','Resource leaks: file/DB handles opened in a generator never closed because the consumer abandoned it mid-stream.','StopIteration leaking: raising StopIteration inside a function used as a generator body (or in async code) produces confusing errors (RuntimeError in coroutines).','Mixing async generators with sync consumers — async for is required.'],
+scaling:['Streaming pipelines keep memory bounded regardless of input size — the standard answer for large files, DB cursors and frame streams.','Per-item function-call overhead is real: for hot small-data paths, lists/vectorized ops win.'],
+security:['Streaming parse of untrusted input (JSON lines, uploads) bounds memory — a DoS-resistance property, not just performance.'],
+traps:['"I can iterate it twice, it is a list-like thing" — it is not.','Building a generator but never consuming it: nothing executes (same instinct as un-awaited coroutines).','Using next(g) without a default on a possibly-finite generator — StopIteration crashes the caller.','Assuming generator expressions capture values eagerly — they close over variables lazily.'],
+usedByYou:['Frame-by-frame video processing maps to lazy iteration: a capture generator yields decoded frames, transforms chain lazily, and GPU stages pull at their own rate — the software version of the bounded-queue pattern.'],
+codeTitle:'Lazy pipeline: bounded memory over a huge stream (verified runnable)',
+code:`import sys
+
+def read_lines(n):
+    """Simulate a huge file: yields one line at a time."""
+    for i in range(n):
+        yield f'row-{i},value={i*i}'
+
+def parse(lines):
+    for line in lines:
+        key, val = line.split(',')
+        yield key, int(val.split('=')[1])
+
+def only_big(pairs, threshold):
+    for key, val in pairs:
+        if val > threshold:
+            yield key, val
+
+# The pipeline: nothing runs until consumed, memory stays O(1) per stage.
+pipeline = only_big(parse(read_lines(1_000_000)), threshold=900)
+
+first = [next(pipeline) for _ in range(3)]     # pull-driven: 3 items computed
+print('first 3:', first)
+print('generator object size:', sys.getsizeof(pipeline), 'bytes — not 1M rows')
+
+# single-pass proof:
+rest = list(pipeline)
+print('remaining:', len(rest))
+print('re-iterate:', list(pipeline))           # silently empty
+
+# cleanup discipline: generators close finally blocks on close()
+def resource():
+    try:
+        yield 1
+        yield 2
+    finally:
+        print('cleanup ran')
+
+g = resource()
+print(next(g))
+g.close()                                      # finally executes here`,
+sources:['python-glossary-generators','python-reference-generators'],
+prerequisites:['python-object-model'],
+nextTopics:['python-closures-decorators','python-context-managers'],
+interviewAnswer:'An iterator is any object with __iter__ and __next__ raising StopIteration when done; a generator function uses yield to produce one with the frame preserved between calls. The property I design around is laziness: a pipeline of generators — read, parse, filter — pulls one item at a time, so memory is bounded by the working set, which is exactly how I stream frames or large files instead of materializing them. The traps I respect: generators are single-pass, so re-iterating yields nothing silently; cleanup needs try/finally plus explicit close because the finally runs on close, not on exhaustion; and return inside a generator becomes StopIteration.value. I reach for lists when data is small and re-used, generators when it is large, infinite, or security-sensitive to parse.',
+visuals:[
+ {type:'lanes',id:'py-generators-memory-lanes',w:800,h:290,axis:{label:'time →'},
+  title:'Visual A — List vs generator pipeline: where the memory goes',
+  purpose:'Show that a list-based pipeline materializes every intermediate result while a generator pipeline holds only the item currently in flight.',
+  rows:[
+   {label:'list pipeline',segments:[{from:0,to:110,label:'read all',cls:'cyan'},{from:110,to:200,label:'parse all',cls:'cyan'},{from:200,to:290,label:'filter all',cls:'cyan'},{from:290,to:340,label:'consume',cls:'green'}]},
+   {label:'memory (list)',segments:[{from:0,to:340,label:'3 full copies of the dataset live at peak',cls:'accent'}]},
+   {label:'generator pipeline',segments:[{from:0,to:340,label:'read → parse → filter → consume, one item in flight',cls:'green'}]},
+   {label:'memory (gen)',segments:[{from:0,to:340,label:'O(1): one row + one result at a time',cls:'green'}]}
+  ],
+  marks:[{at:120,label:'list: peak = 2× dataset so far'},{at:300,label:'generator: first result already emitted'}],
+  howToRead:['The list pipeline must finish each stage before the next starts — three full copies at peak.','The generator pipeline interleaves: each consumed item flows read→parse→filter→sink as one unit.','Same output, radically different memory profile — the whole argument for lazy pipelines.','The first generator result appears long before the list version produces anything.'],
+  interviewerNotice:['You connect laziness to memory bounds AND to earlier time-to-first-result.','You know the trade: no random access, single pass.']},
+ {type:'states',id:'py-generators-protocol-map',w:800,h:250,
+  title:'Visual B — The iterator protocol a for-loop hides',
+  purpose:'Show what iter() and next() actually do, and where StopIteration ends the loop — the machinery every for statement runs.',
+  nodes:[
+   {id:'itb',x:20,y:96,w:150,h:56,label:'iterable',sub:'list, dict, file, range…',cls:'cyan'},
+   {id:'it',x:250,y:96,w:140,h:56,label:'iter(itb)',sub:'returns iterator',cls:'accent'},
+   {id:'nx',x:470,y:96,w:150,h:56,label:'next(it)',sub:'calls __next__'},
+   {id:'val',x:660,y:30,w:120,h:52,label:'value',cls:'green'},
+   {id:'stop',x:660,y:160,w:120,h:52,label:'StopIteration',cls:''}
+  ],
+  edges:[
+   {from:'itb',to:'it',points:[[170,124],[250,124]],label:'fresh iterator'},
+   {from:'it',to:'nx',points:[[390,124],[470,124]],label:'each loop step'},
+   {from:'nx',to:'val',points:[[620,110],[660,56]],label:'has item',cls:'hot'},
+   {from:'nx',to:'stop',points:[[620,138],[660,186]],label:'exhausted'},
+   {from:'val',to:'nx',points:[[720,82],[720,96],[545,96]],label:'ask again',cls:'arch-flow'}
+  ],
+  howToRead:['for x in itb: is exactly: it = iter(itb), then next(it) until StopIteration.','Containers return a FRESH iterator from iter() — that is why you can loop a list twice.','A generator is already an iterator: iter(g) returns g itself.','StopIteration is control flow, not an error — but leaking it into the wrong place breaks code.'],
+  interviewerNotice:['You can define the protocol without hand-waving and explain for-loop desugaring.','You know why re-iterating a generator is empty: it is the same exhausted iterator.']}
+]}),
 mk({id:'python-context-managers',domain:'python-core',title:'Context Managers & Resource Safety',priority:3,intuition:'A context manager guarantees cleanup around a block—even when an exception happens.',technical:'The with statement calls __enter__/__exit__ or an @contextmanager generator. Async context managers use __aenter__/__aexit__. They fit files, DB transactions, locks, spans and temporary resources.',remember:['Acquire resource → use → guaranteed cleanup.','Prefer context managers over scattered try/finally cleanup.'],terms:['context manager','RAII-like lifecycle'],functions:['with','contextlib.contextmanager','async with'],interview:'I wrap resources with context managers so ownership and cleanup are explicit; for async DB sessions or HTTP clients I use async with so connections are returned even on exceptions.'}),
 mk({id:'python-exceptions',domain:'python-core',title:'Exceptions, Error Boundaries & Retryable Failures',priority:4,intuition:'Exceptions should cross only the boundaries that know how to recover or translate them.',technical:'Catch specific exceptions near recovery boundaries. Preserve causes with raise ... from. Distinguish validation, transient dependency, timeout and programmer errors because they need different handling and retry policies.',remember:['Catch specific, not blanket Exception unless at a top boundary.','Retry only transient/idempotent work.','Log with context once at the right boundary.'],terms:['exception chaining','retryable error','error boundary'],functions:['raise','try/except/finally','raise X from e'],interview:'I classify failures first. A timeout to a dependency may be retryable; malformed input is not. I translate internal errors at service boundaries and preserve the original cause for observability.',usedByYou:['This applies directly to RTSP retries, model-service failures and webhook/API integrations.']}),
 mk({id:'python-typing-dataclasses',domain:'python-core',title:'Type Hints, Dataclasses & Pydantic Boundaries',priority:3,intuition:'Types make contracts visible; validation libraries enforce data at runtime where external input enters.',technical:'Python annotations aid static analysis but do not enforce runtime types by themselves. dataclasses reduce boilerplate for internal records; Pydantic validates/parses external API/config data and produces schemas.',remember:['Type hints document and check contracts statically.','Validate untrusted input at boundaries.','Do not turn every internal object into a heavy validation model.'],terms:['type annotation','dataclass','schema validation'],functions:['@dataclass','typing.Protocol','pydantic.BaseModel'],interview:'I use Pydantic at FastAPI boundaries and lighter dataclasses or typed objects internally. That keeps validation where it adds value without coupling the entire domain to the web schema.'}),
@@ -966,6 +1056,8 @@ Object.assign(glossaryRaw,{
 D.glossary=Object.entries(glossaryRaw).map(([term,definition])=>({term,definition})).sort((a,b)=>a.term.localeCompare(b.term));
 
 D.sources.push(
+ {id:'python-glossary-generators',group:'Official docs',title:'Python glossary — generator / iterator terms',url:'https://docs.python.org/3/glossary.html#term-generator',note:'Read for precise definitions: generator function/iterator/expression, yield suspending frame state, send()/throw(), single-pass semantics.'},
+ {id:'python-reference-generators',group:'Official docs',title:'Python language reference — Yield expressions',url:'https://docs.python.org/3/reference/expressions.html#yieldexpr',note:'Authoritative yield/yield from semantics: frame suspension, StopIteration.value from return, generator close/throw protocol.'},
  {id:'python-multiprocessing-docs',group:'Official docs',title:'Python docs — multiprocessing',url:'https://docs.python.org/3/library/multiprocessing.html',note:'Read for start methods (spawn/forkserver/fork, 3.14 defaults), pickling boundary, __main__ guard, Queue feeder-thread and terminate-corruption warnings, Pool semantics and shared memory/Manager options.'},
  {id:'python-glossary-gil',group:'Official docs',title:'Python glossary — global interpreter lock / free threading',url:'https://docs.python.org/3/glossary.html#term-global-interpreter-lock',note:'Read for the precise GIL definition, release-on-I/O and release-GIL extension behavior, and PEP 703 free-threaded builds (--disable-gil, per-object locks).'},
  {id:'python-sys-switchinterval',group:'Official docs',title:'Python docs — sys.setswitchinterval',url:'https://docs.python.org/3/library/sys.html#sys.setswitchinterval',note:'Documented thread switch interval (default 5ms) governing how often the GIL is force-released between bytecode threads.'},

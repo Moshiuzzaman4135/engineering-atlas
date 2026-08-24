@@ -21,7 +21,7 @@ DOMAINS_REMAINING: python-core, database, messaging, distributed, system-design,
 RESEARCH_COMPLETED: Python docs asyncio-task.html + asyncio-future.html (see docs/SOURCES.md)
 GITHUB_REPOS_ALREADY_INSPECTED: none this session (repo-local reference/ only)
 DIAGRAM_GROUPS_COMPLETED: coroutine/task/future (3), event-loop cycle+timeline, TaskGroup scope+failure timeline, cancellation flow+deadline budget
-LESSON_GROUPS_COMPLETED: python-coroutines-tasks, python-event-loop, python-taskgroup, python-cancellation-timeouts, async-semaphore-queue, python-gil, python-threading, python-multiprocessing (all benchmark depth)
+LESSON_GROUPS_COMPLETED: python-coroutines-tasks, python-event-loop, python-taskgroup, python-cancellation-timeouts, async-semaphore-queue, python-gil, python-threading, python-multiprocessing, python-iterators-generators (all benchmark depth)
 LABS_COMPLETED: unchanged (all lab diagrams still render; registry kept)
 
 KNOWN_ISSUES:
@@ -32,12 +32,11 @@ KNOWN_ISSUES:
     (pre-existing); revisit ergonomics in the whole-product review wave.
   - app.test.js diagram mock extended (renderVisual/has) — keep in sync with diagrams API.
 CURRENT_FAILURE: none
-NEXT_EXACT_TASK: Wave 2 continued — remaining python-core lessons by priority:
-  python-iterators-generators (P4), python-exceptions (P4), python-oop-solid (P4),
-  python-object-model (P4), python-mutable-immutable (P4), python-profiling (P3),
-  python-closures-decorators (P3), python-context-managers (P3),
-  python-typing-dataclasses (P3), python-copying (P3), python-args-kwargs,
-  python-scope-methods, then fastapi-lifecycle + async-db-pools (Wave 3 bridge).
+NEXT_EXACT_TASK: Wave 2 continued — remaining python-core by priority:
+  python-exceptions (P4), python-oop-solid (P4), python-object-model (P4),
+  python-mutable-immutable (P4), python-profiling (P3), python-closures-decorators (P3),
+  python-context-managers (P3), python-typing-dataclasses (P3), python-copying (P3),
+  python-args-kwargs, python-scope-methods, then fastapi-lifecycle + async-db-pools.
   Research each topic's official docs first; verify code with python3 (3.10);
   label 3.11+ features honestly; add to APPROVED after browser inspection.
   NOTE: local python3 is 3.10 — examples using TaskGroup/timeout()/except* are
@@ -84,7 +83,7 @@ NEXT_EXACT_TASK: Wave 2 continued — remaining python-core lessons by priority:
   failure modes, traps, trade-offs, adversarial interview answer.
 - New tests/visual-semantics.test.js (fallback removal, expected/forbidden terms,
   teaching apparatus) — the Coroutine regression is now automated.
-- tools/visual-audit.mjs → docs/VISUAL_AUDIT.md (APPROVED 8 / GENERIC-REGISTRY 54 / MISSING 105).
+- tools/visual-audit.mjs → docs/VISUAL_AUDIT.md (APPROVED 9 / GENERIC-REGISTRY 54 / MISSING 104).
 - Browser inspection at 1280 dark+light and 390 mobile; fixed 3 label-collision
   defects found in inspection.
 
@@ -124,3 +123,12 @@ NEXT_EXACT_TASK: Wave 2 continued — remaining python-core lessons by priority:
 - Renderer: `top` label flag for container boxes now honored in flow specs too.
 - Fixed nextTopics reference (python-concurrent-futures does not exist).
 - 8 lessons now APPROVED; 62/62 tests; every rebuilt lesson browser-inspected.
+
+### 2026-08-24 — Wave 2 progress 4
+
+- python-iterators-generators rebuilt (glossary + language-reference yield
+  semantics already researched this session, recorded in SOURCES.md).
+- Memory-profile timeline + iterator-protocol map visuals; pipeline demo
+  verified (104-byte generator vs 1M rows; single-pass emptiness; close()
+  cleanup).
+- 9 lessons APPROVED; 62/62 tests green.
