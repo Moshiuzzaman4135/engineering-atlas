@@ -10,7 +10,10 @@ test('runtime files are offline-safe and dependency free',()=>{
     const p=path.join(ROOT,f);
     assert.ok(fs.existsSync(p),`${f} must exist`);
     const s=fs.readFileSync(p,'utf8');
-    assert.doesNotMatch(s,/\bfetch\s*\(/,`${f} must not fetch network resources`);
+    // Guard: no BARE fetch( calls (global network fetch). Method calls such as
+    // asyncpg's conn.fetch(...) are DB API usage inside embedded lesson code,
+    // not browser network fetches — allowed via the lookbehind.
+    assert.doesNotMatch(s,/(?<![.\w])fetch\s*\(/,`${f} must not fetch network resources`);
     assert.doesNotMatch(s,/<script[^>]+type=["']module["']/i,`${f} must not use modules`);
     if(f==='index.html'){
       assert.doesNotMatch(s,/(src|href)=["']https?:\/\//i,'index must not load remote assets');

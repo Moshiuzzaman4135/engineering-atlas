@@ -12,7 +12,7 @@ new Function('window', fs.readFileSync('js/diagrams.js', 'utf8'))(window);
 const Diag = window.InterviewDiagrams;
 
 // Ratchet list shared with tests/visual-semantics.test.js
-const APPROVED = new Set(['python-coroutines-tasks','python-event-loop','python-taskgroup','python-cancellation-timeouts','async-semaphore-queue','python-gil','python-threading','python-multiprocessing','python-iterators-generators','python-exceptions','python-oop-solid']);
+const APPROVED = new Set(['python-coroutines-tasks','python-event-loop','python-taskgroup','python-cancellation-timeouts','async-semaphore-queue','python-gil','python-threading','python-multiprocessing','python-iterators-generators','python-exceptions','python-oop-solid','python-object-model','python-mutable-immutable','python-copying','python-closures-decorators','python-context-managers','python-typing-dataclasses','python-args-kwargs','python-scope-methods','python-profiling','fastapi-lifecycle','async-db-pools']);
 
 const rows = [];
 for (const t of D.topics) {

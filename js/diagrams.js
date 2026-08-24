@@ -69,16 +69,46 @@ function renderLanes(v){
  });
  return svgWrap(b,{w:v.w,h:(v.h||34+rows.length*64+56),title:v.title,desc:v.purpose,id:v.id});
 }
+function renderMatrix(v){
+ let b='';const cols=v.cols||[],rows=v.rows||[];
+ const headX=170,colW=(v.w-headX-16)/Math.max(cols.length,1),rowH=v.rowH||52,top=40;
+ cols.forEach((c,j)=>{const cx=headX+j*colW;b+=`<text x="${cx+colW/2}" y="${top-14}" text-anchor="middle" font-weight="600">${esc(c.label)}</text>`;if(c.sub)b+=`<text class="arch-label" x="${cx+colW/2}" y="${top-2}" text-anchor="middle" font-size="9px">${esc(c.sub)}</text>`;});
+ rows.forEach((r,i)=>{const cy=top+i*rowH;b+=`<text x="10" y="${cy+rowH/2+4}" font-weight="600">${esc(r.label)}</text>`;if(r.sub)b+=`<text class="arch-label" x="10" y="${cy+rowH/2+17}" font-size="9px">${esc(r.sub)}</text>`;
+  (r.cells||[]).forEach((c,j)=>{const cx=headX+j*colW;if(!c)return;const cls=c.cls?` ${c.cls}`:'';b+=`<rect class="arch-node${cls}" x="${cx+3}" y="${cy+3}" rx="8" width="${colW-6}" height="${rowH-6}" ${c.dash?'stroke-dasharray="4 3"':''}/><text x="${cx+colW/2}" y="${cy+(c.sub?rowH/2-2:rowH/2+4)}" text-anchor="middle" font-weight="600" font-size="10px">${esc(c.label)}</text>${c.sub?`<text class="arch-label" x="${cx+colW/2}" y="${cy+rowH/2+12}" text-anchor="middle" font-size="8.5px">${esc(c.sub)}</text>`:''}`;});
+ });
+ (v.notes||[]).forEach((n,i)=>{b+=`<text class="arch-label" x="${headX}" y="${top+rows.length*rowH+18+i*14}">${esc(n)}</text>`;});
+ return svgWrap(b,{w:v.w,h:v.h||top+rows.length*rowH+24+(v.notes||[]).length*14,title:v.title,desc:v.purpose,id:v.id});
+}
+function renderPlot(v){
+ let b='';const padL=52,padR=16,padT=16,padB=40;
+ const xr=v.x||{},yr=v.y||{};
+ const x0=xr.min!=null?xr.min:0,x1=xr.max!=null?xr.max:1,y0=yr.min!=null?yr.min:0,y1=yr.max!=null?yr.max:1;
+ const px=x=>padL+(x-x0)/(x1-x0)*(v.w-padL-padR);
+ const py=y=>v.h-padB-(y-y0)/(y1-y0)*(v.h-padT-padB);
+ // axes
+ b+=`<line class="arch-edge" x1="${padL}" y1="${padT}" x2="${padL}" y2="${v.h-padB}"/><line class="arch-edge" x1="${padL}" y1="${v.h-padB}" x2="${v.w-padR}" y2="${v.h-padB}"/>`;
+ if(xr.label)b+=`<text class="arch-label" x="${(padL+v.w-padR)/2}" y="${v.h-8}" text-anchor="middle">${esc(xr.label)}</text>`;
+ if(yr.label)b+=`<text class="arch-label" x="12" y="${(padT+v.h-padB)/2}" text-anchor="middle" transform="rotate(-90 12 ${(padT+v.h-padB)/2})">${esc(yr.label)}</text>`;
+ (v.ticks||[]).forEach(t=>{const isY=t.axis==='y';const p=isY?py(t.v):px(t.v);b+=`<text class="arch-label" font-size="8.5px" x="${isY?padL-5:p}" y="${isY?p+3:v.h-padB+13}" text-anchor="${isY?'end':'middle'}">${esc(t.label!=null?t.label:t.v)}</text>`;});
+ (v.hlines||[]).forEach(hl=>{b+=`<line class="arch-edge" x1="${padL}" y1="${py(hl.y)}" x2="${v.w-padR}" y2="${py(hl.y)}" stroke-dasharray="4 4"/>${hl.label?`<text class="arch-label" x="${v.w-padR-4}" y="${py(hl.y)-4}" text-anchor="end">${esc(hl.label)}</text>`:''}`;});
+ (v.vlines||[]).forEach(vl=>{b+=`<line class="arch-edge" x1="${px(vl.x)}" y1="${padT}" x2="${px(vl.x)}" y2="${v.h-padB}" stroke-dasharray="4 4"/>${vl.label?`<text class="arch-label" x="${px(vl.x)+(vl.dx||0)}" y="${padT+(vl.dy||10)}" text-anchor="middle">${esc(vl.label)}</text>`:''}`;});
+ (v.regions||[]).forEach(rg=>{const rx=px(rg.from),rx2=px(rg.to);b+=`<rect class="arch-node ${rg.cls||''}" x="${rx}" y="${padT}" width="${Math.max(rx2-rx,2)}" height="${v.h-padT-padB}" opacity="0.35" rx="6"/>${rg.label?`<text class="arch-label" x="${(rx+rx2)/2}" y="${padT+14}" text-anchor="middle">${esc(rg.label)}</text>`:''}`;});
+ (v.series||[]).forEach(s=>{const pts=(s.points||[]).map(p=>[px(p[0]),py(p[1])]);if(!pts.length)return;const d='M'+pts.map(p=>p.join(',')).join(' L');const m=/hot/.test(s.cls||'')?'arrow-hot':'arrow';b+=`<path class="arch-edge ${s.cls||''}" d="${d}" ${s.arrow===false?'':`marker-end="url(#${m})"`} ${s.dash?'stroke-dasharray="5 4"':''}/>`;if(s.label&&pts.length){const lp=s.labelAt?pts[s.labelAt]:pts[pts.length-1];b+=`<text x="${lp[0]+(s.ldx==null?6:s.ldx)}" y="${lp[1]+(s.ldy==null?-6:s.ldy)}" font-size="10px" font-weight="600" text-anchor="${s.anchor||(s.ldx<0?'end':'start')}">${esc(s.label)}</text>`;}});
+ (v.markers||[]).forEach(mk=>{b+=`<circle cx="${px(mk.x)}" cy="${py(mk.y)}" r="4" fill="#8b5cf6"/>`+(mk.label?`<text class="arch-label" x="${px(mk.x)+(mk.dx||6)}" y="${py(mk.y)+(mk.dy||-6)}" text-anchor="${mk.anchor||(mk.dx<0?'end':'start')}">${esc(mk.label)}</text>`:'');});
+ return svgWrap(b,{w:v.w,h:v.h,title:v.title,desc:v.purpose,id:v.id});
+}
 function renderVisual(v){
  if(!v)return '';
- if(typeof v==='string')return registry[v]||'';
- if(v.named)return registry[v.named]||'';
- switch(v.type){
-  case 'flow':return renderFlow(v);
-  case 'states':return renderStates(v);
-  case 'lanes':return renderLanes(v);
-  default:return '';
- }
+ const named=v&&typeof v==='string'?v:v.named;
+ if(named){const f=registry[named];return typeof f==='function'?f():'';}
+  switch(v.type){
+   case 'flow':return renderFlow(v);
+   case 'states':return renderStates(v);
+   case 'lanes':return renderLanes(v);
+   case 'matrix':return renderMatrix(v);
+   case 'plot':return renderPlot(v);
+   default:return '';
+  }
 }
 function has(type){return typeof registry[type]==='function';}
 function render(type){const f=registry[type];return f?f():'';}

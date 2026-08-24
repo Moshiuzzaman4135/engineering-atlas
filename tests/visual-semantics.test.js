@@ -10,7 +10,7 @@ const D=window.InterviewOSData;
 
 // Lessons that passed the visual quality bar. Ratchet: add ids only after
 // purpose-built, semantically validated visuals exist.
-const APPROVED=['python-coroutines-tasks','python-event-loop','python-taskgroup','python-cancellation-timeouts'];
+const APPROVED=['python-coroutines-tasks','python-event-loop','python-taskgroup','python-cancellation-timeouts','async-semaphore-queue','python-gil','python-threading','python-multiprocessing','python-iterators-generators','python-exceptions','python-oop-solid','python-object-model','python-mutable-immutable','python-copying','python-closures-decorators','python-context-managers','python-typing-dataclasses','python-args-kwargs','python-scope-methods','python-profiling','fastapi-lifecycle','async-db-pools'];
 
 test('generic diagram fallback is removed at the root',()=>{
   assert.equal(Diagrams.render('generic'),'','unknown/generic keys must not render a fake pipeline');
@@ -53,4 +53,19 @@ test('coroutine lesson: no computer-vision pipeline leakage in its visuals',()=>
   const all=t.visuals.map(v=>Diagrams.renderVisual(v)).join('');
   for(const bad of ['Capture','Detect','Track','Recognize','Publish'])
     assert.doesNotMatch(all,new RegExp('>'+bad),`CV pipeline term leaked into ${t.id} visuals: ${bad}`);
+});
+
+test('wave-2 lessons: visuals carry their defining semantics',()=>{
+  const all=id=>D.topics.find(x=>x.id===id).visuals.map(v=>Diagrams.renderVisual(v)).join('');
+  assert.match(all('python-object-model'),/rebind/i);
+  assert.match(all('python-mutable-immutable'),/TypeError/);
+  assert.match(all('python-copying'),/deepcopy/);
+  assert.match(all('python-closures-decorators'),/__closure__|cell/i);
+  assert.match(all('python-context-managers'),/__exit__/);
+  assert.match(all('python-typing-dataclasses'),/__hash__/);
+  assert.match(all('python-args-kwargs'),/KEYWORD_ONLY/);
+  assert.match(all('python-scope-methods'),/Enclosing|nonlocal/i);
+  assert.match(all('python-profiling'),/cumtime|tottime/i);
+  assert.match(all('fastapi-lifecycle'),/lifespan/i);
+  assert.match(all('async-db-pools'),/reset|acquire/i);
 });

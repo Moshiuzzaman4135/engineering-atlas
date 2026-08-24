@@ -14,8 +14,8 @@ diagram keys render nothing and appear here as MISSING.
 | Status | Lessons |
 |--------|---------|
 | GENERIC-REGISTRY | 54 |
-| MISSING | 102 |
-| APPROVED | 11 |
+| MISSING | 91 |
+| APPROVED | 22 |
 | **Total** | 167 |
 
 ## Per-lesson status
@@ -80,14 +80,14 @@ diagram keys render nothing and appear here as MISSING.
 | fine-tuning-vs-rag | RAG vs Fine-Tuning vs Prompting | P3 | decision | GENERIC-REGISTRY | named renderer "decision" — semantic fit unreviewed |
 | data-pipelines | Data Pipelines & Workflow Orchestration | P3 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
 | object-storage | Object Storage vs Database vs Cache | P3 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
-| python-object-model | Python Object Model: Names, Objects & References | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| python-mutable-immutable | Mutable vs Immutable Objects | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| python-copying | Shallow Copy vs Deep Copy | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| python-closures-decorators | Closures & Decorators | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
+| python-object-model | Python Object Model: Names, Objects & References | P4 | generic | APPROVED | 2 purpose-built visuals |
+| python-mutable-immutable | Mutable vs Immutable Objects | P4 | generic | APPROVED | 2 purpose-built visuals |
+| python-copying | Shallow Copy vs Deep Copy | P3 | generic | APPROVED | 2 purpose-built visuals |
+| python-closures-decorators | Closures & Decorators | P3 | generic | APPROVED | 2 purpose-built visuals |
 | python-iterators-generators | Iterators, Generators & Lazy Pipelines | P4 | generic | APPROVED | 2 purpose-built visuals |
-| python-context-managers | Context Managers & Resource Safety | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
+| python-context-managers | Context Managers & Resource Safety | P3 | generic | APPROVED | 2 purpose-built visuals |
 | python-exceptions | Exceptions, Error Boundaries & Retryable Failures | P4 | generic | APPROVED | 2 purpose-built visuals |
-| python-typing-dataclasses | Type Hints, Dataclasses & Pydantic Boundaries | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
+| python-typing-dataclasses | Type Hints, Dataclasses & Pydantic Boundaries | P3 | generic | APPROVED | 2 purpose-built visuals |
 | python-oop-solid | OOP & SOLID in Python | P4 | generic | APPROVED | 2 purpose-built visuals |
 | python-gil | GIL, Threads & CPU-bound Work | P5 | generic | APPROVED | 2 purpose-built visuals |
 | python-threading | Threading, Locks & Race Conditions | P4 | generic | APPROVED | 2 purpose-built visuals |
@@ -97,9 +97,9 @@ diagram keys render nothing and appear here as MISSING.
 | python-taskgroup | Structured Concurrency with TaskGroup | P5 | generic | APPROVED | 2 purpose-built visuals |
 | python-cancellation-timeouts | Cancellation, Timeouts & Deadlines | P5 | generic | APPROVED | 2 purpose-built visuals |
 | async-semaphore-queue | Async Semaphore, Queue & Backpressure | P5 | generic | APPROVED | 2 purpose-built visuals |
-| async-db-pools | Async Database Pools & Transaction Scope | P5 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| fastapi-lifecycle | FastAPI Dependency Injection, Lifespan & Worker Model | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| python-profiling | Python Profiling: CPU, Memory & Event-loop Lag | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
+| async-db-pools | Async Database Pools & Transaction Scope | P5 | generic | APPROVED | 2 purpose-built visuals |
+| fastapi-lifecycle | FastAPI Dependency Injection, Lifespan & Worker Model | P4 | generic | APPROVED | 2 purpose-built visuals |
+| python-profiling | Python Profiling: CPU, Memory & Event-loop Lag | P4 | generic | APPROVED | 2 purpose-built visuals |
 | ml-train-val-test | Train / Validation / Test Splits | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | ml-bias-variance | Bias–Variance Trade-off | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | ml-overfitting-regularization | Overfitting & Regularization | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
@@ -181,8 +181,8 @@ diagram keys render nothing and appear here as MISSING.
 | oop-pillars | OOP Pillars: Encapsulation, Abstraction, Inheritance, Polymorphism | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | design-patterns | Factory, Strategy, Adapter & Observer Patterns | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | testing-pyramid | Testing Pyramid, Contracts & Integration Tests | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| python-args-kwargs | Python *args, **kwargs & Function Signatures | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| python-scope-methods | LEGB Scope, classmethod, staticmethod & Dunder Methods | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
+| python-args-kwargs | Python *args, **kwargs & Function Signatures | P4 | generic | APPROVED | 2 purpose-built visuals |
+| python-scope-methods | LEGB Scope, classmethod, staticmethod & Dunder Methods | P4 | generic | APPROVED | 2 purpose-built visuals |
 | db-normalization-bcnf | Database Normalization: 1NF → 2NF → 3NF → BCNF | P5 | db | GENERIC-REGISTRY | named renderer "db" — semantic fit unreviewed |
 | sql-window-cte | SQL CTEs, Window Functions & Pagination | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | docker-fundamentals | Docker Fundamentals: Image, Container, Layers & Namespaces | P5 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |

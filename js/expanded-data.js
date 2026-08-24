@@ -27,15 +27,351 @@ for(const d of newDomains) if(!D.domains.some(x=>x.id===d.id)) D.domains.push(d)
 const topics=[
 // ---------------- Python ----------------
 mk({id:'python-object-model',domain:'python-core',title:'Python Object Model: Names, Objects & References',priority:4,
- intuition:'A Python variable is a label pointing at an object, not a box that permanently owns a value.',
- technical:'Python names bind to objects. Assignment usually rebinds a name; mutation changes an existing object. Identity is checked with is, value equality with ==. Reference semantics explain aliasing, function arguments and many “why did this list change?” bugs.',
- remember:['Names point to objects; assignment does not copy by default.','Use == for value and is mainly for identity/sentinels such as None.','Mutability determines whether an operation changes the existing object.'],terms:['binding','identity','reference','aliasing'],functions:['id(obj)','is / is not','=='],
- interview:'Python uses name-to-object binding. Passing an argument passes an object reference by assignment, so mutating a shared mutable object is visible to the caller while rebinding a local name is not.',
- usedByYou:['This mental model matters in your Python services when request payloads, lists of frames or configuration dictionaries are shared across helpers.'],traps:['Saying Python is simply pass-by-reference.'],nextTopics:['python-mutable-immutable','python-copying']}),
+intuition:'A Python variable is a sticky note stuck on an object, not a box that owns a value. Assignment moves the note; mutation changes the thing the note is stuck to.',
+technical:'Per the data model reference, every object has an identity (never changes; id()/is), a type (determines operations; also unchangeable), and a value. Assignment binds a NAME in a namespace to an object; it never copies. Mutation changes an existing object in place. Passing an argument binds the parameter name to the caller\'s object — "call by object reference": mutating a shared mutable object is visible to the caller, rebinding the parameter name is not.',
+deepDive:'Three facts generate almost every "why did my data change?" bug. First: names bind to objects. x = [1,2,3] creates a list object and binds x to it; y = x binds y to the SAME object — no copy happens anywhere. is compares identities, == compares values; for two separately-created lists [1,2] == [1,2] is True but is is False. Second: mutation is an operation on the OBJECT, not on any name. y.append(4) changes the one shared list, so x sees it too — there was never a second list. Third: rebinding is an operation on the NAME. x = x + [5] builds a NEW list and rebinds x; y still points at the old object. The same distinction explains function calls: items.append(...) inside a function mutates the caller\'s object; items = [...] rebinds only the local name and the caller sees nothing.\n\nThe data model adds two subtleties interviewers probe. Immutable types: for numbers/strings/tuples, operations that compute new values MAY return a reference to an existing equal object — a = 1; b = 1 may or may not bind the same object (implementation detail, never rely on it), but c = []; d = [] is GUARANTEED to create two distinct lists, and e = f = [] deliberately binds one object to two names. Containers: the references ARE part of the container\'s value, but a container\'s mutability concerns only its immediately-contained identities — so an immutable tuple containing a mutable list can still "change" when the list changes (the tuple\'s object set is fixed; the list\'s value is not part of that fixity).\n\nIdentity also explains default behavior of == on user classes (identity equality until you define __eq__), the classic is-vs-== for None (always `x is None` — None is a singleton), and why interning makes small-int/short-string identity tests look reliable in the REPL but break for larger values. When reviewing shared state across request handlers, workers or cache layers, the question is never "is this variable copied?" — it never is — but "which names alias this object, and who mutates it?"',
+terms:['name binding','identity (id/is)','value equality (==)','mutable','immutable','container','aliasing','call by object reference'],
+functions:['id()','is / is not','==','type()','del name (unbinds)','sys.getrefcount'],
+remember:['Assignment rebinds a name; mutation changes the object — different operations.','y = x never copies; both names see mutations of the shared object.','is = identity, == = value; test None with `x is None`.','Function arguments bind parameter names to caller objects: mutation visible, rebinding not.','a=1;b=1 sharing is an implementation detail; c=[];d=[] is guaranteed distinct.'],
+tradeoffs:['Mutating shared objects vs rebinding: convenient in-place updates vs surprising cross-module state changes.','is vs ==: identity checks are cheap and correct for singletons vs value checks needed everywhere else.'],
+failureModes:['Aliasing bug: helper mutates a list the owner believed private — data corruption across modules.','Rebind-instead-of-mutate: function "returns" nothing because it rebound its local name; caller sees stale data.','Using is for value comparison: fails once objects are equal-but-distinct (or accidentally passes for interned small ints).','Shared default/class-level mutable (see mutable-immutable lesson) — aliasing plus def-time evaluation.'],
+scaling:['Reference semantics are why Python passes big objects cheaply — no defensive copying — but shared mutable state across threads/tasks requires locks or copying to be safe.'],
+security:['Objects passed across trust boundaries (plugins, deserialized configs) are still shared: a callee can mutate your state unless you pass copies or immutable structures.'],
+traps:['"Python is pass-by-reference" — it is pass-by-object-reference: rebinding a parameter never reaches the caller.','Expecting x = x + [1] and x += [1] to be identical for all types: += calls __iadd__ (in-place for lists) while + always builds a new object.','Copying a "variable" with y = x and then being surprised both change.','Using is to compare strings/ints read from input.'],
+usedByYou:['In your FastAPI services, request payloads and config dicts are shared across helpers — the aliasing model explains why a "read-only" handler must not call mutating helpers on shared context objects.'],
+codeTitle:'Bind vs mutate vs rebind (verified runnable)',
+code:`a = [1, 2, 3]
+b = a              # name binding: same object, no copy
+b.append(4)
+print(a, b, a is b)          # both see the mutation; same identity
+
+c = a + [5]        # new list object; rebinds nothing existing
+print(a, c, a is c)
+
+def mutate(items): items.append('x')     # caller SEES this
+def rebind(items): items = ['new']       # caller does NOT see this
+payload = [1]
+mutate(payload); print('after mutate:', payload)
+rebind(payload); print('after rebind:', payload)
+
+x = 1000; y = 1000
+print('small ints may share, large may not:', x is y)  # impl detail
+print('equal but distinct lists:', [1,2] == [1,2], [1,2] is [1,2])
+print('bool is int:', isinstance(True, int), True + True`,
+sources:['python-datamodel-docs'],
+prerequisites:[],
+nextTopics:['python-mutable-immutable','python-copying'],
+interviewAnswer:'Python binds names to objects; every object has a fixed identity, a fixed type, and possibly mutable value. Assignment never copies — y = x aliases the same object, so mutation through either name is visible to both, while rebinding one name changes nothing for the other. Arguments work the same way: call-by-object-reference, so a callee mutating a parameter mutates the caller\'s object, but rebinding the parameter is invisible. I use is for identity — especially x is None — and == for value. For immutable types every "change" is really a new object; and an immutable container holding a mutable member can still effectively change, which is why tuple-of-list is a fragile dict key pattern.',
+visuals:[
+ {type:'flow',id:'py-objmodel-name-object-map',w:800,h:352,
+  title:'Visual A — One object, many names: bind, alias, mutate, rebind',
+  purpose:'Show that assignment only creates name→object arrows: aliasing shares one object, mutation changes the shared object, and rebinding swaps one arrow without touching any object.',
+  nodes:[
+   {id:'nx',x:24,y:28,w:190,h:52,label:'x = [1, 2, 3]',sub:'binds name x → object A',cls:'cyan'},
+   {id:'ny',x:24,y:112,w:190,h:52,label:'y = x',sub:'alias — same object A',cls:'cyan'},
+   {id:'nz',x:24,y:196,w:190,h:52,label:'z = x + [5]',sub:'builds NEW object B, rebinds z',cls:''},
+   {id:'nf',x:24,y:284,w:190,h:52,label:'f(x) — parameter items',sub:'another name bound to object A',cls:'cyan'},
+   {id:'objA',x:360,y:70,w:230,h:74,label:'list object A',sub:'[1, 2, 3, 4] — the value lives HERE',cls:'accent'},
+   {id:'objB',x:360,y:230,w:230,h:74,label:'list object B',sub:'[1, 2, 3, 4, 5] — untouched by y.append',cls:'green'},
+   {id:'mut',x:620,y:70,w:160,h:74,label:'y.append(4)',sub:'in-place — all aliases see it',cls:'hot'}
+  ],
+  edges:[
+   {from:'nx',to:'objA',points:[[214,54],[300,54],[300,96],[360,96]],label:'binds'},
+   {from:'ny',to:'objA',points:[[214,138],[300,138],[300,120],[360,120]],label:'is → True'},
+   {from:'nz',to:'objB',points:[[214,222],[300,222],[300,267],[360,267]],label:'new object'},
+   {from:'nf',to:'objA',points:[[214,306],[300,306],[300,140]],label:'argument binding'},
+   {from:'mut',to:'objA',points:[[620,107],[590,107]],label:'in-place',cls:'hot'}
+  ],
+  howToRead:['Left column: four assignment statements. Right side: the actual objects. Every arrow is a name→object binding — none of them copies anything.','x and y both point at object A: two sticky notes, one object.','y.append(4) follows the arrow and changes object A itself — every name bound to A now observes [1,2,3,4].','z = x + [5] is different: + builds object B first, then rebinds only z. Object A never changes; y keeps the old value.'],
+  interviewerNotice:['You separate name operations (rebinding) from object operations (mutation).','You can predict exactly what a caller observes after calling a function that mutates vs rebinds its parameters.']},
+ {type:'matrix',id:'py-objmodel-rebind-mutate-matrix',w:790,rowH:56,
+  title:'Visual B — Rebind vs mutate: who observes the change?',
+  purpose:'Classify common statements by what they do to the object and which other names (including the caller\'s) observe a change.',
+  cols:[{label:'Statement',sub:'inside a function unless noted'},{label:'Object changed?'},{label:'Other aliases see it?'},{label:'Caller sees it?'}],
+  rows:[
+   {label:'items.append(v)',cells:[{label:'yes — in place',cls:'hot'},{label:'yes',cls:'green'},{label:'yes',cls:'green'}]},
+   {label:'items = new_list',cells:[{label:'no — untouched',cls:'green'},{label:'no',sub:'items rebinds locally'},{label:'no',cls:'red'}]},
+   {label:'items[0] = v (list)',cells:[{label:'yes — in place',cls:'hot'},{label:'yes',cls:'green'},{label:'yes',cls:'green'}]},
+   {label:'x += [v]  (list)',cells:[{label:'yes — __iadd__ extends',cls:'hot'},{label:'yes',cls:'green'},{label:'yes',cls:'green'}]},
+   {label:'s += "!"  (str)',cells:[{label:'new str object',cls:'green'},{label:'no',sub:'s rebinds to new object'},{label:'no',cls:'red'}]},
+   {label:'x = x + [v]  (list)',cells:[{label:'new list object',cls:'green'},{label:'no'},{label:'no',cls:'red'}]}
+  ],
+  notes:['Rule: mutation is visible through every alias; rebinding is visible only inside the scope that rebinds.','Immutable values force the "new object + rebind" pattern — there is no in-place alternative.'],
+  howToRead:['Each row is one statement; read across to see its effect on the object, on other aliases, and on the caller.','Green "no" cells are the safe rows: the object was never touched, so nobody else can observe anything.','The += rows are the trap: for lists += mutates in place, for strings it rebinds — same operator, opposite aliasing behavior.'],
+  interviewerNotice:['You can predict caller-visible effects line by line instead of guessing.','You connect immutability to aliasing: immutable types cannot leak mutations because they cannot mutate.']}
+]}),
 mk({id:'python-mutable-immutable',domain:'python-core',title:'Mutable vs Immutable Objects',priority:4,
- intuition:'Some objects can change in place; others can only be replaced by a new object.',technical:'Lists, dicts and sets are mutable. Integers, strings, tuples and frozensets are immutable at the object level. Mutability affects hashing, default arguments, caching and concurrent access.',remember:['Mutable default arguments are a classic trap.','Hashable keys must have stable equality/hash behavior.','Immutability reduces accidental shared-state bugs.'],terms:['mutable','immutable','hashable'],functions:['list.append','dict.update','hash(obj)'],interview:'I first ask whether a value is mutated or rebound. That distinction explains shared state, safe dictionary keys and why mutable defaults should be avoided.',codeTitle:'Mutable default trap',code:'def add(x, items=None):\n    if items is None:\n        items = []\n    items.append(x)\n    return items',prerequisites:['python-object-model']}),
-mk({id:'python-copying',domain:'python-core',title:'Shallow Copy vs Deep Copy',priority:3,intuition:'A shallow copy duplicates the outer container but can still share inner objects; a deep copy recursively duplicates the graph.',technical:'copy.copy() copies one level while copy.deepcopy() recursively copies referenced objects using a memo table to avoid cycles. Deep copying can be expensive and sometimes semantically wrong for sockets, locks or model handles.',remember:['Shallow copy shares nested mutable objects.','Deep copy is not automatically safer—it can be expensive or invalid.'],terms:['shallow copy','deep copy','object graph'],functions:['copy.copy','copy.deepcopy','dict.copy'],interview:'I use copying deliberately: shallow copy for a new container with intentionally shared members; deep copy only when I truly need independent nested state.',prerequisites:['python-object-model','python-mutable-immutable']}),
-mk({id:'python-closures-decorators',domain:'python-core',title:'Closures & Decorators',priority:3,intuition:'A closure lets a function remember variables from where it was created. A decorator wraps another function to add behavior.',technical:'A closure captures free variables from lexical scope. Decorators are callables applied at definition time and are useful for cross-cutting concerns such as metrics, auth and retries; functools.wraps preserves metadata.',remember:['Closure = function + captured lexical environment.','Decorator = transform/wrap callable while keeping business logic clean.'],terms:['closure','free variable','decorator'],functions:['functools.wraps','@decorator','nonlocal'],interview:'I use decorators for cross-cutting behavior, but avoid hiding large control flows inside them because that hurts debugging and observability.',code:'from functools import wraps\ndef timed(fn):\n    @wraps(fn)\n    def wrapper(*a, **kw):\n        return fn(*a, **kw)\n    return wrapper'}),
+intuition:'Mutable objects are whiteboards you can erase and rewrite in place; immutable objects are laminated cards — every "edit" is really a new card, and the old name is re-pointed.',
+technical:'Mutability is a property of the TYPE, decided by the data model: numbers, str, tuple, bytes, frozenset are immutable; list, dict, set, bytearray are mutable. Mutability drives hashability (constant-hash requirement for dict keys/set members), def-time default arguments, += semantics (__iadd__ vs rebind), and safe sharing across threads/tasks. A subtle documented rule: an immutable CONTAINER holding a mutable member can still change value — the container\'s object set is fixed, not the members\' values.',
+deepDive:'The data model defines mutability precisely: an object is mutable if its VALUE can change after creation, and mutability is determined by its type — never per-instance. This single rule cascades into four production consequences.\n\nHashing and identity as keys: dict/set keys require a hash that stays constant for the object\'s lifetime, so keys must be hashable — which effectively means immutable (or immutable-in-practice). The documented consequence: mutable types are excluded as keys ("values containing lists or dicts… the reason being that the efficient implementation of dictionaries requires a key\'s hash value to remain constant"). Tuples are hashable ONLY if every member is — tuple-of-list is a broken key. Also: equal numbers collide deliberately — 1, 1.0, and True compare equal, so {1, 1.0, True} has one element and d[1] and d[1.0] are the same entry.\n\nDef-time evaluation: default argument values are evaluated ONCE, when def executes, and stored in the function object (fn.__defaults__). A mutable default is therefore one shared object across ALL calls — add(\'a\') then add(\'b\') returns [\'a\',\'b\']. The dataclass module goes as far as raising ValueError for unhashable defaults (unhashability approximating mutability since 3.11). The fix is the None-sentinel or field(default_factory=list).\n\nOperator asymmetry: for a list, x += [9] calls __iadd__ → extends in place → rebinds x to the SAME object (aliases observe it); x = x + [9] always builds a new object. For str/tuple there is no __iadd__, so += degrades to rebind-to-new-object either way.\n\nThe tuple surprise: t = (1, [2,3]); t[1] += [4] raises TypeError — yet the list IS extended. Bytecode does INPLACE_ADD on the list (succeeds, mutates in place) then STORE_SUBSCR into the tuple (fails: tuples forbid item assignment). Mutation succeeded before the rebind failed. This is the sharpest demonstration that "immutable container" fixes membership, not member values — the docs state the container is "still considered immutable, because the collection of objects it contains cannot be changed".\n\nConcurrency: immutability is a cheap safety property — immutable data needs no locks to read; mutable shared state needs synchronization or defensive copying. That is why configs, feature flags and cache keys benefit from being tuples/frozensets/frozen dataclasses.',
+terms:['mutable','immutable','hashable','__hash__/__eq__ consistency','def-time default evaluation','__iadd__','frozenset'],
+functions:['list.append/dict.update (mutating)','tuple (immutable container)','frozenset()','hash(obj)','field(default_factory=...)','fn.__defaults__'],
+remember:['Mutability is decided by type, not instance: int/str/tuple/bytes/frozenset immutable; list/dict/set/bytearray mutable.','Hashable ≈ safe as dict key; tuple-of-list is unhashable because a member is mutable.','Defaults evaluate once at def time: a mutable default is one shared object across all calls.','x += [v] mutates lists in place (aliases see it); x = x + [v] always rebinds to a new object.','t[1] += [4] on a tuple raises TypeError AND still extends the list.'],
+tradeoffs:['Mutable records vs frozen dataclasses/tuples: ergonomic updates and fewer allocations vs hashability, lock-free sharing and accidental-change resistance.','Tuples vs lists as record types: intent-signaling immutability and hashability vs in-place flexibility.'],
+failureModes:['Mutable default argument accumulates state across calls — duplicated rows, growing caches, cross-request leakage in servers.','tuple-with-list used as dict key: TypeError unhashable at runtime, often far from the bug\'s origin.','Assuming t[1] += x "failed cleanly" — the mutation half-applied before the exception.','Hash/eq drift: mutating an object AFTER inserting it as key makes it unfindable (hash moved under it).'],
+scaling:['Immutable snapshots let threads/tasks read without locks and make cache keys stable; mutable shared structures need synchronization whose cost grows with contention.','String += in loops rebinds and copies O(n²)-ish; build lists and join once.'],
+security:['Shared mutable config/cache objects are a privilege-leak vector: one code path mutating a shared dict changes behavior for every tenant — pass frozen copies across trust boundaries.'],
+traps:['"Tuples are always hashable" — only if every nested member is hashable.','Believing immutability is deep: an immutable tuple happily contains a mutable list.','"It raised TypeError so nothing happened" — the in-place part of t[1] += [4] already ran.','Copying the mutable-default fix as items=[] → items=() without understanding why.'],
+usedByYou:['Your pipeline configs and camera-ID sets are natural tuples/frozensets — stable keys for Redis and in-process dicts; frame metadata that mutates per stage stays a list/dict by deliberate choice.'],
+codeTitle:'Traps demonstrated: defaults, tuple mutation, hashing (verified runnable)',
+code:`def add_tag(tag, tags=[]):        # trap: evaluated ONCE, at def time
+    tags.append(tag)
+    return tags
+print(add_tag('a'), add_tag('b'))           # ['a'] then ['a','b']
+
+def add_tag_safe(tag, tags=None):
+    tags = [] if tags is None else tags
+    tags.append(tag)
+    return tags
+print(add_tag_safe('a'), add_tag_safe('b'))
+
+t = (1, [2, 3])
+try:
+    t[1] += [4]                   # in-place extend SUCCEEDS, then tuple rebind FAILS
+except TypeError as e:
+    print('TypeError:', e)
+print('t =', t, '- mutated anyway!')
+
+d = {}
+try:
+    d[[1, 2]] = 'x'
+except TypeError as e:
+    print('unhashable key:', e)
+d[(1, 2)] = 'ok'
+print('tuple key ok:', d)
+
+s = {1, 1.0, True}
+print('set collapses equal values:', s, len(s))
+print('str concat builds new objects:', id('a'*1000) != id(('a'*1000) + 'b'))`,
+sources:['python-datamodel-docs','python-dataclasses-docs'],
+prerequisites:['python-object-model'],
+nextTopics:['python-copying','python-typing-dataclasses'],
+interviewAnswer:'Mutability is a type-level property in Python: numbers, strings, tuples, bytes and frozensets cannot change in place; lists, dicts, sets and bytearrays can. That drives three practical rules I apply. Keys must be hashable, so I use tuples or frozensets — never tuple-of-list, since hashability requires all members. Default arguments evaluate once at def time, so mutable defaults are shared state across calls; I use None sentinels or dataclass default_factory. And += is asymmetric: in-place for lists via __iadd__ (visible through aliases) but rebind-to-new-object for immutable types. My favorite demonstration is t[1] += [4] on a tuple: it raises TypeError yet still extends the list, because in-place mutation succeeds before the tuple\'s item assignment fails — immutable containers fix membership, not member values.',
+visuals:[
+ {type:'matrix',id:'py-mutim-type-matrix',w:790,rowH:44,
+  title:'Visual A — Which built-ins mutate in place, and what that unlocks',
+  purpose:'Map every common built-in type to mutability, hashability and in-place behavior so key-choice and default-argument decisions become mechanical.',
+  cols:[{label:'Type'},{label:'Mutable in place?'},{label:'Hashable (safe dict key)?'},{label:'+= behavior'}],
+  rows:[
+   {label:'int / float',cells:[{label:'no',cls:'green'},{label:'yes',cls:'green'},{label:'rebinds to new object'}]},
+   {label:'str',cells:[{label:'no',cls:'green'},{label:'yes',cls:'green'},{label:'rebinds to new object'}]},
+   {label:'bytes',cells:[{label:'no',cls:'green'},{label:'yes',cls:'green'},{label:'rebinds to new object'}]},
+   {label:'tuple',cells:[{label:'container: no',sub:'members may be mutable',cls:'green'},{label:'conditional',sub:'all members hashable',cls:'hot'},{label:'item assign',sub:'→ TypeError'}]},
+   {label:'frozenset',cells:[{label:'no',cls:'green'},{label:'yes',cls:'green'},{label:'no += (immutable)'}]},
+   {label:'list',cells:[{label:'yes',cls:'hot'},{label:'no',cls:'red'},{label:'in-place extend',sub:'__iadd__'}]},
+   {label:'dict',cells:[{label:'yes',cls:'hot'},{label:'no',cls:'red'},{label:'in-place update',sub:'d |= other'}]},
+   {label:'set',cells:[{label:'yes',cls:'hot'},{label:'no',cls:'red'},{label:'in-place union',sub:'s |= other'}]},
+   {label:'bytearray',cells:[{label:'yes',cls:'hot'},{label:'no',cls:'red'},{label:'in-place edits',sub:'buffer writes'}]}
+  ],
+  notes:['Hashability is the dict-key gate: every green "no-mutation" type can be a key; every mutable type cannot.','tuple\'s hashable cell is conditional — one unhashable member poisons the whole tuple.'],
+  howToRead:['Rows are types; the middle columns answer the two questions that matter in code review: "can this change under me?" and "can I key a dict with it?"','Hot cells mark where bugs concentrate: mutable types used as shared state, and conditional tuple hashability.','The last column predicts aliasing: "rebinds" means aliases keep the old value; "in-place" means every alias observes the change.'],
+  interviewerNotice:['You derive key/default/concurrency decisions from one table instead of memorizing folklore.','You know tuple hashability is conditional on members — the classic broken-cache-key bug.']},
+ {type:'flow',id:'py-mutim-tuple-two-step',w:800,h:300,
+  title:'Visual B — Why t[1] += [4] raises AND still mutates',
+  purpose:'Show the two bytecode steps behind the famous tuple surprise: in-place list extension succeeds first, then the tuple item-store fails — mutation already happened.',
+  nodes:[
+   {id:'expr',x:24,y:24,w:230,h:56,label:'t = (1, [2, 3])',sub:'tuple fixes its member OBJECTS, not their values',cls:'cyan'},
+   {id:'step1',x:24,y:130,w:280,h:88,label:'step 1 · INPLACE_ADD',sub:'list.__iadd__([4]) extends in place → same list back',cls:'accent'},
+   {id:'step2',x:24,y:236,w:280,h:52,label:'step 2 · STORE_SUBSCR t[1]',sub:'store back into the tuple → __setitem__ → TypeError',cls:'hot'},
+   {id:'listobj',x:470,y:130,w:180,h:88,label:'list object',sub:'[2, 3] → [2, 3, 4] already changed',cls:'hot'},
+   {id:'tupleobj',x:470,y:244,w:180,h:44,label:'tuple object',sub:'membership frozen — refuses the store',cls:''},
+   {id:'outcome',x:670,y:130,w:116,h:158,label:'result',sub:'raised AND mutated — half-applied statement',cls:'accent'}
+  ],
+  edges:[
+   {from:'expr',to:'step1',points:[[139,80],[139,130]],label:'evaluate'},
+   {from:'step1',to:'step2',points:[[164,218],[164,236]],label:'then'},
+   {from:'step1',to:'listobj',points:[[304,174],[470,174]],label:'mutates in place',cls:'hot'},
+   {from:'step2',to:'tupleobj',points:[[304,262],[470,266]],label:'refused',cls:'hot'},
+   {from:'listobj',to:'outcome',points:[[650,174],[670,174]]},
+   {from:'tupleobj',to:'outcome',points:[[650,266],[670,240]]}
+  ],
+  howToRead:['Top-left: the setup. An immutable tuple containing a mutable list — legal and common.','Follow steps 1→2: augmented assignment first computes the in-place result on the LIST (success), then tries to store it back into the TUPLE (fails).','The right side shows the state after the crash: the list grew; the tuple is unchanged; the exception is only about the store.','The lesson: "immutable container" means fixed membership — it does not deep-freeze members.'],
+  interviewerNotice:['You can explain a subtle failure at the bytecode level, not just "tuples are immutable".','You connect it to the fix: keep members immutable if the container must be safely immutable (or copy before mutation).']}
+]}),
+mk({id:'python-copying',domain:'python-core',title:'Shallow Copy vs Deep Copy',priority:3,
+intuition:'A shallow copy clones the outer container only — inner objects are still shared sticky-note targets. A deep copy recursively clones the whole object graph so nothing is shared.',
+technical:'copy.copy() copies one level: a new outer container whose members reference the SAME inner objects; copy.deepcopy() recursively copies members, using a memo dict keyed by id() so each object is copied exactly once and shared/cyclic structures are reconstructed faithfully. Assignment (=) is not a copy at all — it binds another name. Slicing ([:]) and constructors (list(x), dict(x)) are shallow copies.',
+deepDive:'The copying decision is an aliasing decision. Assignment never copies: y = x is a second name on the same object. copy.copy(x) creates a new outer object — appending to the copy does not affect the original — but nested members are shared, so copy["profile"]["tags"].append(...) is visible through BOTH copies. That is exactly what the verified example shows: shallow shares the inner dict until you REPLACE a top-level key, after which the two outer dicts diverge. Slicing and type constructors behave like copy.copy: rows[:] duplicates the row-list, not the row objects.\n\ndeepcopy recurses through containers and rebuilds the graph. Two implementation details matter in production. First, the memo table: deepcopy keeps id(original) → copy mappings so shared substructures stay shared in the copy (two references to the same config object remain ONE object in the duplicate) and cycles terminate (a.peer = b; b.peer = a deep-copies fine, and dup["peer"]["peer"] is dup). Second, deepcopy is generic and reflection-driven — it is slow for big graphs and semantically wrong for things that must not be duplicated: locks, sockets, DB connections, model handles, file objects. Copying those produces objects that look right and misbehave (two writers on one underlying resource, or dead handles).\n\nAlternatives worth naming in an interview: for dataclasses, replace(obj, ...) builds a new instance via __init__ (and re-runs __post_init__) — but init=False fields are NOT copied, and asdict()/astuple() deepcopy non-dataclass leaves, which is a common performance surprise. For JSON-like payloads, serialize/deserialize round-trips are effectively deep copies with type restrictions. For hot paths, hand-written copies copy only what must be independent — often one level, deliberately shallow, documented as such.\n\nDecision rule: copy exactly the levels that must diverge, share the rest on purpose, and say so in a comment. "Deepcopy everywhere for safety" trades real latency and memory for protection against a bug you can fix at the source (stop sharing, or stop mutating).',
+terms:['shallow copy','deep copy','object graph','memo table','cycle','defensive copy','copy-on-write (concept)'],
+functions:['copy.copy','copy.deepcopy','list(x)/dict(x)/x[:]','dataclasses.replace','copy.replace (3.13+)','asdict/astuple'],
+remember:['= is not a copy; [:] and constructors are SHALLOW.','Shallow copies share nested objects — mutations leak through until a level is replaced.','deepcopy uses a memo: shared subgraphs stay shared, cycles are safe.','Never deepcopy handles (locks, sockets, connections, models) — duplicate state, broken semantics.','Copy the levels that must diverge; share the rest deliberately.'],
+tradeoffs:['Shallow vs deep: cheap and predictable vs full independence at O(graph) cost.','deepcopy vs serialize round-trip: preserves arbitrary object graphs vs type-restricted but fast (C-implemented) copies.','Defensive copying at API boundaries vs documenting ownership: safety vs allocation churn.'],
+failureModes:['Shallow copy assumed deep: "independent" copy mutated via shared nested list — classic config/payload corruption.','deepcopy on live handles: two objects writing one socket/lock; nondeterministic failures.','deepcopy in hot path: p95 latency blowup copying large graphs per request.','asdict() surprise: it deepcopies non-dataclass leaves — accidental O(n) copies inside loops.'],
+scaling:['Per-request deepcopy of large payloads is a scaling bug: cost grows with graph size; prefer immutable snapshots or copy-on-write structures.','Shallow copies plus immutable members give cheap "snapshot" semantics for read-heavy paths.'],
+security:['Copies crossing trust boundaries must be deep enough that a callee cannot reach shared inner objects — a shallow copy of a nested config still hands over the inner dict.'],
+traps:['"I called copy.copy so it is independent" — one level only.','Believing slicing is deep because the result looks new.','deepcopy of a lock/queue "works" in tests, deadlocks or duplicates writes in production.','Expecting dataclasses.replace to deepcopy nested fields — it reuses member references.'],
+usedByYou:['Frame-metadata dicts passed to workers are copied shallowly with immutable leaf fields where possible; the one level that workers may rewrite is copied explicitly — the rest stays shared for memory.'],
+codeTitle:'Shallow vs deep vs alias, plus deepcopy cycles (verified runnable)',
+code:`import copy
+orig = {'profile': {'tags': ['ml', 'cv'], 'ids': [1, 2]}}
+alias = orig
+shallow = copy.copy(orig)
+deep = copy.deepcopy(orig)
+orig['profile']['tags'].append('new')
+print('alias sees it:      ', alias['profile']['tags'])
+print('shallow shares it:  ', shallow['profile']['tags'])
+print('deep is independent:', deep['profile']['tags'])
+shallow['profile'] = {'tags': ['replaced']}
+print('after replacing shallow top-level:', orig['profile']['tags'], shallow['profile']['tags'])
+
+# deepcopy handles cycles via memo
+a = {'name': 'a'}; b = {'name': 'b'}
+a['peer'] = b; b['peer'] = a
+dup = copy.deepcopy(a)
+print('cycle preserved:', dup['peer']['peer'] is dup, dup['name'])
+
+# slice / constructor are shallow too
+rows = [[1], [2]]
+sliced = rows[:]
+sliced[0].append(99)
+print('slice shares rows:', rows)`,
+sources:['python-datamodel-docs','python-dataclasses-docs'],
+prerequisites:['python-object-model','python-mutable-immutable'],
+nextTopics:['python-typing-dataclasses','python-closures-decorators'],
+interviewAnswer:'I treat copying as choosing how much of the object graph must be independent. Assignment never copies. copy.copy, slicing and constructors build a new outer container but share every nested object, so nested mutations stay visible through both copies until a level is replaced. copy.deepcopy recursively rebuilds the graph using a memo table — shared subobjects stay shared in the copy and cycles terminate correctly. Deepcopy is expensive and wrong for resources that must not be duplicated — locks, sockets, connections, model handles. So my rule is: copy exactly the levels that need to diverge, keep the rest shared deliberately, and for dataclass records prefer replace() which rebuilds through __init__ rather than reflecting over the graph.',
+visuals:[
+ {type:'flow',id:'py-copy-graph-map',w:800,h:322,
+  title:'Visual A — What each copying operation actually duplicates',
+  purpose:'Show the object graph under assignment, shallow copy and deep copy: which boxes are new and which arrows still reach into the original\'s internals.',
+  nodes:[
+   {id:'oOuter',x:24,y:28,w:200,h:50,label:'orig (outer dict)',cls:'accent'},
+   {id:'oInner',x:44,y:118,w:180,h:50,label:'inner dict',cls:'accent'},
+   {id:'oTags',x:64,y:208,w:160,h:50,label:'tags list',sub:"['ml','cv']",cls:'accent'},
+   {id:'sOuter',x:300,y:28,w:200,h:50,label:'copy.copy(orig)',cls:'cyan'},
+   {id:'sInner',x:320,y:118,w:180,h:50,label:'SAME inner dict',cls:'hot'},
+   {id:'sTags',x:340,y:208,w:160,h:50,label:'SAME tags list',cls:'hot'},
+   {id:'dOuter',x:576,y:28,w:200,h:50,label:'deepcopy(orig)',cls:'green'},
+   {id:'dInner',x:596,y:118,w:180,h:50,label:'new inner dict',cls:'green'},
+   {id:'dTags',x:616,y:208,w:160,h:50,label:'new tags list',cls:'green'}
+  ],
+  edges:[
+   {from:'oOuter',to:'oInner',points:[[124,78],[124,118]],label:'contains'},
+   {from:'oInner',to:'oTags',points:[[134,168],[134,208]],label:'contains'},
+   {from:'sOuter',to:'sInner',points:[[400,78],[400,118]],label:'contains'},
+   {from:'sInner',to:'sTags',points:[[410,168],[410,208]],label:'contains'},
+   {from:'dOuter',to:'dInner',points:[[676,78],[676,118]],label:'contains'},
+   {from:'dInner',to:'dTags',points:[[686,168],[686,208]],label:'contains'},
+   {from:'sOuter',to:'oOuter',points:[[300,53],[224,53]],label:'new outer object',cls:'arch-flow'},
+   {from:'sInner',to:'oInner',points:[[320,143],[224,143]],label:'shares reference',cls:'hot'},
+   {from:'sTags',to:'oTags',points:[[340,233],[224,233]],label:'shares reference',cls:'hot'}
+  ],
+  howToRead:['Three columns, one per operation. Accent boxes are the original graph; cyan is the shallow copy\'s new outer box; green boxes are deepcopy\'s new boxes.','Follow the hot "shares reference" arrows: the shallow copy\'s INNER boxes are the original\'s boxes — there is one inner dict and one tags list in memory.','Consequence: appending to tags is visible from every column; replacing shallow\'s top-level key is not — that only rebinds the outer dict\'s entry.','The green column has no arrows back to the original: full independence, at the cost of copying every box.'],
+  interviewerNotice:['You describe copies at the reference level, not the value level.','You know the failure boundary precisely: shallow diverges only when a shared LEVEL is replaced or re-bound, not when a shared object is mutated.']},
+ {type:'matrix',id:'py-copy-operation-matrix',w:790,rowH:56,
+  title:'Visual B — Copy operations compared',
+  purpose:'Rank the everyday copying mechanisms by what they duplicate, so the right tool for "independent enough" becomes a lookup, not a guess.',
+  cols:[{label:'Operation'},{label:'New outer?'},{label:'New nested objects?'}],
+  rows:[
+   {label:'b = a',cells:[{label:'no — alias',cls:'red'},{label:'no',cls:'red'}]},
+   {label:'a[:] / list(a) / dict(a)',cells:[{label:'yes',cls:'green'},{label:'no — shared',cls:'hot'}]},
+   {label:'copy.copy(a)',cells:[{label:'yes',cls:'green'},{label:'no — shared',cls:'hot'}]},
+   {label:'copy.deepcopy(a)',cells:[{label:'yes',cls:'green'},{label:'yes — memoized',cls:'green'}]},
+   {label:'dataclasses.replace(rec)',cells:[{label:'yes — via __init__',cls:'green'},{label:'no — member refs reused',cls:'hot'}]},
+   {label:'json.loads(json.dumps(x))',cells:[{label:'yes',cls:'green'},{label:'yes — JSON-safe leaves',cls:'green'}]}
+  ],
+  notes:['Use when — alias: you WANT another name on the same object.','Use when — slice/constructor/copy.copy: top level must diverge; members stay read-only by convention.','Use when — deepcopy: nested state must truly diverge and the graph is data, not handles.','Use when — replace(): immutable-style updates; __post_init__ re-runs; init=False fields NOT carried.','Use when — JSON round-trip: payloads are JSON-shaped; fast C path but loses non-JSON types.','replace() re-runs __post_init__ and rejects unknown keys; asdict()/astuple() deepcopy non-dataclass leaves — a hidden O(n) in hot loops.'],
+  howToRead:['Rows ordered from "no copy" to "full copy". The third column is the one that causes production incidents — read it first.','Hot cells mark the trap: a mechanism that looks independent but shares nested state.','Pick the cheapest row whose "new nested objects" answer matches how much divergence you actually need.'],
+  interviewerNotice:['You choose copying depth deliberately and can justify each row\'s cost model.','You know the dataclass and JSON alternatives and their sharp edges (init=False fields, non-JSON types).']}
+]}),
+mk({id:'python-closures-decorators',domain:'python-core',title:'Closures & Decorators',priority:3,
+intuition:'A closure is a function that carries a pocket of the environment where it was born. A decorator is a function that takes your function and hands back a better-dressed replacement under the same name.',
+technical:'A closure arises when a nested function references free variables from an enclosing scope: those bindings are stored in cell objects reachable via fn.__closure__, and they OUTLIVE the enclosing call. A decorator is applied at definition time: @dec above def f is exactly f = dec(f). Decorators built with an inner wrapper(*args, **kwargs) forward transparently; functools.wraps copies __name__/__doc__/__wrapped__ so tooling and introspection survive the wrap.',
+deepDive:'Closure mechanics, precisely: the code object records co_freevars (names referenced from a nested scope); when the enclosing call creates them, they live in CELL objects, not the frame\'s local slots, so they survive after the frame returns. counter() with a nonlocal n works because inc\'s cell for n outlives counter\'s frame. The famous loop trap is late binding: fns = [lambda: i for i in range(3)] produces [2,2,2] because every lambda shares ONE cell for i, read at CALL time; lambda i=i: i creates a new cell per iteration (default evaluated at def time). Same mechanism, opposite timing.\n\nDecorators are definition-time transforms. @timed above def work means: call timed(work) once, bind the returned wrapper to the name work. Consequences: (1) the original function object still exists — the wrapper holds it in a closure cell; (2) without functools.wraps, wrapper\'s __name__ is "wrapper", breaking docs, serializers and debuggers — wraps copies __name__, __qualname__, __doc__, __dict__ and sets __wrapped__ so inspect.signature follows through to the real signature; (3) wrapper(*args, **kwargs) is what keeps the decorator transparent to call styles. Stacked decorators apply bottom-up (@a @b def f → f = a(b(f))). Decorators WITH arguments are three levels: deco(args) returns the actual decorator, called once at definition; a common bug is forgetting that level and returning wrapper directly.\n\nWhere they earn their keep: cross-cutting concerns — timing/metrics, retries with backoff, caching (functools.cache/lru_cache are decorators wrapping a closure over the cache dict), auth/permission checks, registration into tables. Costs to state out loud: every decorated call adds one frame (hot paths feel it), stack traces gain wrapper layers (wraps + __wrapped__ mitigate), and hidden control flow inside decorators hurts debuggability — keep them thin, observable, and order-sensitive when stacking.\n\nAsync note: an async def decorated with a sync decorator wraps the COROUTINE FUNCTION — the wrapper must be async def and await the inner call, or it returns a coroutine object nobody drives. That asymmetry is a recurring FastAPI bug.',
+terms:['free variable','cell object','__closure__','late binding','decorator','wrapper','functools.wraps','__wrapped__','nonlocal','decorator factory'],
+functions:['def deco(fn)','@functools.wraps(fn)','nonlocal','fn.__closure__ / co_freevars','functools.cache / lru_cache','def deco_factory(arg) → deco'],
+remember:['Closures capture CELLS (variables), not values — late binding reads them at call time.','Bind early in loops: lambda i=i: i creates a per-iteration cell.','@deco is f = deco(f), executed once at definition.','Always @functools.wraps(fn) — name, doc, signature and __wrapped__ survive.','Async functions need async wrappers: async def wrapper: return await fn(*a, **kw).'],
+tradeoffs:['Decorator vs explicit call: declarative cross-cutting layering vs hidden control flow and extra frames.','Closure vs class for state: tiny stateful helpers without ceremony vs named state and multiple methods.','lru_cache vs explicit cache: one-line memoization vs eviction/invalidation control.'],
+failureModes:['Late-binding loop closures all observe the final value.','Missing wraps: __name__ becomes "wrapper", breaking docs/telemetry/serialization by function name.','Decorator with args implemented as two levels instead of three — TypeError at import.','Sync wrapper around async def returns an un-awaited coroutine — endpoint silently does nothing.','Decorator that swallows exceptions or forgets to return fn(*args) — callers receive None.'],
+scaling:['Each decorated call adds a frame — measurable in per-request hot paths; lru_cache turns repeated pure calls into dict lookups (bounded by maxsize to protect memory).'],
+security:['Decorators are the natural enforcement point for auth/rate-limit checks — but a decorator that can be bypassed by calling the undecorated attribute is a vulnerability; keep the raw function private.'],
+traps:['"The decorator runs on every call" — the OUTER factory runs once at definition; only the wrapper runs per call.','Expecting closure to capture the VALUE of a loop variable.','Forgetting return in wrapper (implicitly returns None).','Using wraps on a non-function callable and wondering why attributes are missing.'],
+usedByYou:['Your FastAPI services use dependency wrappers and timing decorators around upstream calls — same wrapper/forwards pattern, plus functools.cache for stable prompt-fragment assembly.'],
+codeTitle:'timed decorator + late binding + closure state (verified runnable)',
+code:`import functools, time
+
+def timed(fn):
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        t0 = time.perf_counter()
+        try:
+            return fn(*args, **kwargs)
+        finally:
+            print(f'{fn.__name__} took {time.perf_counter()-t0:.4f}s')
+    return wrapper
+
+@timed
+def work(n):
+    return sum(i * i for i in range(n))
+
+print(work.__name__)   # 'work' - wraps preserved metadata
+work(100_000)
+
+# closure late-binding trap
+def build_bad():
+    fns = [lambda: i for i in range(3)]
+    return [f() for f in fns]
+def build_good():
+    fns = [lambda i=i: i for i in range(3)]
+    return [f() for f in fns]
+print('late binding:', build_bad(), '| bound at def:', build_good())
+
+# closure state without a class
+def counter():
+    n = 0
+    def inc():
+        nonlocal n
+        n += 1
+        return n
+    return inc
+c = counter()
+print(c(), c(), c())
+print('cells:', bool(work.__closure__), '| freevars:', work.__code__.co_freevars)`,
+sources:['python-datamodel-docs'],
+prerequisites:['python-scope-methods','python-args-kwargs'],
+nextTopics:['python-context-managers','python-iterators-generators'],
+interviewAnswer:'A closure is a nested function whose free variables live in cell objects attached to the function, so they survive the enclosing call — that is how a counter() factory keeps state without a class, and it explains late binding: all lambdas in a comprehension share one cell for the loop variable, so they read its FINAL value at call time; binding via a default argument creates a cell per iteration. A decorator is a definition-time transform: @timed def work is work = timed(work), executed once; the wrapper(*args, **kwargs) closure forwards transparently, and functools.wraps copies metadata and sets __wrapped__ so introspection still sees the real function. I use decorators for thin, observable cross-cutting concerns — metrics, retries, caching — and for async functions I write async wrappers that await through.',
+visuals:[
+ {type:'flow',id:'py-deco-closure-anatomy',w:800,h:330,
+  title:'Visual A — Closure anatomy: cells outlive frames',
+  purpose:'Show how counter()\'s frame dies but the cell holding n survives, attached to inc — and why three lambdas from one loop share one cell.',
+  nodes:[
+   {id:'outerCall',x:24,y:24,w:250,h:60,label:'counter() call — frame',sub:'creates local n and the inc function',cls:'cyan'},
+   {id:'cell',x:24,y:140,w:250,h:64,label:'cell object: n',sub:'n lives HERE, not in the dead frame',cls:'hot'},
+   {id:'inc',x:24,y:258,w:250,h:60,label:'inc — returned function',sub:'__closure__ = (cell for n,)',cls:'accent'},
+   {id:'loop',x:430,y:24,w:340,h:64,label:'fns = [lambda: i for i in range(3)]',sub:'ONE cell for i shared by all three lambdas',cls:'cyan'},
+   {id:'late',x:430,y:140,w:340,h:64,label:'call time: read i → 2, 2, 2',sub:'late binding: cell read at CALL, loop long finished',cls:'hot'},
+   {id:'early',x:430,y:258,w:340,h:60,label:'lambda i=i: i → 0, 1, 2',sub:'default arg evaluated at DEF: one cell per lambda',cls:'green'}
+  ],
+  edges:[
+   {from:'outerCall',to:'cell',points:[[149,84],[149,140]],label:'n boxed into a cell',cls:'hot'},
+   {from:'cell',to:'inc',points:[[149,204],[149,258]],label:'attached via __closure__'},
+   {from:'inc',to:'cell',points:[[280,288],[330,288],[330,172],[274,172]],label:'inc reads/writes the cell',cls:'arch-flow'},
+   {from:'loop',to:'late',points:[[600,88],[600,140]],label:'each lambda references the same cell',cls:'hot'}
+  ],
+  howToRead:['Left column: the lifetime story. counter()\'s frame returns, but n was boxed into a cell that inc carries — the closure IS that attachment.','Right column: the timing story. Three lambdas share one cell for i; calling them later reads i=2. The default-arg variant makes three cells at definition.','Hot boxes are the two facts interviewers probe: cells survive frames; shared cells are read at call time.'],
+  interviewerNotice:['You explain closures as data structure (cells + __closure__), not magic.','You can fix the loop-lambda bug in one move and say WHY it works.']},
+ {type:'flow',id:'py-deco-wrap-flow',w:800,h:300,
+  title:'Visual B — What @timed actually does: definition time vs call time',
+  purpose:'Separate the one-time definition transform (timed(work) → wrapper bound to the name) from the per-call path (caller → wrapper → original).',
+  nodes:[
+   {id:'def1',x:24,y:24,w:230,h:56,label:'def work(n): …',sub:'original function object created',cls:'cyan'},
+   {id:'def2',x:24,y:130,w:230,h:72,label:'@timed → work = timed(work)',sub:'runs ONCE at definition; returns wrapper',cls:'accent'},
+   {id:'name',x:24,y:252,w:230,h:36,label:'name work now = wrapper',cls:'hot'},
+   {id:'wrapper',x:430,y:130,w:180,h:72,label:'wrapper(*a, **kw)',sub:'closure holds original fn + wraps metadata',cls:'accent'},
+   {id:'orig',x:660,y:130,w:120,h:72,label:'work (original)',sub:'real logic',cls:'green'},
+   {id:'caller',x:430,y:24,w:180,h:56,label:'work(100_000)',sub:'caller sees one seamless function'},
+   {id:'meta',x:660,y:24,w:120,h:56,label:'wraps(fn)',sub:'__name__, __doc__, __wrapped__',cls:'cyan'}
+  ],
+  edges:[
+   {from:'def1',to:'def2',points:[[139,80],[139,130]],label:'passed as argument'},
+   {from:'def2',to:'name',points:[[139,202],[139,252]],label:'rebinds the name',cls:'hot'},
+   {from:'caller',to:'wrapper',points:[[520,80],[520,130]],label:'every call',cls:'hot'},
+   {from:'wrapper',to:'orig',points:[[610,166],[660,166]],label:'fn(*a, **kw)',cls:'hot'},
+   {from:'meta',to:'wrapper',points:[[660,52],[560,52],[560,130]],label:'copies metadata',cls:'arch-flow'}
+  ],
+  howToRead:['Left side is definition time — it happens once, at import: the decorator receives the function and its returned wrapper REPLACES the name.','Right side is call time — every invocation flows caller → wrapper → original; the original object is only reachable through the wrapper\'s closure.','The wraps box explains why tooling still sees "work": metadata was copied onto the wrapper and __wrapped__ links back.'],
+  interviewerNotice:['You distinguish the once-per-definition decorator call from the per-call wrapper.','You know stacked decorators apply bottom-up and that a name rebinding is the mechanism — not compiler magic.']}
+]}),
 mk({id:'python-iterators-generators',domain:'python-core',title:'Iterators, Generators & Lazy Pipelines',priority:4,
 intuition:'A generator produces one item at a time, remembering where it stopped — so a pipeline\'s memory is the working set, not the whole dataset.',
 technical:'An iterator implements __iter__ and __next__; __next__ returns items until StopIteration. A generator function (one containing yield) returns a generator iterator: each yield suspends the function, preserving local state and pending try-blocks, and the next call resumes from there. Generators are single-pass; send()/throw() can inject into the suspended frame.',
@@ -127,7 +463,99 @@ visuals:[
   howToRead:['for x in itb: is exactly: it = iter(itb), then next(it) until StopIteration.','Containers return a FRESH iterator from iter() — that is why you can loop a list twice.','A generator is already an iterator: iter(g) returns g itself.','StopIteration is control flow, not an error — but leaking it into the wrong place breaks code.'],
   interviewerNotice:['You can define the protocol without hand-waving and explain for-loop desugaring.','You know why re-iterating a generator is empty: it is the same exhausted iterator.']}
 ]}),
-mk({id:'python-context-managers',domain:'python-core',title:'Context Managers & Resource Safety',priority:3,intuition:'A context manager guarantees cleanup around a block—even when an exception happens.',technical:'The with statement calls __enter__/__exit__ or an @contextmanager generator. Async context managers use __aenter__/__aexit__. They fit files, DB transactions, locks, spans and temporary resources.',remember:['Acquire resource → use → guaranteed cleanup.','Prefer context managers over scattered try/finally cleanup.'],terms:['context manager','RAII-like lifecycle'],functions:['with','contextlib.contextmanager','async with'],interview:'I wrap resources with context managers so ownership and cleanup are explicit; for async DB sessions or HTTP clients I use async with so connections are returned even on exceptions.'}),
+mk({id:'python-context-managers',domain:'python-core',title:'Context Managers & Resource Safety',priority:3,
+intuition:'with guarantees one thing: whatever __enter__ built, __exit__ will run on every path — success, exception, return, even break. It turns "remember to clean up" into structure.',
+technical:'The with statement calls __enter__() (its return value binds the as-name), runs the body, then ALWAYS calls __exit__(exc_type, exc, tb). Returning a true value from __exit__ SUPPRESSES the exception; returning falsy propagates it after cleanup. @contextmanager wraps a single-yield generator: body exceptions are re-raised AT the yield, so try/finally around the yield is the cleanup; the generator must re-raise unless suppression is intended. ExitStack unwinds registered cleanups in LIFO order; pop_all() transfers them for all-or-nothing acquisition.',
+deepDive:'Why with exists: the data model is explicit that garbage collection is not guaranteed to be prompt — "do not depend on immediate finalization… always close files explicitly"; try/finally plus with are the documented mechanisms. Context managers are the language\'s resource-safety contract, not a style preference.\n\nPrecise semantics interviewers probe. __exit__ receives exception details (or Nones on success); a truthy return swallows that exception and execution continues after the with — contextlib.suppress(FileNotFoundError) is exactly this pattern, and the docs warn to reserve suppression for specific, known-safe errors. @contextmanager generators: exactly one yield; the body\'s exception is thrown INTO the generator at the yield point, so `try: yield r / finally: release(r)` is the idiom; if the generator catches the exception merely to log it, it MUST re-raise, otherwise the CM reports "handled" and execution resumes after the with as if nothing failed. They are single-use: a second with raises RuntimeError("generator didn\'t yield"). Reusability classes: files and @contextmanager CMs are single-use; threading.Lock is reusable-not-reentrant; RLock, suppress, redirect_stdout and chdir are reentrant.\n\nExitStack generalizes nesting to dynamic resource sets: enter_context registers each __exit__ on a LIFO stack, so a loop over files cleans up in reverse order even if the fifth open fails. callback() registers arbitrary cleanup (cannot suppress exceptions); pop_all() moves the whole stack to a new ExitStack — the documented all-or-nothing pattern: open N files inside the stack, transfer with pop_all() only after ALL succeed, otherwise the with unwinds everything acquired so far. AsyncExitStack mirrors it for async with; aclosing() exists specifically to deterministically finalize async generators abandoned by an early break.\n\nProduction mapping: transactions (async with conn.transaction()), locks, temporary state, and FastAPI lifespan (@asynccontextmanager yielding startup/shutdown around the app\'s whole life). Failure modes are consistent: cleanup that assumes success (missing finally), accidental suppression (returning True, or catching-without-reraising in a generator CM), and cleanup that itself raises — a raising __exit__ masks the original exception, so cleanup must be exception-safe.',
+terms:['__enter__/__exit__','exception suppression','@contextmanager','single-use / reusable / reentrant','ExitStack LIFO','pop_all','asynccontextmanager','aclosing'],
+functions:['with / async with','contextlib.contextmanager','contextlib.suppress','contextlib.ExitStack','ExitStack.enter_context/callback/pop_all','contextlib.aclosing','contextlib.nullcontext'],
+remember:['__exit__ ALWAYS runs; truthy return = suppress that exception.','@contextmanager: one yield; body exceptions re-raise at the yield; log-and-reraise or you swallow silently.','Generator CMs are single-use — second with → RuntimeError.','ExitStack unwinds LIFO; pop_all() implements all-or-nothing multi-resource acquisition.','Cleanup in __exit__ must not raise — a raising cleanup masks the original error.'],
+tradeoffs:['try/finally vs with: explicit and universal vs declarative, reusable, composable resource safety.','Generator CM vs class CM: 5-line factories vs stateful/reentrant managers with real __enter__ logic.','One big with vs ExitStack: fixed nesting vs dynamic, data-driven resource sets.'],
+failureModes:['Cleanup skipped on the error path because the code used try without finally.','Accidental suppression: generator CM catches the body exception to log it and never re-raises — callers proceed on half-done work.','Reusing a single-use CM instance (module-level file/CM) — RuntimeError or already-closed resource.','__exit__ raising during unwind: the real exception is replaced by the cleanup failure.','redirect_stdout-style global-state CMs used in threaded/async code — cross-request corruption.'],
+scaling:['Per-request resources (DB txns, Redis pipes, tracing spans) are exactly what async CMs scope; pools + with guarantee the connection returns even on cancellation.','ExitStack keeps deeply-nested acquisition readable where nested with-blocks would pyramid.'],
+security:['CMs enforce privilege windows: open a credential handle, use, close — instead of long-lived ambient state; suppression must stay narrow or it hides security-relevant failures.'],
+traps:['"with is syntax sugar for try/finally" — it also routes exceptions through __exit__ with suppression semantics.','Writing except around the yield in a @contextmanager without re-raising.','Expecting with to make code thread-safe — it scopes lifetime, not concurrency.','Nesting the same ExitStack instance and losing callbacks at the inner exit.'],
+usedByYou:['Your FastAPI lifespan uses @asynccontextmanager for startup/shutdown; per-request DB transactions and Redis pipelines run in async with blocks so cancellation still releases the connection to the pool.'],
+codeTitle:'Generator CM, suppression semantics, ExitStack LIFO + pop_all (verified runnable)',
+code:`from contextlib import contextmanager, ExitStack, suppress
+
+@contextmanager
+def timer(label):
+    import time
+    t0 = time.perf_counter()
+    try:
+        yield label
+    finally:
+        print(f'{label}: {time.perf_counter()-t0:.4f}s')
+
+with timer('block') as what:
+    print('inside', what)
+
+# __exit__ returning True suppresses
+class Swallow:
+    def __enter__(self): return self
+    def __exit__(self, exc_type, exc, tb):
+        print('exit saw:', exc_type.__name__ if exc_type else None)
+        return exc_type is not None and issubclass(exc_type, ValueError)
+with Swallow():
+    raise ValueError('handled by CM')
+print('continued after suppressed ValueError')
+try:
+    with Swallow():
+        raise KeyError('not suppressed')
+except KeyError as e:
+    print('propagated:', e)
+
+# ExitStack: LIFO cleanup + pop_all for all-or-nothing
+files = []
+with ExitStack() as stack:
+    for i in range(3):
+        stack.callback(lambda i=i: print(f'closed resource {i}'))
+        files.append(i)
+    keep = stack.pop_all()   # transfer: nothing closes at block exit
+print('pop_all deferred cleanup; now closing:', files)
+keep.close()
+
+with suppress(FileNotFoundError):
+    open('/tmp/opencode/definitely-missing-file')
+print('suppress worked')`,
+sources:['python-contextlib-docs','python-datamodel-docs'],
+prerequisites:['python-exceptions','python-closures-decorators'],
+nextTopics:['fastapi-lifecycle','async-db-pools'],
+interviewAnswer:'The with statement is the resource-safety contract: __enter__ builds the resource, the body runs, and __exit__ runs on every exit path with the active exception (or Nones); returning truthy from __exit__ suppresses that exception, which is the entire implementation of contextlib.suppress. For one-off managers I prefer @contextmanager: the generator yields exactly once, body exceptions re-raise at the yield, cleanup lives in finally — and if I catch to log, I re-raise, otherwise I silently swallow. Generator CMs are single-use; locks are reusable; RLock and suppress are reentrant. For dynamic resource sets I use ExitStack: enter_context registers cleanups on a LIFO stack, and pop_all gives all-or-nothing acquisition — transfer the stack only when every resource opened. The async variants (async with, AsyncExitStack, aclosing) are the same protocol with awaits, which is how FastAPI lifespan and per-request transactions stay leak-free under cancellation.',
+visuals:[
+ {type:'states',id:'py-ctx-with-lifecycle',w:800,h:300,
+  title:'Visual A — One with statement, every exit path',
+  purpose:'Show the exact control flow of with: enter, body, exit-with-exception-details, and the branch where a truthy __exit__ return swallows the error.',
+  nodes:[
+   {id:'enter',x:24,y:120,w:170,h:60,label:'__enter__',sub:'resource built; as-name bound',cls:'cyan',start:true},
+   {id:'body',x:260,y:120,w:170,h:60,label:'body runs',sub:'user code; may raise'},
+   {id:'exitok',x:500,y:40,w:160,h:56,label:'__exit__(None, None, None)',sub:'cleanup, no exception',cls:'green'},
+   {id:'exiterr',x:500,y:200,w:160,h:56,label:'__exit__(type, exc, tb)',sub:'cleanup with exception context',cls:'accent'},
+   {id:'suppress',x:700,y:120,w:90,h:120,label:'return value?',sub:'truthy → swallow, continue after with; falsy → re-raise',cls:'hot'}
+  ],
+  edges:[
+   {from:'enter',to:'body',points:[[194,150],[260,150]],label:'success'},
+   {from:'body',to:'exitok',points:[[430,150],[466,150],[466,68],[500,68]],label:'no exception'},
+   {from:'body',to:'exiterr',points:[[430,150],[466,150],[466,228],[500,228]],label:'exception raised',cls:'hot'},
+   {from:'exitok',to:'suppress',points:[[660,68],[720,68],[720,120]],label:'always runs'},
+   {from:'exiterr',to:'suppress',points:[[660,228],[720,228],[720,240]],label:'decides fate',cls:'hot'}
+  ],
+  howToRead:['Left to right: enter → body → exit. The split in the middle is the only branch: did the body raise?','Both exit nodes converge on the decision: __exit__\'s RETURN VALUE, not the exception, decides whether the error continues.','suppress() is the truthy branch narrowed to specific exception types; a bare True would swallow everything — including bugs.'],
+  interviewerNotice:['You know __exit__ receives the exception details and its return value is the suppression mechanism.','You treat "cleanup always runs" as the invariant that makes with preferable to try/finally.']},
+ {type:'lanes',id:'py-ctx-exitstack-lifo',w:790,h:300,axis:{label:'acquisition → then unwind'},
+  title:'Visual B — ExitStack: LIFO unwinding and pop_all transfer',
+  purpose:'Show three resources entering a stack, the reverse-order unwind when the block exits or acquisition fails midway, and how pop_all defers cleanup for all-or-nothing success.',
+  rows:[
+   {label:'resource A',segments:[{from:0,to:120,label:'acquired → registered',cls:'cyan'},{from:120,to:300,label:'closed LAST (LIFO)',cls:'accent'}]},
+   {label:'resource B',segments:[{from:40,to:120,label:'acquired → registered',cls:'cyan'},{from:120,to:230,label:'closed second',cls:'accent'}]},
+   {label:'resource C',segments:[{from:80,to:120,label:'acquired → registered',cls:'cyan'},{from:120,to:160,label:'closed FIRST',cls:'accent'}]},
+   {label:'ExitStack',segments:[{from:0,to:120,label:'stack grows: [A, B, C]',cls:'green'},{from:120,to:160,label:'unwind C, B, A',cls:'hot'},{from:160,to:300,label:'(or pop_all → deferred)',cls:''}]}
+  ],
+  marks:[{at:80,label:'C enters'},{at:120,label:'failure / block exit'},{at:160,label:'stack empty'}],
+  howToRead:['Each row is a resource; cyan segments register its cleanup on the stack at acquisition time.','At t≈120 something fails (or the with ends): the stack unwinds in REVERSE order — C, then B, then A — exactly as nested with-blocks would.','The last lane shows the alternative: pop_all() moves the pending stack to a new ExitStack, so nothing closes at block exit; the caller closes later after full success.'],
+  interviewerNotice:['You know cleanup order is LIFO and why (later resources may depend on earlier ones).','You can implement all-or-nothing multi-resource setup with pop_all instead of flag variables.']}
+]}),
 mk({id:'python-exceptions',domain:'python-core',title:'Exceptions, Error Boundaries & Retryable Failures',priority:4,
 intuition:'Exceptions should cross only the boundaries that know how to recover or translate them — everything else should propagate.',
 technical:'try/except matches by class hierarchy: an except clause catches the named class and its subclasses, and the FIRST matching clause wins, so order specific-before-general. raise ... from exc chains a translated error to its cause (from None suppresses). finally always runs — and if finally itself returns, it swallows the in-flight exception. ExceptionGroup with except* handles multiple unrelated failures; add_note() enriches tracebacks. BaseException sits above Exception precisely so SystemExit/KeyboardInterrupt are not caught by accident.',
@@ -241,7 +669,93 @@ visuals:[
   howToRead:['The first decision is always classification — policy follows from the family.','Programmer errors: retrying hides bugs; crash, alert, fix the code.','Transient errors: retry only with a bound, backoff, jitter — and only idempotent operations.','Permanent rejections: surface immediately with a translated message.','Cancellation lives outside Exception: swallowing it breaks timeouts, TaskGroup and shutdown.'],
   interviewerNotice:['You never reach for a retry loop before asking what KIND of failure occurred.','You know why CancelledError/KeyboardInterrupt must not be caught by broad handlers.']}
 ]}),
-mk({id:'python-typing-dataclasses',domain:'python-core',title:'Type Hints, Dataclasses & Pydantic Boundaries',priority:3,intuition:'Types make contracts visible; validation libraries enforce data at runtime where external input enters.',technical:'Python annotations aid static analysis but do not enforce runtime types by themselves. dataclasses reduce boilerplate for internal records; Pydantic validates/parses external API/config data and produces schemas.',remember:['Type hints document and check contracts statically.','Validate untrusted input at boundaries.','Do not turn every internal object into a heavy validation model.'],terms:['type annotation','dataclass','schema validation'],functions:['@dataclass','typing.Protocol','pydantic.BaseModel'],interview:'I use Pydantic at FastAPI boundaries and lighter dataclasses or typed objects internally. That keeps validation where it adds value without coupling the entire domain to the web schema.'}),
+mk({id:'python-typing-dataclasses',domain:'python-core',title:'Type Hints, Dataclasses & Pydantic Boundaries',priority:3,
+intuition:'Type hints are contracts for humans and tools — Python ignores them at runtime. Dataclasses generate the boring record plumbing. Validation libraries are the only place hints actually check data crossing your boundary.',
+technical:'Annotations are stored (function __annotations__, module/class __annotations__) and not enforced at call time; static tools (mypy/pyright) are the enforcement layer. @dataclass reads PEP 526 annotated class variables as FIELDS and generates __init__/__repr__/__eq__ (+order/hash per flags); frozen=True emulates immutability (FrozenInstanceError), slots=True (3.10+) builds a new slotted class, kw_only reorders params, default_factory avoids the shared-mutable-default trap. Pydantic/TypeAdapter-style validation is for untrusted input edges; internal code trusts hints + static checks.',
+deepDive:'The division of labor is the interview answer. Hints document intent and power static analysis; the runtime does not check them — f(x: int) happily receives a string. Dataclasses are code generation for records: fields are annotated class variables, order defines __init__ parameter order, and TypeError fires when a non-default field follows a default (including across inheritance, where fields collect in reverse-MRO order and derived classes override).\n\nThe eq/frozen/hash matrix is worth memorizing because it encodes the mutability lesson: eq=True+frozen=True → __hash__ generated from fields; eq=True+frozen=False → __hash__=None (unhashable — correct, it is mutable); eq=False → id-based hash inherited from object. And hash covers ALL compared fields: a frozen dataclass with a list field still fails hash() unless the field is excluded (field(compare=False, hash=False)) — the verified example shows exactly this, plus equality that deliberately ignores the excluded field.\n\nslots=True returns a NEW class with fixed attribute slots: less memory per instance and attribute access that fails fast on typos; caveats — TypeError if __slots__ already exists, and (3.11+) inherited slot names are not re-declared. frozen=True raises FrozenInstanceError on assignment (small runtime cost via object.__setattr__). replace(obj, **changes) rebuilds through __init__, re-running __post_init__ — but init=False fields are NOT carried over, a documented sharp edge. __post_init__ is the validation hook for derived/checked fields; InitVar pseudo-fields pass constructor-only values into it. Mutable defaults raise ValueError at class creation (unhashability approximating mutability since 3.11) — field(default_factory=list) is the fix.\n\nBoundary discipline: untrusted JSON crosses into the system exactly once — parse and validate there (pydantic BaseModel/TypeAdapter or manual checks), then pass TRUSTED typed objects internally. Validating the same dict at five layers wastes latency; skipping validation at the edge pushes corruption into the domain. Hints also carry real semantics in modern Python: typing.Literal, Annotated metadata, TypedDict for dict shapes, Protocol for structural interfaces — but none of it rejects bad data at runtime by itself.',
+terms:['annotation (not enforcement)','field','default_factory','frozen','slots','kw_only','__post_init__','InitVar','replace()','boundary validation'],
+functions:['@dataclass','dataclasses.field','dataclasses.replace','dataclasses.asdict/astuple','typing.Literal/Annotated/TypedDict','pydantic BaseModel / TypeAdapter'],
+remember:['Hints are documentation + static analysis; the runtime ignores them.','eq+frozen → hashable; eq alone → __hash__=None; hash includes all compared fields (a list field breaks it).','Non-default field after a default is TypeError — including via inheritance.','replace() re-runs __init__/__post_init__ but drops init=False fields.','Validate untrusted input ONCE at the boundary; pass typed objects inside.'],
+tradeoffs:['dataclass vs NamedTuple vs TypedDict: mutable record with methods vs immutable tuple semantics vs typed dict shape (no class).','frozen vs mutable: hashability and safe sharing vs two-line updates via replace and runtime setattr cost.','pydantic at every layer vs boundary-only: defense-in-depth vs latency and error-message noise.'],
+failureModes:['Trusting hints as validation: wrong-typed data flows until it explodes far from the source.','Frozen dataclass with a list field: hash(obj) raises TypeError despite frozen=True.','replace() silently losing init=False derived fields.','slots dataclass + code that sets ad-hoc attributes: AttributeError that plain classes tolerated.'],
+scaling:['slots=True cuts per-instance memory meaningfully at millions of records; frozen records enable lock-free sharing across threads/tasks.','Boundary validation cost is per-request: validate once, not per function call.'],
+security:['The untrusted-input boundary is a security control: strict models reject unexpected fields/types before they reach domain logic; asdict() before logging keeps secrets out of structured logs.'],
+traps:['"It type-checks at runtime because I annotated it."','field(default_factory=list) vs field(default=list()) — the latter shares ONE list.','Believing frozen means deep immutability — a frozen object can hold a mutable list.','Comparing dataclasses with reordered inherited fields and wondering why __init__ signatures differ.'],
+usedByYou:['Your FastAPI request/response models are pydantic at the edge; internal frame/event records are dataclasses — frozen where they cross task boundaries so no worker can mutate shared state.'],
+codeTitle:'Frozen + slots + default_factory + replace (verified runnable, Python 3.10+)',
+code:`from dataclasses import dataclass, field, replace
+from typing import ClassVar
+
+@dataclass(frozen=True, slots=True)
+class Frame:
+    camera_id: str
+    ts_ms: int
+    boxes: list = field(default_factory=list, compare=False, hash=False)
+    count: ClassVar[int] = 0                    # excluded from fields
+
+    def __post_init__(self):
+        if self.ts_ms < 0:
+            raise ValueError('ts_ms must be >= 0')
+
+f = Frame('cam-7', 1234, [{'x': 1}])
+print('hash works over identity fields:', type(hash(f)).__name__)
+f2 = replace(f, ts_ms=5678)                     # new instance, __post_init__ ran
+print(f2, '| boxes shared?', f2.boxes is f.boxes)
+print('equal ignores boxes:', f == Frame('cam-7', 1234, [{'OTHER': 2}]))
+try:
+    f.ts_ms = 99
+except Exception as e:
+    print(type(e).__name__, '-', e)
+print('bad ts raises:', end=' ')
+try:
+    Frame('cam', -1)
+except ValueError as e:
+    print(e)
+try:
+    @dataclass
+    class Bad:
+        items: list = []       # unhashable default -> ValueError at class creation
+except ValueError as e:
+    print('mutable default rejected:', str(e)[:40])`,
+sources:['python-dataclasses-docs','python-datamodel-docs','python-typing-protocol-docs'],
+prerequisites:['python-object-model','python-mutable-immutable','python-oop-solid'],
+nextTopics:['fastapi-lifecycle','python-args-kwargs'],
+interviewAnswer:'I separate three jobs. Type hints document intent and drive static checks — the runtime ignores them. Dataclasses generate record plumbing from annotated fields: ordered __init__ with TypeError on non-default-after-default, the eq/frozen/hash matrix (eq+frozen hashes; eq alone sets __hash__=None), frozen for immutability, slots for memory and fail-fast attributes, default_factory to dodge shared mutable defaults, and __post_init__/replace for derived fields and immutable-style updates — remembering replace drops init=False fields. Validation libraries belong at the untrusted boundary: parse JSON once into typed models there, then pass trusted objects internally. My favorite detail: a frozen dataclass with a list field still fails hash() unless the field is excluded from compare/hash — record immutability does not make members hashable.',
+visuals:[
+ {type:'matrix',id:'py-typing-eq-frozen-hash-matrix',w:800,h:240,rowH:52,
+  title:'Visual A — The dataclass eq × frozen × hash decision table',
+  purpose:'Show exactly when @dataclass generates __hash__, sets it to None, or leaves id-based hashing — the rule interviewers use to test dataclass depth.',
+  cols:[{label:'eq'},{label:'frozen'},{label:'__hash__ result'},{label:'Consequence'}],
+  rows:[
+   {label:'default',cells:[{label:'True'},{label:'False'},{label:'None — explicitly unhashable',cls:'hot'},{label:'instances rejected as dict/set keys'}]},
+   {label:'frozen=True',cells:[{label:'True'},{label:'True'},{label:'generated from fields',cls:'green'},{label:'hash works IF every compared field is hashable'}]},
+   {label:'eq=False',cells:[{label:'False'},{label:'any'},{label:'untouched (id-based)',cls:''},{label:'identity semantics; mutable-friendly'}]},
+   {label:'unsafe_hash=True',cells:[{label:'True'},{label:'False'},{label:'forced generation',cls:'hot'},{label:'hash a mutable record — hash/eq drift risk'}]}
+  ],
+  notes:['Generated __hash__ covers every field with compare=True — one list field makes hash() raise TypeError even when frozen.','field(compare=False, hash=False) excludes volatile members from BOTH equality and hashing.'],
+  howToRead:['Each row is a decorator configuration; read across to the generated __hash__ and what it means for dict-key usage.','Hot cells mark surprises: the DEFAULT config is unhashable, and unsafe_hash re-introduces the mutable-key hazard.','The notes are the second-order rule most candidates miss: frozen does not make list members hashable.'],
+  interviewerNotice:['You know the default dataclass is unhashable BY DESIGN and can justify it via mutability.','You can design record types for cache keys: frozen + hash-excluded volatile fields.']},
+ {type:'flow',id:'py-typing-boundary-flow',w:800,h:310,
+  title:'Visual B — Where validation belongs: one gate, typed inside',
+  purpose:'Show untrusted input crossing exactly one validation boundary into typed domain objects, and why re-validating internally or skipping the gate are both wrong.',
+  nodes:[
+   {id:'ext',x:24,y:110,w:150,h:70,label:'untrusted input',sub:'HTTP body / queue msg / file',cls:'hot'},
+   {id:'gate',x:230,y:100,w:210,h:90,label:'boundary validation',sub:'pydantic / TypeAdapter / manual: types, ranges, unknown-field policy — ONCE',cls:'accent'},
+   {id:'domain',x:496,y:24,w:280,h:60,label:'typed domain objects',sub:'dataclasses / TypedDict — trusted by convention + static checks',cls:'green'},
+   {id:'svc',x:496,y:120,w:280,h:60,label:'services & workers',sub:'no re-validation; hints + tests carry correctness',cls:'green'},
+   {id:'store',x:496,y:216,w:280,h:60,label:'persistence / events',sub:'serialize explicitly once on the way OUT',cls:'cyan'},
+   {id:'leak',x:230,y:236,w:210,h:60,label:'anti-pattern: validate everywhere',sub:'5× parse cost, drifting schemas, false confidence',cls:'hot'}
+  ],
+  edges:[
+   {from:'ext',to:'gate',points:[[174,145],[230,145]],label:'raw dict/str',cls:'hot'},
+   {from:'gate',to:'domain',points:[[440,145],[466,145],[466,54],[496,54]],label:'validated model',cls:'hot'},
+   {from:'domain',to:'svc',points:[[636,84],[636,120]]},
+   {from:'svc',to:'store',points:[[636,180],[636,216]]},
+   {from:'gate',to:'leak',points:[[335,190],[335,236]],label:'avoid',cls:'arch-flow'}
+  ],
+  howToRead:['Left: everything outside your trust boundary is raw data — strings and dicts with unknown shape.','The gate converts ONCE into typed objects; inside the system, hints plus static analysis carry correctness, so services never re-parse.','The bottom box is the anti-pattern: sprinkling validation through internal layers costs latency and hides the real contract.','The store node closes the loop: serialization is also an edge — do it explicitly, once.'],
+  interviewerNotice:['You design validation as an architectural boundary, not a per-function habit.','You can defend the latency argument: one strict parse beats N scattered isinstance checks.']}
+]}),
 mk({id:'python-oop-solid',domain:'python-core',title:'OOP & SOLID in Python',priority:4,
 intuition:'Good OOP groups behavior with the state it owns and lets callers depend on contracts instead of concrete classes — in Python, contracts are usually Protocols, not inheritance trees.',
 technical:'Python classes are runtime objects with attribute dictionaries; all methods are effectively virtual (a base-class method calling self.helper() dispatches to any override), attribute lookup checks the instance before the class, and multiple inheritance is linearized by the dynamic MRO so super() cooperates across diamonds. There is no enforced privacy: _name is convention, __name is mangled to _Class__name to avoid subclass clashes, not to hide. SOLID maps to Python as: small classes (SRP), extend via new implementations not edits (OCP), respect override contracts (LSP), narrow Protocols (ISP), and depend on Protocol/ABC abstractions injected from outside (DIP).',
@@ -1019,9 +1533,270 @@ visuals:[
   howToRead:['The producer is fast; the workers are slow because the downstream is capacity-limited.','Slots i-2…i-0 are the three queue entries; the FULL marker is the pressure point.','When the queue is full, put() suspends the producer — backpressure flows upstream instead of memory growing.','Depth and oldest-item age (i-2\'s wait) are the metrics that say "scale consumers", before users ever notice.'],
   interviewerNotice:['You treat queue depth as a signal, not a buffer to resize.','You know an unbounded queue only moves the overflow into memory and latency.']}
 ]}),
-mk({id:'async-db-pools',domain:'python-core',title:'Async Database Pools & Transaction Scope',priority:5,intuition:'A pool is a small set of expensive DB connections shared by many requests; making it huge does not create more database capacity.',technical:'Async drivers such as asyncpg/SQLAlchemy async acquire a connection per active DB operation. Pool size should match DB capacity and service replicas. Transactions should be short and never span slow external calls.',remember:['Pool size is a concurrency budget, not a throughput knob.','Too many app replicas × large pools can overwhelm Postgres.','Release connections before slow model/network work.'],terms:['connection pool','transaction scope','pool exhaustion'],functions:['asyncpg.create_pool','AsyncSession','async with session.begin()'],interview:'I size the pool from total database connection budget across replicas, set acquisition timeouts, keep transactions short, and expose pool wait time because a saturated pool is often the first sign the DB tier is under pressure.',usedByYou:['This directly connects your FastAPI/PostgreSQL services with the DB-load questions you were asked.'],prerequisites:['python-event-loop','db-connection-pooling']}),
-mk({id:'fastapi-lifecycle',domain:'python-core',title:'FastAPI Dependency Injection, Lifespan & Worker Model',priority:4,intuition:'Expensive clients should be created once per process and reused, while request-scoped resources should be opened and closed per request.',technical:'FastAPI dependencies express request-scoped contracts; lifespan manages app startup/shutdown. Uvicorn/Gunicorn workers are separate processes, so each gets its own clients, caches and memory.',remember:['One process = separate event loop and memory.','Use lifespan for DB/HTTP/model client initialization.','Do not create a new DB pool or HTTP client per request.'],terms:['lifespan','dependency injection','ASGI worker'],functions:['FastAPI(lifespan=...)','Depends','yield dependency'],interview:'I initialize reusable pools/clients in lifespan, inject request-scoped sessions with dependencies, and remember that multiple worker processes duplicate in-memory state—so shared coordination belongs in Redis/DB rather than a global dict.',usedByYou:['Vision Relay/FastAPI job-control services are a natural example.'],prerequisites:['fastapi-async','async-db-pools']}),
-mk({id:'python-profiling',domain:'python-core',title:'Python Profiling: CPU, Memory & Event-loop Lag',priority:4,intuition:'Optimization starts by measuring where time and memory actually go.',technical:'Use cProfile/py-spy for CPU, tracemalloc for allocations, application spans for I/O and event-loop lag/slow-callback diagnostics for async stalls. Optimize the measured bottleneck, not the most interesting function.',remember:['Wall time and CPU time are different.','Profile representative production-like workloads.','p95/p99 matters for user-visible latency.'],terms:['sampling profiler','allocation profile','event-loop lag'],functions:['cProfile','tracemalloc','asyncio debug mode'],interview:'For an async API I separate CPU, dependency wait, pool wait and event-loop lag. A flame graph answers CPU questions; distributed traces answer network/DB questions.'}),
+mk({id:'async-db-pools',domain:'python-core',title:'Async Database Pools & Transaction Scope',priority:5,
+intuition:'A pool is a fixed budget of expensive DB sessions shared by hundreds of concurrent coroutines. The pool bounds YOUR concurrency against the database — making it huge does not create database capacity, it just moves the queue into Postgres where it hurts everyone.',
+technical:'asyncpg.create_pool(min_size, max_size) maintains connections; pool.acquire() checks one out (awaiting when exhausted), and on release asyncpg runs Connection.reset() before the next acquirer gets it. async with pool.acquire() as conn scopes checkout; async with conn.transaction() scopes commit/rollback. Pool sizing math: total connections = workers × max_size, and it must fit Postgres\u2019 max_connections minus headroom for other clients. command_timeout bounds each operation; acquire timeouts bound how long requests wait when the pool is saturated — a pool wait IS a capacity signal.',
+deepDive:'Why pools exist: a Postgres connection is a server-side process with auth, memory and planning state — establishing one costs milliseconds and holding thousands is impossible (max_connections, each backend ~MBs of RAM). The pool converts an unbounded coroutine population into a bounded connection population: 10 connections can still serve 1000 rps if each operation is 5ms (Little\u2019s Law: 10 conns ÷ 5ms ≈ 2000 ops/s ceiling). That is the mental shift — the pool is a concurrency LIMIT, not a performance feature. Sizing therefore starts from the DATABASE budget: max_connections (often 100–200), minus other services, monitoring, migrations; divide the remainder across workers and replicas. 4 uvicorn workers × max_size 20 = 80 — fine alone, fatal ×5 replicas. PgBouncer exists because app-tier pools multiply.\n\nAcquisition semantics, precisely (asyncpg): acquire() returns immediately if an idle connection exists; otherwise it opens a new one up to max_size; beyond that the caller AWAITS until a release. So under saturation, requests queue at acquire — that queue is your backpressure and its wait time is the metric to expose (pool wait p95). On release, asyncpg runs a reset (rolling back any lingering transaction state, restoring session settings) so acquirers never inherit dirty state — but that only protects state, not your logic: holding a connection across an await on a slow upstream (model call, webhook) is the classic exhaustion bug; 10 slow holders stall every DB-touching request behind them. Rule: checkout → query → release, with slow external work strictly outside the bracket.\n\nTransaction scope is a separate decision from connection scope: async with conn.transaction() sends BEGIN/COMMIT (or uses savepoints when nested) and rolls back on exception. Transactions hold locks and a WAL position — keep them SHORT: no user thinking time, no HTTP calls, no model inference inside a transaction. Read paths that do not need atomicity should not open transactions at all (autocommit fetches). For reads at scale, replicas enter via target_session_attrs (asyncpg can target primary vs standby) — but then you own replication-lag semantics (read-your-writes needs primary or sticky routing).\n\nFailure behavior matters: a broken connection surfaces as an exception on the next query — production pools need health checks on acquire (SQLAlchemy pool_pre_ping equivalent) or retry-once-on-disconnect logic, plus max_inactive_connection_lifetime (asyncpg) so firewalls/NAT do not silently kill idle connections. And the operational tell: "DB CPU is fine but p95 exploded" is almost always pool wait — measure it before scaling hardware.',
+terms:['connection pool','min/max size','acquire/release','pool wait','connection reset','transaction scope','pool exhaustion','max_connections budget','PgBouncer','replica routing (target_session_attrs)'],
+functions:['asyncpg.create_pool(min_size, max_size)','async with pool.acquire() as conn','async with conn.transaction()','conn.fetch / fetchrow / execute','command_timeout','max_inactive_connection_lifetime','pool.close() vs terminate()'],
+remember:['The pool is a concurrency budget: throughput ceiling ≈ pool_size ÷ avg query time.','Total connections = workers × max_size across ALL replicas — must fit the DB budget.','Never hold a connection across slow external calls — checkout, query, release.','Keep transactions short and inside the request; no HTTP/model calls inside a txn.','Expose pool-wait p95: saturation shows there before DB CPU moves.'],
+tradeoffs:['Big pool vs small pool: more parallel queries vs DB contention and context-switch thrash — Postgres often degrades past ~2–4× cores of active queries.','One pool per app vs PgBouncer: simplicity vs a shared transaction-mode bottleneck for many replicas.','Transactions vs autocommit reads: atomicity vs lock/WAL holding time.'],
+failureModes:['Pool exhaustion: every request waits on acquire; p95 explodes while DB CPU stays low — caused by held connections or undersized budget.','Connection storms: creating pools per request or per task; DB auth/CPU spikes, port exhaustion.','Stale connections after DB failover/firewall idle timeout: errors until reconnect logic or lifetime limits kick in.','Long transaction holding locks across an await → lock queues, vacuum lag, replication delay.','Release forgotten on an exception path (no async with) — permanent pool leak until restart.'],
+scaling:['Scale reads: replicas + routing, cache-aside for hot objects; scale writes: batch (executemany is atomic), queue writes through workers. When the pool is saturated and queries are tuned, the DB tier is the constraint — scale IT (or reduce work), not the pool size.','Per-worker pools multiply: keep max_size modest and let PgBouncer multiplex when replicas grow.'],
+security:['Connections hold credentials: pool config belongs in secrets, not code; TLS mode explicit (asyncpg ssl default is prefer — set verify-full for untrusted networks). Pool-wide role should be least-privilege; row-level security depends on session state — beware reset-on-release semantics with SET roles.'],
+traps:['"Increase max_size to fix latency" — if queries are slow, a bigger pool multiplies DB contention.','Holding conn while awaiting an LLM/embedding call "because I need it later".','Opening a transaction for a single SELECT and holding it through serialization of the response.','Assuming acquire is cheap when saturated — it is the queue where your latency dies.','Forgetting that reset-on-release wipes session SET state you relied on.'],
+usedByYou:['Your FastAPI services create the asyncpg pool in lifespan and inject per-request connections via a yield dependency; transactions wrap only the actual DB work, and pool-wait metrics sit on the same dashboard as DB CPU so saturation is attributable in seconds.'],
+codeTitle:'Pool + short transaction + no-connection-during-slow-call (syntax-reviewed against asyncpg API; structure verified on 3.10)',
+code:`import asyncio
+
+# pool created ONCE per worker process (see fastapi-lifecycle)
+# pool = await asyncpg.create_pool(dsn, min_size=2, max_size=10,
+#                                  command_timeout=5)
+
+async def handle_request(pool, plate: str):
+    # 1) short checkout: query, release — nothing slow inside the bracket
+    async with pool.acquire(timeout=2.0) as conn:      # wait capped at 2s
+        rows = await conn.fetch(
+            "SELECT ts, camera_id FROM plates WHERE plate = $1 "
+            "ORDER BY ts DESC LIMIT 20", plate)
+    hits = [{"ts": str(r["ts"]), "cam": r["camera_id"]} for r in rows]
+
+    # 2) SLOW external work happens with NO connection checked out
+    embedding = await call_model_service(hits)          # seconds-long OK
+
+    # 3) write path: transaction scoped to the DB work only
+    async with pool.acquire() as conn:
+        async with conn.transaction():                  # BEGIN ... COMMIT
+            await conn.execute(
+                "INSERT INTO enrichments(plate, embedding) "
+                "VALUES ($1, $2) "
+                "ON CONFLICT (plate) DO UPDATE SET embedding = $2",
+                plate, embedding)
+    return hits
+
+async def call_model_service(hits):
+    await asyncio.sleep(0.01)      # stand-in for a real inference call
+    return [0.1, 0.2]`,
+sources:['asyncpg-docs','db-connection-pooling','fastapi-lifespan-docs'],
+prerequisites:['python-event-loop','fastapi-lifecycle','db-connection-pooling'],
+nextTopics:['db-load-reduction','transactions-locks'],
+interviewAnswer:'I treat the pool as a concurrency budget, not a cache. A Postgres connection is a server process, so the budget is database-side: max_connections minus other clients, divided across every worker and replica — 4 uvicorn workers times max_size 20 is 80 connections before replicas multiply it. asyncpg\u2019s acquire hands out idle connections up to max_size, then callers queue; on release it resets session state before the next acquirer. Two disciplines follow. First, checkout is short: query and release; slow external calls — model inference, webhooks — never happen while holding a connection, or ten slow holders stall every DB-touching request. Second, transactions are scoped to DB work only via async with conn.transaction(): no HTTP, no user think-time, because they hold locks and WAL. I set command_timeout and an acquire timeout, watch pool-wait p95 next to DB CPU — saturation shows as pool wait with flat DB CPU — and when queries are already tuned, I scale the database tier or reduce work rather than inflating the pool.',
+visuals:[
+ {type:'states',id:'py-pool-lifecycle-states',w:800,h:300,
+  title:'Visual A — One connection\u2019s life in the pool: acquire → use → reset → idle',
+  purpose:'Show the full state cycle including the reset-on-release that callers never see, and where waiting requests queue when every connection is checked out.',
+  nodes:[
+   {id:'idle',x:24,y:120,w:150,h:60,label:'idle in pool',sub:'TCP open · auth done · reset state',cls:'green',start:true},
+   {id:'acquire',x:250,y:120,w:160,h:60,label:'acquired',sub:'async with pool.acquire()',cls:'accent'},
+   {id:'work',x:480,y:40,w:160,h:60,label:'query / txn runs',sub:'fetch · execute · transaction()',cls:'cyan'},
+   {id:'wait',x:480,y:210,w:160,h:60,label:'caller queues',sub:'pool exhausted → await until a release',cls:'hot'},
+   {id:'reset',x:690,y:120,w:90,h:60,label:'reset',sub:'rollback + restore session defaults',cls:'accent'},
+   {id:'closed',x:250,y:230,w:160,h:50,label:'closed / terminated',sub:'pool.close() graceful · terminate() now',cls:''}
+  ],
+  edges:[
+   {from:'idle',to:'acquire',points:[[174,150],[250,150]],label:'checkout'},
+   {from:'acquire',to:'work',points:[[410,150],[440,150],[440,70],[480,70]],label:'with body'},
+   {from:'work',to:'reset',points:[[640,70],[700,70],[700,120]],label:'release'},
+   {from:'reset',to:'idle',points:[[690,180],[400,180],[400,180],[174,180]],label:'back to pool',cls:'arch-flow'},
+   {from:'wait',to:'acquire',points:[[480,240],[330,240],[330,180]],label:'next release wakes one waiter',cls:'hot'},
+   {from:'idle',to:'closed',points:[[99,180],[99,255],[250,255]],label:'shutdown / lifetime expiry'}
+  ],
+  howToRead:['Green = the expensive state (connected, authenticated) that the pool keeps alive across requests.','Follow one checkout: acquire → work → release → reset → idle. Reset is asyncpg\u2019s guarantee the NEXT caller never inherits your transaction or SET state.','The hot queue node is what saturation looks like: callers awaiting acquire. Their wait time — not DB CPU — is the first metric to move.','Closed state happens at shutdown (close waits for releases) or lifetime expiry (idle reaping).'],
+  interviewerNotice:['You know reset-on-release exists and what it wipes (open txns, session variables).','You can name pool-wait as the saturation metric before DB CPU moves.']},
+ {type:'flow',id:'py-pool-budget-flow',w:800,h:310,
+  title:'Visual B — The connection budget: workers × pool × replicas vs max_connections',
+  purpose:'Show how app-tier pools multiply into a database-side budget, and where queueing belongs when the budget is tight.',
+  nodes:[
+   {id:'r1',x:24,y:24,w:180,h:60,label:'replica 1',sub:'2 workers × pool 10 = 20',cls:'accent'},
+   {id:'r2',x:24,y:110,w:180,h:60,label:'replica 2',sub:'2 workers × pool 10 = 20',cls:'accent'},
+   {id:'r3',x:24,y:196,w:180,h:60,label:'replica 3',sub:'2 workers × pool 10 = 20',cls:'accent'},
+   {id:'pool',x:290,y:100,w:170,h:80,label:'Postgres max_connections',sub:'e.g. 100 — shared by EVERY client',cls:'hot'},
+   {id:'other',x:290,y:220,w:170,h:60,label:'other clients',sub:'migrations · cron · BI · pgbouncer',cls:''},
+   {id:'verdict',x:560,y:24,w:216,h:70,label:'60 + others vs 100',sub:'fits → headroom; exceeds → refused connections at DEPLOY time',cls:'green'},
+   {id:'queue',x:560,y:130,w:216,h:70,label:'saturated? queue in pool.acquire()',sub:'bounded wait + shed — do NOT raise pool size',cls:'hot'},
+   {id:'fix',x:560,y:230,w:216,h:60,label:'real fixes',sub:'tune queries → PgBouncer → replicas → bigger DB',cls:'cyan'}
+  ],
+  edges:[
+   {from:'r1',to:'pool',points:[[204,54],[240,54],[240,120],[290,120]],label:'20 conns'},
+   {from:'r2',to:'pool',points:[[204,140],[290,140]],label:'20 conns'},
+   {from:'r3',to:'pool',points:[[204,226],[240,226],[240,160],[290,160]],label:'20 conns'},
+   {from:'other',to:'pool',points:[[375,220],[375,180]],label:'competes for budget'},
+   {from:'pool',to:'verdict',points:[[460,120],[500,120],[500,59],[560,59]]},
+   {from:'pool',to:'queue',points:[[460,140],[560,165]],label:'when busy',cls:'hot'},
+   {from:'queue',to:'fix',points:[[668,200],[668,230]],label:'then',cls:'arch-flow'}
+  ],
+  howToRead:['Left: three replicas, each with 2 worker processes and a pool of 10 — the app THINKS it has 6 pools; the DB sees one budget.','The hot box is the database\u2019s max_connections: every pool and every other client draws from it; exceeding it fails at connect time, often during a deploy.','Right: if demand exceeds the budget, the correct queue is inside pool.acquire() with a bounded wait — not a bigger pool multiplying load into the DB.','The fix ladder is ordered by cost: queries first, then a multiplexer (PgBouncer), then topology.'],
+  interviewerNotice:['You do the workers × pool × replicas arithmetic unprompted.','You place backpressure at the pool boundary and treat pool-size increases as a last resort.']}
+]}),
+mk({id:'fastapi-lifecycle',domain:'python-core',title:'FastAPI Dependency Injection, Lifespan & Worker Model',priority:4,
+intuition:'Three lifetimes, three mechanisms: process-wide clients live in lifespan, request-scoped resources live in yield dependencies, and every worker PROCESS is its own universe with its own loop, pools and memory.',
+technical:'FastAPI(lifespan=...) takes an async context manager: code before the yield runs ONCE before the first request (startup: pools, model loads, clients), after the yield ONCE after the last (shutdown). Request-scoped resources use dependencies with yield — teardown runs after the response. Depends() builds a per-request dependency graph with caching (same callable+args = one instance per request). Uvicorn workers are separate PROCESSES (ASGI lifespan protocol per worker): each builds its own pool and cache; nothing in-process is shared across workers.',
+deepDive:'Lifespan, precisely: you write @asynccontextmanager async def lifespan(app) and pass it to FastAPI(lifespan=lifespan). Before the yield = startup — the docs\' canonical examples are exactly the expensive shared resources: a DB connection pool and an ML model loaded once because "the models are shared among requests". After the yield = shutdown — release, close, clear. Why not module-level? The docs\' argument: module-level loading runs even in unit tests that never touch the model, slowing everything; lifespan ties initialization to "the app is about to serve". Two documented sharp edges: it replaces @app.on_event entirely ("If you provide a lifespan parameter, startup and shutdown event handlers will no longer be called. It is all lifespan or all events, not both"), and lifespan runs only for the MAIN app — mounted sub-applications do not get their own lifespan run by the parent. Underneath it is the ASGI Lifespan Protocol: the server sends startup/shutdown events; uvicorn waits for startup to complete before accepting connections, which is why slow lifespan delays readiness — keep startup lean or gate readiness explicitly.\n\nDependencies with yield are the per-request counterpart: the code before yield is setup, the dependency\'s value is injected (and CACHED within one request — the same Depends(callable) with the same arguments resolves once), and the code after yield is teardown that runs after the response completes. Raising inside setup short-circuits the request (auth gates are built this way); teardown runs even when the handler raised, which is what makes per-request transactions safe: async with session.begin() inside a yield dependency commits on success and rolls back on exception, then returns the connection to the pool. Dependency chains resolve depth-first with caching, so a sub-dependency (a Session built from a pool built at lifespan) is shared, not duplicated.\n\nThe worker model is where intuition fails: uvicorn --workers 4 (or gunicorn -k uvicorn.workers.UvicornWorker) is four PROCESSES. Each process runs its own event loop, executes lifespan separately (4 pools, not 1), and owns private memory — an in-process dict is not a cache, a counter is not a rate limiter, and warm GPU state is per-process. Consequences: total DB connections = workers × pool max_size (the async-db-pools lesson does that math); shared coordination belongs in Redis/Postgres; graceful shutdown drains each worker (SIGTERM → stop accepting → finish/timeout in-flight). For CPU-bound work, workers are the scaling unit (GIL lesson); for I/O-bound work, one worker with a healthy loop often saturates the DB before CPU.',
+terms:['lifespan','asynccontextmanager','ASGI lifespan protocol','dependency with yield','dependency caching','sub-dependency','worker process','graceful shutdown'],
+functions:['FastAPI(lifespan=...)','@asynccontextmanager','Depends(...)','def dep() -> yield','app.state','uvicorn --workers N'],
+remember:['Lifespan: before yield = startup once, after yield = shutdown once — per worker PROCESS.','All-lifespan or all-events — they do not mix; sub-apps do not run the parent lifespan.','Yield dependencies: setup → inject (cached per request) → teardown after the response.','Workers are processes: pools/caches/counters are per-process; shared state belongs in Redis/DB.','Startup latency delays readiness — keep lifespan fast or report readiness explicitly.'],
+tradeoffs:['lifespan vs on_event: paired setup/teardown sharing state vs deprecated separate handlers.','Dependency with yield vs try/finally in handler: reusable, testable, ordered teardown vs local visibility.','More workers vs bigger pool per worker: CPU parallelism vs total connection budget — they multiply.'],
+failureModes:['Creating the pool per request: connection storms, TIME_WAIT pileups, DB CPU spent on auth/handshakes.','Assuming one shared in-process cache across workers: inconsistent reads, duplicated model memory ×N.','Long startup in lifespan: orchestrator kills the pod before ready (needs startupProbe).','Teardown that raises in a yield dependency masking the real response error.','Relying on module-level singletons: import side effects run in tests, CLI tools and every worker.'],
+scaling:['Scale I/O-bound FastAPI with replicas/workers until the shared bottleneck (DB pool budget, Redis, GPU) saturates; scale CPU-bound strictly by processes. Per-process lifespan means every scaling unit pays memory for loaded models — that is the cost of process isolation.'],
+security:['app.state and lifespan hold credentials/pool handles: never expose via debug endpoints. Yield-dependency auth gates run before handlers — keep them in the dependency graph, not optional helper calls.','Workers duplicate secrets in memory; scope secrets to what each process needs.'],
+traps:['"The pool is created once" — once per WORKER; 4 workers × max_size=20 = 80 DB connections.','Mixing on_event handlers with a lifespan function and wondering why handlers never fire.','Heavy work in Depends without caching — the same dependency resolved repeatedly per request.','Blocking startup (model load) synchronously inside lifespan without a readiness story.','Treating app.state as cross-worker shared storage.'],
+usedByYou:['Your FastAPI services (Vision Relay job control, football-intelligence API) create the asyncpg/Redis/HTTP clients in lifespan, inject sessions via yield dependencies wrapping per-request transactions, and run N worker processes where each owns its pool share — the connection budget math in the pool lesson comes straight from this.'],
+codeTitle:'Lifespan + yield dependency + per-request transaction (syntax-reviewed against FastAPI docs; behavior verified on 3.10 without FastAPI installed)',
+code:`from contextlib import asynccontextmanager
+from typing import AsyncIterator
+
+# --- process-wide resources: lifespan (once per worker process) ---
+@asynccontextmanager
+async def lifespan(app) -> AsyncIterator[None]:
+    app.state.pool = await create_pool(min_size=2, max_size=10)  # asyncpg
+    app.state.model = load_model()          # expensive, shared by requests
+    yield                                    # ---- app serves requests ----
+    await app.state.pool.close()             # graceful: waits for release
+
+app = FastAPI(lifespan=lifespan)
+
+# --- request-scoped resource: dependency with yield ---
+async def get_conn(request: Request) -> AsyncIterator[Connection]:
+    async with request.app.state.pool.acquire() as conn:   # checked out
+        yield conn                                          # handler runs
+    # released here, AFTER the response — even if the handler raised
+
+@app.get("/plates/{plate}")
+async def find_plate(plate: str, conn=Depends(get_conn)):
+    async with conn.transaction():          # short txn: commit/rollback scoped
+        rows = await conn.fetch(
+            "SELECT ts, camera_id FROM plates WHERE plate = $1", plate)
+    return {"hits": len(rows)}
+
+# run: uvicorn app:app --workers 4
+# -> FOUR processes, each runs lifespan: 4 pools × 10 = up to 40 DB conns`,
+sources:['fastapi-lifespan-docs','asyncpg-docs','python-contextlib-docs'],
+prerequisites:['fastapi-async','python-context-managers'],
+nextTopics:['async-db-pools','db-connection-pooling'],
+interviewAnswer:'FastAPI gives me three lifetimes to manage. Process-wide: the lifespan parameter takes an async context manager — before the yield I create the DB pool, HTTP clients and load models once; after it I close them; the docs explicitly position this as replacing on_event, and it runs per worker process because workers are separate ASGI processes. Request-scoped: dependencies with yield — setup, cached injection per request, and teardown after the response, which is where I scope per-request transactions so rollback happens even when handlers raise. And the worker model: uvicorn workers are processes with private loops and memory, so connection budgets multiply (workers × pool size), in-process dicts are not caches or rate limiters, and shared coordination belongs in Redis or Postgres. I also keep lifespan fast because the server does not accept connections until startup completes — readiness probes exist for that boundary.',
+visuals:[
+ {type:'lanes',id:'py-fapi-lifetimes-lanes',w:800,h:330,axis:{label:'process lifetime →'},
+  title:'Visual A — Three lifetimes: process (lifespan), request (Depends), handler',
+  purpose:'Show on one timeline when lifespan setup/teardown runs relative to many requests, and where a yield dependency\u2019s setup and teardown sit inside one request.',
+  rows:[
+   {label:'worker process',segments:[{from:0,to:40,label:'lifespan setup: pool + model',cls:'cyan'},{from:40,to:560,label:'serving requests',cls:'green'},{from:560,to:600,label:'lifespan teardown',cls:'accent'}]},
+   {label:'request 1',segments:[{from:80,to:180,label:'handler + Depends setup',cls:''}]},
+   {label:'  conn dep',segments:[{from:80,to:110,label:'acquire conn',cls:'cyan'},{from:110,to:150,label:'handler + txn',cls:'hot'},{from:150,to:180,label:'release AFTER response',cls:'accent'}]},
+   {label:'request 2',segments:[{from:220,to:340,label:'handler + Depends setup',cls:''}]},
+   {label:'  conn dep',segments:[{from:220,to:250,label:'acquire',cls:'cyan'},{from:250,to:310,label:'handler + txn',cls:'hot'},{from:310,to:340,label:'release',cls:'accent'}]},
+   {label:'request 3',segments:[{from:380,to:520,label:'handler (dep cached per request)',cls:''}]}
+  ],
+  marks:[{at:40,label:'ready — accepts traffic'},{at:110,label:'txn scoped'},{at:560,label:'SIGTERM → drain'}],
+  howToRead:['The top lane is the whole process: cyan setup runs ONCE before any request; accent teardown once after the last — that is lifespan.','Inside each request the dependency lane shows the acquire → handler → release bracket; release happens after the response is built, even on errors.','Requests 1–3 each check out a connection from the SAME process-wide pool — that sharing is the point of lifespan.'],
+  interviewerNotice:['You can place lifespan, dependency setup/teardown and handler execution on one timeline correctly.','You know teardown order and why per-request transactions roll back safely on handler errors.']},
+ {type:'flow',id:'py-fapi-worker-model-map',w:800,h:300,
+  title:'Visual B — The worker model: N processes, N pools, zero shared memory',
+  purpose:'Show why "the pool is created once" is false under uvicorn --workers 4, and where shared state must live instead.',
+  nodes:[
+   {id:'lb',x:24,y:110,w:120,h:70,label:'load balancer',sub:'distributes requests',cls:'cyan'},
+   {id:'w1',x:210,y:24,w:200,h:70,label:'worker process 1',sub:'loop + lifespan: pool(10) + model copy',cls:'accent'},
+   {id:'w2',x:210,y:110,w:200,h:70,label:'worker process 2',sub:'loop + lifespan: pool(10) + model copy',cls:'accent'},
+   {id:'w3',x:210,y:196,w:200,h:70,label:'worker process N…',sub:'loop + lifespan: pool(10) + model copy',cls:'accent'},
+   {id:'db',x:520,y:40,w:120,h:60,label:'Postgres',sub:'sees 3×10 connections',cls:'hot'},
+   {id:'redis',x:520,y:130,w:120,h:60,label:'Redis',sub:'shared cache / locks / counters',cls:'green'},
+   {id:'mem',x:520,y:220,w:120,h:60,label:'in-process dict',sub:'NOT shared — per-worker only',cls:'hot'}
+  ],
+  edges:[
+   {from:'lb',to:'w1',points:[[144,145],[176,145],[176,59],[210,59]],label:'requests'},
+   {from:'lb',to:'w2',points:[[144,145],[210,145]],label:'requests'},
+   {from:'lb',to:'w3',points:[[144,145],[176,145],[176,231],[210,231]],label:'requests'},
+   {from:'w1',to:'db',points:[[410,59],[470,59],[470,70],[520,70]],label:'10 conns',cls:'hot'},
+   {from:'w2',to:'db',points:[[410,145],[520,80]],label:'10 conns',cls:'hot'},
+   {from:'w3',to:'db',points:[[410,231],[470,231],[470,90],[520,90]],label:'10 conns',cls:'hot'},
+   {from:'w2',to:'redis',points:[[410,145],[520,160]],label:'shared state',cls:'arch-flow'}
+  ],
+  howToRead:['Each worker box runs its own lifespan: its own event loop, its own pool of 10, its own copy of the model in memory.','The hot arrows into Postgres are the connection-budget math: workers × pool max_size — 3 shown, 30 connections.','Redis is the only shared box: caches, rate-limit counters and locks live there; the in-process dict is per-worker and will silently diverge.'],
+  interviewerNotice:['You multiply pools by workers when sizing the DB connection budget.','You never propose in-process state for cross-request coordination in a multi-worker deployment.']}
+]}),
+mk({id:'python-profiling',domain:'python-core',title:'Python Profiling: CPU, Memory & Event-loop Lag',priority:4,
+intuition:'Profiling turns "it feels slow" into a ranked list of functions and allocations. The skill is choosing the right instrument: micro-benchmarks, deterministic CPU profiles, sampling in production, allocation traces, and loop-lag probes for async.',
+technical:'cProfile is DETERMINISTIC: it hooks every call/return/exception and reports ncalls, tottime (time in the function EXCLUDING subcalls) and cumtime (INCLUDING subfunctions, accurate under recursion) via pstats. The docs warn profilers are not for benchmarking — instrumentation overhead skews results (and biases Python vs C comparisons); timeit is the microbenchmark tool. Sampling profilers (py-spy) trade precision for low overhead in production. tracemalloc snapshots attribute memory to allocation sites. Async stalls show up as event-loop lag, not CPU: asyncio debug mode flags callbacks exceeding slow_callback_duration (100ms).',
+deepDive:'Read a cProfile table correctly and half the interview question is answered. ncalls shows total/primitive calls (recursion appears as 3/1); tottime is the function\'s OWN time — the column for "what is burning the CPU"; cumtime adds every subcall — the column for "which top-level operation is expensive"; the percall columns derive from each. The docs\' own guidance: sort by CUMULATIVE to understand algorithms, by TIME (tottime) to find hot loops, then print_callers/print_callees to walk the graph. The verified example makes the distinction visceral: slow_path shows tiny tottime but large cumtime because the cost lives in 60k subcalls (sum/genexpr) — sorted by cumtime it surfaces first; sorted by tottime the genexpr wins.\n\nInstrument choice is the senior signal. timeit for micro-decisions (it disables GC, repeats, and reports best-of — use python -m timeit -s "setup" "stmt"); cProfile for offline, whole-workload attribution; statistical/sampling profilers for production (constant low overhead, relative not absolute numbers — the docs contrast deterministic vs sampling explicitly); tracemalloc for memory: take_snapshot(), compare_to(old, "lineno") to find growth between two points, and peak tracking for RSS spikes. For async services the decisive metric is event-loop lag: run a 0-monitor task that measures how late a call_soon callback fired; asyncio debug mode (PYTHONASYNCIODEBUG=1 or loop.set_debug(True)) logs callbacks slower than loop.slow_callback_duration (default 100ms) and un-awaited coroutines. Loop lag separates "my handler is slow" (blocking the loop) from "my dependency is slow" (await time) — the two have opposite fixes.\n\nMethod: measure a REPRESENTATIVE workload, change ONE thing, re-measure, and keep the profile artifacts. Never optimize from a single run (warm caches, GC timing); never benchmark under cProfile (its overhead is exactly the bias the docs warn about); never trust wall-clock on a shared CI runner for micro-timings. In production, continuous profiling (sampling) plus RED metrics find regressions; flame graphs make the winner obvious to non-profilers. And the punchline for Python specifically: if the profile shows a C extension or I/O wait dominating, Python-level micro-optimizations are noise — the fix is architectural (batching, caching, moving to a worker/GPU).',
+terms:['deterministic profiling','sampling profiler','tottime vs cumtime','primitive calls (recursion)','tracemalloc snapshot','event-loop lag','slow_callback_duration','microbenchmark'],
+functions:['cProfile.Profile (enable/disable, context manager)','pstats.Stats.sort_stats/print_stats/print_callers','python -m cProfile -o out -s cumulative','timeit / python -m timeit','tracemalloc.start/take_snapshot/compare_to','loop.set_debug(True) + slow_callback_duration'],
+remember:['tottime = own time (hot loops); cumtime = including subcalls (algorithms).','Profilers measure structure, timeit measures speed — never benchmark under cProfile.','Sampling profilers: low overhead, relative numbers — the production choice.','tracemalloc compare_to(old, "lineno") finds the code line that grew.','Event-loop lag ≠ dependency latency: measure loop lag before blaming the DB.'],
+tradeoffs:['cProfile vs sampling: exact call counts and times vs production-safe constant overhead.','Optimizing tottime vs cumtime leaders: local CPU burn vs architectural cost — usually attack the cumtime leader first.','timeit best-of vs mean: best estimates the floor (fewer scheduler hiccups); report both when it matters.'],
+failureModes:['Optimizing a function that is 2% of cumtime because it looked slow in isolation.','Benchmarking with profiling enabled — instrumentation overhead distorts every number.','Measuring dev-sized data: the winner at N=100 loses at N=10M (different algorithmic regime).','Ignoring loop lag and adding workers for a problem caused by one blocking call in a handler.'],
+scaling:['Profile at production-like scale before capacity planning — per-request cost × RPS is the capacity equation; continuous sampling profiles catch the regression before the SLO burn rate does.'],
+security:['Profiles and memory dumps leak data (payloads in args, keys in memory): never commit profile artifacts; scrub or sample before sharing flame graphs.'],
+traps:['Reading percall of ncalls for recursive functions — use the primitive-calls percall.','Believing a single-run wall time on a noisy machine.','timeit with setup inside the timed statement — the setup cost pollutes the measurement.','Treating tracemalloc numbers as RSS — it tracks Python allocations, not the whole process.'],
+usedByYou:['For your video pipelines you profile detector vs recognizer stages separately (batch size experiments with timeit-style repetition), and in FastAPI services you watch loop-lag monitors alongside dependency spans to decide threadpool offload vs code fix.'],
+codeTitle:'cProfile: read ncalls/tottime/cumtime on real output (verified runnable)',
+code:`import cProfile, pstats, io, time
+
+def parse(rows):
+    out = []
+    for r in rows:
+        out.append({'id': r, 'sq': r * r})
+    return out
+
+def slow_path(rows):
+    total = 0
+    for r in rows:
+        sum(i * i for i in range(200))         # stand-in for per-row CPU work
+        total += sum(parse([r])[0].values())
+    return total
+
+def fast_path(rows):
+    return sum(r * r + r for r in rows)
+
+rows = list(range(300))
+pr = cProfile.Profile()
+pr.enable()
+slow_path(rows); fast_path(rows)
+pr.disable()
+s = io.StringIO()
+ps = pstats.Stats(pr, stream=s).sort_stats(pstats.SortKey.CUMULATIVE)
+ps.print_stats(6)
+print(s.getvalue()[:900])`,
+sources:['python-profile-docs','python-asyncio-eventloop-docs'],
+prerequisites:['python-event-loop','python-gil'],
+nextTopics:['python-gil','python-multiprocessing'],
+interviewAnswer:'My measurement stack has four instruments and I pick by question. Micro-decision: timeit, which disables GC and repeats — never benchmark under cProfile because deterministic instrumentation adds overhead per call and biases Python-vs-C comparisons. Whole-workload CPU attribution: cProfile, read as tottime (own time — hot loops) versus cumtime (including subcalls — architectural cost), with print_callers to walk attribution; recursion shows as n/primitive calls. Production: sampling profilers — constant low overhead, relative attribution. Memory: tracemalloc snapshots compared by lineno to find the line whose allocations grew. For async services the first metric is event-loop lag — how late call_soon callbacks run (asyncio debug mode flags >100ms) — because loop lag means MY code is blocking the loop, while await-time growth means the dependency is slow; the fixes are opposites (move work off-loop vs scale/cache the dependency). Method: representative workload, one change, re-measure, keep artifacts.',
+visuals:[
+ {type:'flow',id:'py-profiling-instrument-map',w:800,h:330,
+  title:'Visual A — Symptom → instrument → what you learn',
+  purpose:'Turn "the service is slow" into a decision tree: each symptom class points to one measurement tool and one specific output to read.',
+  nodes:[
+   {id:'sym',x:24,y:120,w:170,h:80,label:'"It is slow"',sub:'CPU-hot? latency spikes? memory grows? async stalls?',cls:'hot'},
+   {id:'micro',x:270,y:24,w:230,h:64,label:'micro-decision → timeit',sub:'best-of-N, GC off; compares two implementations',cls:'cyan'},
+   {id:'cpu',x:270,y:104,w:230,h:64,label:'CPU attribution → cProfile',sub:'sort cumtime (architecture) then tottime (hot loops); print_callers',cls:'accent'},
+   {id:'prod',x:270,y:184,w:230,h:64,label:'production → sampling profiler',sub:'constant low overhead; relative flame graphs over time',cls:'green'},
+   {id:'mem',x:560,y:64,w:216,h:64,label:'memory → tracemalloc',sub:'snapshot A vs B, compare_to("lineno") → the growing line',cls:'cyan'},
+   {id:'lag',x:560,y:144,w:216,h:64,label:'async stall → loop-lag probe',sub:'call_soon drift; debug mode logs >slow_callback_duration (100ms)',cls:'accent'},
+   {id:'rule',x:560,y:224,w:216,h:82,label:'decision rule',sub:'tottime leader → optimize code; cumtime leader in I/O → batch/cache/scale dependency; lag high → unblock the loop',cls:'hot'}
+  ],
+  edges:[
+   {from:'sym',to:'micro',points:[[109,120],[109,56],[270,56]],label:'which impl is faster?'},
+   {from:'sym',to:'cpu',points:[[194,160],[270,136]],label:'where does CPU go?'},
+   {from:'sym',to:'prod',points:[[194,180],[270,216]],label:'live service'},
+   {from:'cpu',to:'mem',points:[[500,136],[530,136],[530,96],[560,96]],label:'RSS grows too?',cls:'arch-flow'},
+   {from:'prod',to:'lag',points:[[500,216],[560,176]],label:'p99 spikes, CPU fine',cls:'arch-flow'},
+   {from:'mem',to:'rule',points:[[668,128],[668,144]],label:'find the line'},
+   {from:'lag',to:'rule',points:[[668,208],[668,224]],label:'split handler vs dependency'}
+  ],
+  howToRead:['Start at the hot symptom node; each branch names the instrument and the exact output column/file to read.','The right column converges on the decision rule: the tool only pays off if it changes WHAT you optimize next.','Note the two memory/async branches: they answer questions CPU profiles cannot (growth over time; scheduling delay).'],
+  interviewerNotice:['You choose instruments by question, and you know each tool\'s bias (instrumentation overhead vs sampling approximation).','You can state the loop-lag vs dependency-latency distinction and the opposite fixes it implies.']},
+ {type:'lanes',id:'py-profiling-cumtime-lanes',w:800,h:300,axis:{label:'time inside one request →'},
+  title:'Visual B — Reading tottime vs cumtime off a call timeline',
+  purpose:'Show one request\'s nested calls as timeline segments so inclusive (cumtime) and exclusive (tottime) time become visible geometry, not table abstractions.',
+  rows:[
+   {label:'handler  (cumtime 100)',segments:[{from:0,to:100,label:'own: 10',cls:'accent'}]},
+   {label:'└ query_builder (cum 45)',segments:[{from:10,to:55,label:'own: 5 · sub: 40',cls:'cyan'}]},
+   {label:'   └ driver.execute (cum 40)',segments:[{from:15,to:55,label:'own: 2 · sub: 38',cls:''}]},
+   {label:'      └ socket.wait (cum 38)',segments:[{from:17,to:55,label:'own: 38 — I/O wait',cls:'hot'}]},
+   {label:'└ validate (cum 30)',segments:[{from:55,to:85,label:'own: 30 — CPU burn',cls:'hot'}]},
+   {label:'└ serialize (cum 15)',segments:[{from:85,to:100,label:'own: 15',cls:'cyan'}]}
+  ],
+  marks:[{at:10,label:'query starts'},{at:55,label:'DB answered'},{at:85,label:'validation done'}],
+  howToRead:['Each lane is one function in the call tree; a segment spans when that function is on the stack (its CUMTIME).','The darker inner portion is the function\'s OWN time (TOTTIME): query_builder is mostly a pass-through (own 5 of 45).','socket.wait owns 38ms but it is I/O WAIT, not CPU — optimizing its code is pointless; the fix is caching/batching the query.','validate owns 30ms of real CPU — this is the tottime leader worth optimizing first.'],
+  interviewerNotice:['You read profiles as nested time, and you separate I/O wait from CPU burn before proposing fixes.','You can explain why sorting by cumtime finds architectural costs and by tottime finds hot loops.']}
+]}),
 
 // ---------------- ML foundations ----------------
 mk({id:'ml-train-val-test',domain:'ml-foundations',title:'Train / Validation / Test Splits',priority:4,intuition:'Training teaches the model, validation guides choices, and the test set is the final unopened exam.',technical:'Training data fits parameters; validation selects hyperparameters/models/thresholds; test estimates final generalization. Splits must respect groups/time/entities to prevent leakage.',remember:['Never tune repeatedly on the test set.','Split by real deployment unit such as person/camera/time when samples are correlated.'],terms:['generalization','validation set','test leakage'],functions:['train_test_split','GroupKFold','TimeSeriesSplit'],interview:'I choose the split based on deployment reality. For video, random frames from the same clip across train/test can badly overestimate generalization because adjacent frames are nearly duplicates.'}),
@@ -1111,8 +1886,184 @@ mk({id:'recursion-dp',domain:'cs-core',title:'Recursion, Memoization & Dynamic P
 mk({id:'oop-pillars',domain:'cs-core',title:'OOP Pillars: Encapsulation, Abstraction, Inheritance, Polymorphism',priority:4,intuition:'OOP is not “classes everywhere”; it is about managing change by giving objects clear responsibility and contracts.',technical:'Encapsulation protects state/invariants; abstraction exposes essential behavior; inheritance reuses/substitutes types; polymorphism lets different implementations satisfy the same interface.',remember:['Composition often beats inheritance.','Polymorphism is more important than inheritance depth.'],terms:['encapsulation','abstraction','inheritance','polymorphism'],functions:['Protocol','ABC','property'],interview:'I use polymorphism to swap infrastructure—for example an embedding store or model provider—without changing the use-case logic. That is more useful than a textbook animal hierarchy.'}),
 mk({id:'design-patterns',domain:'cs-core',title:'Factory, Strategy, Adapter & Observer Patterns',priority:4,intuition:'Patterns give names to recurring design shapes, making architecture discussions faster.',technical:'Factory centralizes creation; Strategy swaps algorithms; Adapter converts interfaces; Observer/pub-sub notifies subscribers. Patterns are useful when they reduce coupling, not when forced.',remember:['Strategy fits selectable algorithms/models.','Adapter fits external provider integration.','Observer maps to events/pub-sub.'],terms:['Factory','Strategy','Adapter','Observer'],functions:['factory function','Protocol implementation'],interview:'My model router naturally uses Strategy, provider integrations use Adapter, and MQTT/Kafka event consumers are Observer/pub-sub style. I name patterns after showing the actual problem.'}),
 mk({id:'testing-pyramid',domain:'cs-core',title:'Testing Pyramid, Contracts & Integration Tests',priority:4,intuition:'Most tests should be fast and local, with fewer expensive end-to-end tests covering real integration boundaries.',technical:'Unit tests validate logic, integration tests validate DB/broker/model/API boundaries, contract tests protect service schemas, E2E verifies critical journeys. ML also needs data/model evaluation tests.',remember:['Mock less at the boundary you actually need to prove.','Test failure/retry/idempotency paths.'],terms:['unit test','integration test','contract test','E2E'],functions:['pytest','TestClient','testcontainers'],interview:'For an AI service I test deterministic orchestration/unit logic, real DB/Redis integration, provider contracts, and a small golden eval set for model/RAG behavior. I include retries/timeouts and duplicate-event tests, not only happy paths.'}),
-mk({id:'python-args-kwargs',domain:'python-core',title:'Python *args, **kwargs & Function Signatures',priority:4,intuition:'A function signature is a contract. *args gathers extra positional values; **kwargs gathers extra named values.',technical:'Python binds arguments by position/name, supports positional-only and keyword-only parameters, then packs remaining values into tuples/dicts when *args/**kwargs are present. Explicit signatures are usually clearer for application APIs.',remember:['*args is a tuple; **kwargs is a dict.','Use keyword-only parameters to make important calls self-documenting.','Do not hide every API behind **kwargs.'],terms:['positional argument','keyword argument','keyword-only','variadic'],functions:['def f(*args, **kwargs)','def f(x, *, timeout=...)'],interview:'I use *args/**kwargs mainly in wrappers/decorators or adapters. For business APIs I prefer explicit typed parameters because they make validation, tooling and review safer.'}),
-mk({id:'python-scope-methods',domain:'python-core',title:'LEGB Scope, classmethod, staticmethod & Dunder Methods',priority:4,intuition:'Python resolves names through nested scopes, and method type determines whether Python supplies an instance, a class, or nothing automatically.',technical:'LEGB is Local → Enclosing → Global → Builtins. Instance methods receive self; classmethod receives cls and often implements alternate constructors; staticmethod is a namespaced function. Dunder methods integrate objects with Python protocols.',remember:['Use classmethod for class-aware constructors/factories.','staticmethod does not receive self/cls.','Prefer normal protocol methods over manually calling dunders.'],terms:['LEGB','instance method','classmethod','staticmethod','dunder'],functions:['@classmethod','@staticmethod','__repr__','__iter__'],interview:'I choose method type by required state. If behavior needs instance invariants it is an instance method; if it constructs/configures the class it may be classmethod; a pure helper may simply be a module function rather than staticmethod.'}),
+mk({id:'python-args-kwargs',domain:'python-core',title:'Python *args, **kwargs & Function Signatures',priority:4,
+intuition:'A signature is a tiny routing table: positional-only, positional-or-keyword, *args bucket, keyword-only, **kwargs bucket — in that exact order, no exceptions.',
+technical:'Parameter kinds are fixed by syntax: def f(a, /, b, *args, k, **kwargs) — a positional-only (before /), b positional-or-keyword, args captures extra positionals as a tuple, k keyword-only (after *), kwargs captures extra keywords as a dict. Call sites mirror it: f(*iterable) unpacks positionals, f(**mapping) unpacks keywords. inspect.signature exposes PARAMETER kinds; wrappers preserve transparency by forwarding *args, **kwargs verbatim.',
+deepDive:'The order is not a convention; it is the grammar: positional-only, then positional-or-keyword, then *args (or a bare *), then keyword-only, then **kwargs. The / and * markers make intent explicit at both ends. Positional-only (before /) protects parameter NAMES from becoming API: api(path, /) means callers cannot write path=... — you can rename the parameter without breaking anyone (how CPython avoids compat locks on builtins). Keyword-only (after *) forces clarity at call sites for booleans and mode switches — copy(src, dst, *, dirs_exist_ok=False) cannot be misread; dataclasses use kw_only to make large constructors safe.\n\n*args arrives as a TUPLE and **kwargs as a fresh DICT — mutating kwargs locally never reaches the caller, but mutating an element of args mutates the caller\'s object (aliasing lesson again). Unpacking at call time is the inverse: f(*gen) consumes the iterable, f(**d) requires str keys (TypeError otherwise) and every key must match a parameter (unless **kwargs catches it). Duplicate coverage raises loudly: f(1, a=2) for positional-or-keyword a is "multiple values for argument".\n\nThe wrapper pattern is why this matters in production: def wrapper(*args, **kwargs): return fn(*args, **kwargs) forwards ANY signature unchanged — decorators, retry layers, telemetry and API-versioning shims all stand on it. Its costs: the wrapper\'s own signature is opaque (inspect.signature follows __wrapped__ — which functools.wraps sets — to recover the real one), keyword collisions between wrapper-added params and forwarded ones cause "got multiple values", and IDEs cannot autocomplete through *args. When you OWN the interface, spell parameters out; reach for *args/**kwargs when you must accept anything (forwarding, dispatch tables, subclass __init__ chains).\n\nDefaults interact with unpacking: f(**{"k": v}) overrides defaults explicitly; mutable defaults are still evaluated once (see mutable-immutable lesson). And functools.partial binds LEFTMOST positionals and named keywords — partial(f, b=2) plus a later call passing b collides the same way.',
+terms:['positional-only (/)','keyword-only (*)','VAR_POSITIONAL (*args)','VAR_KEYWORD (**kwargs)','unpacking','signature transparency','functools.partial'],
+functions:['def f(a, /, b, *args, k, **kwargs)','f(*iterable, **mapping)','inspect.signature / Parameter.kind','functools.wraps (sets __wrapped__)','functools.partial'],
+remember:['Kind order is fixed: positional-only /, normal, *args, keyword-only *, **kwargs.','/ protects names from the API; * forces readable call sites for flags.','*args is a tuple (aliasing rules apply to elements); **kwargs is a fresh dict.','Wrappers forward *args/**kwargs verbatim; wraps+__wrapped__ restores the visible signature.','f(**d) needs str keys; unknown keys TypeError unless **kwargs absorbs them.'],
+tradeoffs:['Explicit parameters vs *args/**kwargs: discoverability, autocompletion, validation vs forwarding flexibility.','Keyword-only flags vs positional booleans: self-documenting call sites vs brevity.','Positional-only prefix vs plain params: rename freedom vs caller keyword convenience.'],
+failureModes:['"got multiple values for argument" when a wrapper adds a keyword that the target also accepts.','f(**d) with non-str keys → TypeError at runtime, not at parse.','Wrapper forgetting to forward **kwargs — silently dropping options.','partial binding a keyword the later call also passes — collision at call time.'],
+scaling:['Signature-transparent wrappers keep middleware stacks composable as services grow; but every *args layer hides the schema from type checkers — public APIs in hot paths deserve explicit signatures.'],
+security:['**kwargs forwarding can smuggle unexpected fields into ORMs/serializers (mass assignment); explicit allow-lists or pydantic models at the boundary prevent it.'],
+traps:['Thinking *args/**kwargs are special types — they are tuple/dict with packing syntax.','Bare * used just to end positional params (def f(a, *, b)) — no bucket, only the marker.','Assuming inspect.signature(wrapper) shows wrapper\'s real (useless) signature — follow __wrapped__.','Calling f(*d) with a dict and expecting keywords — * unpacks KEYS positionally.'],
+usedByYou:['Your FastAPI dependency wrappers and retry decorators forward *args/**kwargs around upstream SDK calls, so upstream signature changes do not ripple through every call site.'],
+codeTitle:'Parameter kinds, unpacking, transparent forwarding (verified runnable)',
+code:`import inspect
+
+def api(path, /, resource, *parts, version='v1', **params):
+    return {'path': path, 'resource': resource, 'parts': parts,
+            'version': version, 'params': params}
+
+print(api('users', 'items', '42', 'sub', version='v2', dry=True))
+print()
+sig = inspect.signature(api)
+for p in sig.parameters.values():
+    print(f'{p.name:9} kind={p.kind.name}')
+print()
+def wrapper(*args, **kwargs):        # transparent forwarding
+    return api(*args, **kwargs)
+print(wrapper('users', 'items', version='v3'))
+defaults = {'version': 'v9', 'dry': True}
+print(api('users', 'items', **defaults))`,
+sources:['python-datamodel-docs'],
+prerequisites:['python-object-model'],
+nextTopics:['python-closures-decorators','python-scope-methods'],
+interviewAnswer:'A Python signature is an ordered set of parameter kinds: positional-only up to /, positional-or-keyword next, *args capturing extra positionals as a tuple, keyword-only after the * marker, and **kwargs capturing extra keywords as a fresh dict. I use / when a parameter\'s name must stay renameable, and keyword-only flags when call sites need to be self-documenting. Call-time unpacking mirrors packing: f(*seq, **map), with str-key and duplicate-coverage TypeErrors as guardrails. The production pattern I rely on is the transparent wrapper — forward *args/**kwargs verbatim, mark metadata with functools.wraps so __wrapped__ keeps inspect.signature honest — which is how decorators, retries and middleware stay signature-neutral. The known hazards are keyword collisions ("multiple values") and mass-assignment through **kwargs, so public boundaries get explicit signatures or validated models.',
+visuals:[
+ {type:'flow',id:'py-args-signature-map',w:800,h:322,
+  title:'Visual A — Signature anatomy: where each argument lands',
+  purpose:'Map one real call api("u", "items", "42", "sub", version="v2", dry=True) onto the five parameter kinds of def api(path, /, resource, *parts, version, **params).',
+  nodes:[
+   {id:'sig',x:24,y:24,w:752,h:56,label:'def api(path, /, resource, *parts, version="v1", **params)',sub:'grammar order: positional-only · positional-or-keyword · *args · keyword-only · **kwargs',cls:'cyan'},
+   {id:'path',x:24,y:140,w:150,h:70,label:'path',sub:'POSITIONAL_ONLY — "u"; path=… would be TypeError',cls:'accent'},
+   {id:'res',x:190,y:140,w:150,h:70,label:'resource',sub:'POSITIONAL_OR_KEYWORD — "items"',cls:'green'},
+   {id:'parts',x:356,y:140,w:130,h:70,label:'*parts',sub:'VAR_POSITIONAL — ("42","sub") tuple',cls:'accent'},
+   {id:'ver',x:502,y:140,w:130,h:70,label:'version',sub:'KEYWORD_ONLY — "v2" (default "v1")',cls:'green'},
+   {id:'params',x:648,y:140,w:128,h:70,label:'**params',sub:'VAR_KEYWORD — {"dry":True} dict',cls:'accent'},
+   {id:'call',x:24,y:250,w:752,h:48,label:'call: api("u", "items", "42", "sub", version="v2", dry=True)',sub:'positionals fill left→right until *; keywords match named params; extras fall into the buckets',cls:''}
+  ],
+  edges:[
+   {from:'call',to:'path',points:[[100,250],[100,210]],label:'1st positional'},
+   {from:'call',to:'res',points:[[265,250],[265,210]],label:'2nd positional'},
+   {from:'call',to:'parts',points:[[420,250],[420,210]],label:'extra positionals',cls:'hot'},
+   {from:'call',to:'ver',points:[[565,250],[565,210]],label:'keyword'},
+   {from:'call',to:'params',points:[[712,250],[712,210]],label:'extra keywords',cls:'hot'}
+  ],
+  howToRead:['Top: the signature with its fixed kind order — this order is grammar, not style.','Bottom: one real call. Follow the arrows: positionals fill the left-side params in order; surplus positionals tuple-up in *parts; named keywords match; surplus keywords dict-up in **params.','The sub-labels name each Parameter.kind exactly as inspect.signature reports them.'],
+  interviewerNotice:['You can read any signature aloud and predict argument routing without running it.','You know / and * are markers with distinct API purposes, not decoration.']},
+ {type:'flow',id:'py-args-wrapper-flow',w:790,h:280,
+  title:'Visual B — Transparent forwarding through a wrapper',
+  purpose:'Show how *args/**kwargs let a wrapper accept any call shape, forward it verbatim, and where collisions and introspection pitfalls live.',
+  nodes:[
+   {id:'caller',x:24,y:100,w:170,h:70,label:'caller',sub:'any signature: positional + keywords'},
+   {id:'wrap',x:250,y:100,w:200,h:70,label:'wrapper(*args, **kwargs)',sub:'packs everything; adds nothing (yet)',cls:'accent'},
+   {id:'fwd',x:506,y:100,w:130,h:70,label:'fn(*args, **kwargs)',sub:'unpack verbatim',cls:'hot'},
+   {id:'target',x:660,y:100,w:110,h:70,label:'target fn',sub:'sees its own signature',cls:'green'},
+   {id:'risk1',x:250,y:230,w:200,h:40,label:'risk: added keyword collides',sub:'"got multiple values"',cls:'hot'},
+   {id:'risk2',x:506,y:230,w:264,h:40,label:'introspection: signature(wrapper) is opaque',sub:'functools.wraps sets __wrapped__ to fix it',cls:'cyan'}
+  ],
+  edges:[
+   {from:'caller',to:'wrap',points:[[194,135],[250,135]],label:'pack'},
+   {from:'wrap',to:'fwd',points:[[450,135],[506,135]],label:'forward',cls:'hot'},
+   {from:'fwd',to:'target',points:[[636,135],[660,135]]},
+   {from:'risk1',to:'wrap',points:[[350,230],[350,170]],label:'watch for',cls:'arch-flow'},
+   {from:'risk2',to:'fwd',points:[[638,230],[571,170]],label:'mitigate',cls:'arch-flow'}
+  ],
+  howToRead:['The happy path: pack at the wrapper, unpack at the call — the target cannot tell a wrapper exists.','Two hazards below: a wrapper-added keyword can collide with the target\'s parameters, and the wrapper hides the real signature unless wraps/__wrapped__ restores it.','This exact pattern is what makes decorators, retries and middleware signature-neutral.'],
+  interviewerNotice:['You can implement a transparent decorator and name both failure modes unprompted.','You know when NOT to use it: public APIs deserve explicit signatures for tooling.']}
+]}),
+mk({id:'python-scope-methods',domain:'python-core',title:'LEGB Scope, classmethod, staticmethod & Dunder Methods',priority:4,
+intuition:'Names resolve outward through four nested layers — Local, Enclosing, Global, Builtins — and method flavor decides what Python hands your function automatically: the instance, the class, or nothing.',
+technical:'LEGB: assignment creates a LOCAL name; a nested function reads enclosing names through cells (write needs nonlocal); module globals come next (write needs global); builtins last. A class body is a scope during execution but NOT on the method lookup chain — methods must name the class/module explicitly. Function attributes accessed via instances become BOUND methods (__self__=instance, __func__=function); @classmethod binds __self__ to the class (alternate constructors); @staticmethod binds nothing (namespaced pure function). Dunder methods implement protocols and are looked up on the TYPE, not the instance.',
+deepDive:'LEGB is a lookup order, not a storage model. Assignment ALWAYS creates a local binding unless declared nonlocal/global — reading a global while also assigning it anywhere in the function makes it local everywhere in that function (UnboundLocalError). Closures read enclosing scopes via cells; nonlocal rebinds the cell. The subtle one interviewers love: class bodies execute in their own namespace, but that namespace is NOT a link in the method resolution chain — a method referencing `factor` where factor is a class attribute gets UnboundLocalError/NameError; it must write self.factor or C.factor. Comprehensions in class bodies work only for the iterable expression (direct class-scope access), not for nested references inside the comprehension body.\n\nMethod binding is the descriptor protocol at work. Temp.c_to_f returns a plain function; t.c_to_f builds a BOUND method object wrapping (instance, function) — calling it prepends __self__ to the argument list: x.f(1) is C.f(x, 1), exactly as the data model states. Functions stored on INSTANCES are not converted (no automatic binding) — a classic bug when stashing callables on self. @classmethod produces a method whose __self__ is the class: alternate constructors (Temp.from_f(212)), subclass-aware factories (cls() respects inheritance), and class-level configuration. @staticmethod is a namespace decision, not behavior — many style guides prefer module functions; staticmethod earns its place when the helper belongs with the class conceptually and subclasses may want to override it.\n\nDunder methods are protocol hooks: __repr__ (unambiguous, for developers — fall back from __str__), __eq__ with __hash__ consistency (define __eq__ without __hash__ and the class becomes unhashable — the dataclass lesson shows the matrix), __len__/__bool__ truthiness, __iter__/__next__ iteration, __enter__/__exit__ resource safety, __call__ making instances callable, __getattr__ (missing attributes only) vs __getattribute__ (every access — easy to recurse). Critical lookup rule: special methods are searched on the TYPE, so assigning __eq__ on an INSTANCE does nothing — this is why you cannot monkey-patch single instances with dunders.',
+terms:['LEGB','cell/nonlocal','UnboundLocalError','class body scope','bound method (__self__/__func__)','classmethod','staticmethod','descriptor protocol','dunder protocol','__getattr__ vs __getattribute__'],
+functions:['nonlocal / global','@classmethod (cls)','@staticmethod','__init__/__repr__/__eq__/__hash__','__len__/__bool__','__iter__/__next__','__call__','__enter__/__exit__'],
+remember:['Assignment makes a name local unless declared nonlocal/global — reads follow LEGB.','Class-body scope is NOT in the method lookup chain; methods name the class explicitly.','t.m() builds a bound method: __self__=t, __func__=function; x.f(1) ≡ C.f(x,1).','classmethod → cls (factories, subclass-aware); staticmethod → nothing (namespace only).','Dunders are looked up on the TYPE — instance-level dunder assignment is ignored.'],
+tradeoffs:['classmethod factory vs __init__ overloads: named, subclass-aware constructors vs one obvious entry point.','staticmethod vs module function: conceptual grouping/overridability vs simpler imports and testing.','__getattr__ magic vs explicit APIs: flexible proxies vs hidden control flow and surprising AttributeError behavior.'],
+failureModes:['UnboundLocalError from read-then-assign to a global inside one function.','Method referencing a class attribute bare — NameError because class scope is not in LEGB for methods.','Stashing a function on an instance and expecting self.fn() binding semantics.','__getattribute__ that calls self.x → infinite recursion (must go through super()).','Defining __eq__ without __hash__: instances silently become unhashable (set/dict membership breaks).'],
+scaling:['Bound-method creation is a real per-call allocation; hot loops hoist bound = obj.method outside the loop.','Class-level state via classmethod-configured registries keeps worker processes consistent after spawn/fork.'],
+security:['__getattr__-based proxies can accidentally expose attributes across trust boundaries; explicit whitelists beat dynamic passthrough. Dunder lookup on the type is why instance-level "patches" cannot subvert protocol behavior — a safety property.'],
+traps:['Thinking LEGB includes class scope for methods — it does not.','@staticmethod "for OOP style" where a module function is clearer.','Calling dunders directly (obj.__next__()) instead of next(obj)/len(obj).','Confusing __getattr__ (misses only) with __getattribute__ (everything).'],
+usedByYou:['Your pipeline classes use classmethod constructors (Frame.from_detection(...)) and __repr__ for debuggable logs; tracker classes implement __iter__ so consumers loop detections without touching internals.'],
+codeTitle:'LEGB, nonlocal, class-scope trap, binding flavors (verified runnable)',
+code:`level = 'global'
+def outer():
+    level = 'enclosing'
+    def inner():
+        level = 'local'
+        return level
+    return inner(), level
+print(outer(), '| builtins found last:', len([1, 2]) is not None)
+
+def counter():
+    n = 0
+    def inc(step=1):
+        nonlocal n
+        n += step
+        return n
+    return inc
+c = counter(); c(); print('nonlocal:', c())
+
+# class body scope is NOT visible to methods (no closure over it)
+class C:
+    factor = 3
+    items = [1, 2, 3]
+    doubled = [i * 2 for i in items]     # class scope works HERE (direct)
+    def scale(self, x):
+        return x * C.factor              # must name the class; 'factor' alone is NameError bait
+print('direct comprehension:', C.doubled)
+print(C().scale(4))
+
+class Temp:
+    def __init__(self, celsius=0.0):
+        self.celsius = celsius
+    def c_to_f(self):
+        return self.celsius * 9 / 5 + 32
+    @staticmethod
+    def is_freezing(c):
+        return c <= 0
+    @classmethod
+    def from_f(cls, f):
+        return cls((f - 32) * 5 / 9)
+
+t = Temp.from_f(212)
+print(t.c_to_f(), Temp.is_freezing(-2), type(t).__name__)
+print('bound method __self__ is instance:', t.c_to_f.__self__ is t)
+print('staticmethod has no __self__:', not hasattr(Temp.is_freezing, '__self__'))
+print('classmethod __self__ is class:', Temp.from_f.__self__ is Temp)`,
+sources:['python-datamodel-docs','python-tutorial-classes'],
+prerequisites:['python-object-model','python-oop-solid'],
+nextTopics:['python-closures-decorators','python-exceptions'],
+interviewAnswer:'Name resolution is LEGB: assignment creates locals unless declared nonlocal/global, closures read enclosing cells, then globals, then builtins — and crucially, class-body scope is not part of that chain for methods, so a method must name the class to use a class attribute. Method flavors come from the descriptor protocol: accessing a function through an instance builds a bound method carrying __self__ and __func__ — x.f(1) is literally C.f(x, 1); classmethod binds the class instead, which is how I write subclass-aware alternate constructors like Temp.from_f; staticmethod binds nothing and is a namespace choice I keep for conceptually-owned helpers that subclasses may override. Dunder methods implement protocols and are looked up on the type, not the instance — so I implement __repr__/__eq__/__iter__ on classes, keep __hash__ consistent with __eq__ (defining __eq__ alone makes instances unhashable), and never rely on instance-level dunder patching.',
+visuals:[
+ {type:'flow',id:'py-scope-legb-ladder',w:800,h:318,
+  title:'Visual A — The LEGB lookup ladder (and where class scope is NOT)',
+  purpose:'Show the exact order Python searches for a name inside a method, including why the class namespace is skipped and where UnboundLocalError comes from.',
+  nodes:[
+   {id:'l',x:24,y:24,w:220,h:64,label:'L · Local',sub:'function locals + parameters; assignment creates here',cls:'cyan'},
+   {id:'e',x:24,y:112,w:220,h:64,label:'E · Enclosing',sub:'outer function cells; write via nonlocal',cls:'accent'},
+   {id:'c',x:290,y:112,w:220,h:64,label:'✗ class namespace',sub:'NOT on the method chain — self.factor / C.factor required',cls:'hot'},
+   {id:'g',x:24,y:200,w:220,h:64,label:'G · Global',sub:'module namespace; write via global',cls:'green'},
+   {id:'b',x:24,y:288,w:220,h:24,label:'B · Builtins (len, None, print)',cls:''},
+   {id:'code',x:560,y:24,w:216,h:180,label:'def scale(self, x):',sub:'return x * C.factor\n\n· factor alone → NameError\n· C.factor → resolves via Global\n· assignment to factor → makes it LOCAL everywhere in the method',cls:'cyan'},
+   {id:'trap',x:560,y:236,w:216,h:76,label:'UnboundLocalError',sub:'read + assign the same global name in one function → Python compiles it as local',cls:'hot'}
+  ],
+  edges:[
+   {from:'l',to:'e',points:[[134,88],[134,112]],label:'miss → outward'},
+   {from:'e',to:'g',points:[[134,176],[134,200]],label:'miss → outward'},
+   {from:'g',to:'b',points:[[134,264],[134,288]],label:'miss → last stop'},
+   {from:'e',to:'c',points:[[244,144],[290,144]],label:'skipped!',cls:'hot'},
+   {from:'code',to:'trap',points:[[668,204],[668,236]],label:'compile-time decision',cls:'hot'}
+  ],
+  howToRead:['Follow the ladder top-down: L → E → G → B. First hit wins; miss at the bottom raises NameError.','The hot box to the right of E is the trap: the class namespace sits between enclosing and global conceptually, but methods do NOT search it.','Right panel: the same function that reads a name AND assigns it makes that name local for the WHOLE function — the read then fails before assignment (UnboundLocalError).'],
+  interviewerNotice:['You know class scope is not in the method lookup chain — a P4-level discriminator.','You can explain UnboundLocalError as a compile-time local-ness decision, not a runtime mystery.']},
+ {type:'matrix',id:'py-scope-method-matrix',w:800,h:268,rowH:60,
+  title:'Visual B — What each access builds: function vs bound vs class vs static',
+  purpose:'Show what Python returns for each access path and what __self__ is bound to, so method-flavor choice becomes mechanical.',
+  cols:[{label:'Access'},{label:'You get'},{label:'__self__ bound to'},{label:'Primary use'}],
+  rows:[
+   {label:'obj.method',cells:[{label:'bound method',cls:'accent'},{label:'the instance',cls:'green'},{label:'behavior needing instance state'}]},
+   {label:'Class.method',cells:[{label:'plain function',cls:''},{label:'nothing — pass obj yourself',cls:''},{label:'testing; calling across instances'}]},
+   {label:'@classmethod access',cells:[{label:'bound method',cls:'accent'},{label:'the CLASS (subclass-aware)',cls:'green'},{label:'alternate constructors, factories'}]},
+   {label:'@staticmethod access',cells:[{label:'plain function',cls:''},{label:'nothing',cls:''},{label:'namespaced pure helper; overridable per subclass'}]},
+   {label:'fn stored on instance',cells:[{label:'plain function',cls:'hot'},{label:'nothing — NOT auto-bound',cls:'hot'},{label:'(bug territory) stash bound = obj.fn instead'}]}
+  ],
+  notes:['Calling a bound method prepends __self__: x.f(1) ≡ C.f(x,1) — the data model states this directly.','classmethod factories that call cls(...) automatically respect subclasses — free polymorphism for constructors.'],
+  howToRead:['Rows are access paths you type; columns answer: what object came back, what it is bound to, and when to choose it.','Hot rows are the traps: class access returns a bare function, and instance-stored functions never auto-bind.','Use the last column as the code-review checklist when someone reaches for staticmethod by habit.'],
+  interviewerNotice:['You can predict binding behavior for every access path, including the instance-stored-function trap.','You justify classmethod with subclass-aware construction, not "it looks OOP".']}
+]}),
 mk({id:'db-normalization-bcnf',domain:'database',title:'Database Normalization: 1NF → 2NF → 3NF → BCNF',priority:5,diagram:'db',intuition:'Normalization separates facts so the same truth is not copied into many rows and forced to stay synchronized manually.',technical:'1NF keeps atomic values/rows. 2NF removes partial dependency on part of a composite key. 3NF removes transitive dependency of non-key attributes on other non-key attributes. BCNF is stricter: for every non-trivial functional dependency X→Y, X must be a superkey.',remember:['Normalization reduces update/insert/delete anomalies.','BCNF is about functional dependencies and determinants.','Denormalization can be deliberate for read performance, but source-of-truth ownership must remain clear.'],terms:['functional dependency','candidate key','superkey','partial dependency','transitive dependency','BCNF'],functions:['identify candidate keys','decompose relation','verify lossless join'],interview:'I normalize transactional data until each fact has a clear owner. BCNF says every determinant must be a superkey. I denormalize only for measured read needs, usually with derived/cache/materialized representations rather than duplicating uncontrolled truth.',traps:['Saying 3NF and BCNF are identical.','Normalizing blindly without understanding access patterns.'],prerequisites:['sql-joins'],nextTopics:['postgres-indexes','transactions-locks']}),
 mk({id:'sql-window-cte',domain:'database',title:'SQL CTEs, Window Functions & Pagination',priority:4,intuition:'Window functions calculate across related rows without collapsing them into one GROUP BY row.',technical:'OVER(PARTITION BY ... ORDER BY ...) computes rank/running totals/lag while preserving rows. CTEs improve structure and can express recursion; they are not automatically a performance optimization. Large OFFSET pagination scans/discards work, while keyset pagination continues from the last ordered key.',remember:['Window != GROUP BY.','CTE is a query-structure tool, not a magic speedup.','Prefer keyset pagination for large stable ordered feeds.'],terms:['CTE','window function','PARTITION BY','ROW_NUMBER','keyset pagination'],functions:['WITH','ROW_NUMBER() OVER','LAG','SUM() OVER','WHERE id > :last_id'],interview:'For top-N per group or running values I use window functions. For deep pagination I prefer a deterministic indexed keyset over OFFSET because work stays roughly proportional to page size.'}),
 mk({id:'docker-fundamentals',domain:'platform',title:'Docker Fundamentals: Image, Container, Layers & Namespaces',priority:5,diagram:'pipeline',intuition:'An image is an immutable filesystem/template; a container is a running process isolated using Linux primitives.',technical:'Images are layered snapshots built from a Dockerfile. Containers add a writable layer and run one or more processes with namespace/cgroup isolation. Layer ordering affects cache and image size; container filesystem is ephemeral unless data is stored in a volume/object/database.',remember:['Image != container.','Container is a process, not a lightweight VM.','Put dependency manifests before frequently changing source to improve build-cache reuse.'],terms:['image','container','layer','namespace','cgroup','copy-on-write'],functions:['docker build','docker run','docker ps','docker logs','docker exec'],interview:'I describe Docker as process isolation plus a reproducible image. I keep images small/multi-stage, externalize state, use health checks and avoid baking secrets into layers.'}),
@@ -1268,6 +2219,12 @@ Object.assign(glossaryRaw,{
 D.glossary=Object.entries(glossaryRaw).map(([term,definition])=>({term,definition})).sort((a,b)=>a.term.localeCompare(b.term));
 
 D.sources.push(
+ {id:'python-datamodel-docs',group:'Official docs',title:'Python reference — Data model',url:'https://docs.python.org/3/reference/datamodel.html',note:'Read for object = identity+type+value, mutability by type, immutable containers holding mutable members, hashing/key rules, insertion-ordered dicts, function __closure__/__defaults__, bound-method construction, C3 MRO, __slots__, special-method lookup on the type.'},
+ {id:'python-contextlib-docs',group:'Official docs',title:'Python docs — contextlib',url:'https://docs.python.org/3/library/contextlib.html',note:'Read for @contextmanager single-yield + re-raise-at-yield semantics, single-use vs reusable vs reentrant CMs, suppress/nullcontext/closing/aclosing, ExitStack LIFO unwinding and pop_all transfer, ContextDecorator.'},
+ {id:'python-dataclasses-docs',group:'Official docs',title:'Python docs — dataclasses',url:'https://docs.python.org/3/library/dataclasses.html',note:'Read for field ordering rules, eq/frozen/hash interplay, slots=True new-class behavior, kw_only reordering, default_factory vs ValueError on unhashable defaults, __post_init__/InitVar/replace semantics.'},
+ {id:'python-profile-docs',group:'Official docs',title:'Python docs — The Python Profilers',url:'https://docs.python.org/3/library/profile.html',note:'Read for deterministic vs statistical profiling, ncalls/tottime/cumtime column semantics, pstats sorting/callers/callees, why profilers are not for benchmarking.'},
+ {id:'fastapi-lifespan-docs',group:'Official docs',title:'FastAPI docs — Lifespan Events',url:'https://fastapi.tiangolo.com/advanced/events/',note:'Read for lifespan as async context manager (before/after yield = startup/shutdown once), replacing on_event, ASGI Lifespan Protocol, main-app-only scope and shared-resource use cases (DB pool, ML model).'},
+ {id:'asyncpg-docs',group:'Official docs',title:'asyncpg docs — API Reference',url:'https://magicstack.github.io/asyncpg/current/api/index.html',note:'Read for create_pool/acquire/release semantics, reset-on-release before next acquirer, close vs terminate, command_timeout, statement cache, target_session_attrs for primary/standby routing.'},
  {id:'python-tutorial-classes',group:'Official docs',title:'Python tutorial — Classes',url:'https://docs.python.org/3/tutorial/classes.html',note:'Read for class/instance variables, virtual-method semantics, MRO and cooperative super(), private-by-convention and name mangling, dataclass records.'},
  {id:'python-typing-protocol-docs',group:'Official docs',title:'Python docs — typing.Protocol',url:'https://docs.python.org/3/library/typing.html#typing.Protocol',note:'Structural subtyping: declaration-free interfaces for ISP/DIP, runtime_isinstance with @runtime_checkable.'},
  {id:'python-tutorial-errors',group:'Official docs',title:'Python tutorial — Errors and Exceptions',url:'https://docs.python.org/3/tutorial/errors.html',note:'Read for except matching order and subclass rules, implicit/explicit chaining (raise from / from None), finally return-swallowing (PEP 765 warning), ExceptionGroup/except*, add_note().'},
