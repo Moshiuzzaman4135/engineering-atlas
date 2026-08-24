@@ -21,7 +21,7 @@ DOMAINS_REMAINING: python-core, database, messaging, distributed, system-design,
 RESEARCH_COMPLETED: Python docs asyncio-task.html + asyncio-future.html (see docs/SOURCES.md)
 GITHUB_REPOS_ALREADY_INSPECTED: none this session (repo-local reference/ only)
 DIAGRAM_GROUPS_COMPLETED: coroutine/task/future (3), event-loop cycle+timeline, TaskGroup scope+failure timeline, cancellation flow+deadline budget
-LESSON_GROUPS_COMPLETED: python-coroutines-tasks, python-event-loop, python-taskgroup, python-cancellation-timeouts (all benchmark depth)
+LESSON_GROUPS_COMPLETED: python-coroutines-tasks, python-event-loop, python-taskgroup, python-cancellation-timeouts, async-semaphore-queue (all benchmark depth)
 LABS_COMPLETED: unchanged (all lab diagrams still render; registry kept)
 
 KNOWN_ISSUES:
@@ -32,9 +32,9 @@ KNOWN_ISSUES:
     (pre-existing); revisit ergonomics in the whole-product review wave.
   - app.test.js diagram mock extended (renderVisual/has) — keep in sync with diagrams API.
 CURRENT_FAILURE: none
-NEXT_EXACT_TASK: Wave 2 continued — rebuild async-semaphore-queue (research asyncio
-  synchronization primitives + Queues docs first), then python-gil/threading/
-  multiprocessing; keep adding to APPROVED only after browser inspection.
+NEXT_EXACT_TASK: Wave 2 continued — rebuild python-gil, python-threading,
+  python-multiprocessing (research docs.python.org concurrency pages first);
+  keep adding to APPROVED only after browser inspection.
   NOTE: local python3 is 3.10 — examples using TaskGroup/timeout()/except* are
   labeled 'syntax-reviewed, not executed locally' (verified behaviorally on 3.10
   where possible).
@@ -79,7 +79,7 @@ NEXT_EXACT_TASK: Wave 2 continued — rebuild async-semaphore-queue (research as
   failure modes, traps, trade-offs, adversarial interview answer.
 - New tests/visual-semantics.test.js (fallback removal, expected/forbidden terms,
   teaching apparatus) — the Coroutine regression is now automated.
-- tools/visual-audit.mjs → docs/VISUAL_AUDIT.md (APPROVED 4 / GENERIC-REGISTRY 54 / MISSING 109).
+- tools/visual-audit.mjs → docs/VISUAL_AUDIT.md (APPROVED 5 / GENERIC-REGISTRY 54 / MISSING 108).
 - Browser inspection at 1280 dark+light and 390 mobile; fixed 3 label-collision
   defects found in inspection.
 
@@ -94,6 +94,12 @@ NEXT_EXACT_TASK: Wave 2 continued — rebuild async-semaphore-queue (research as
   labeled honestly as 3.11+ syntax-reviewed (no 3.11+ runtime available locally).
 - Offline-safety test false positive resolved by renaming Python example functions
   (kept the strict no-fetch guard).
+
+### 2026-08-24 — Wave 2 progress 2
+
+- async-semaphore-queue rebuilt: sync-primitives + queues docs researched and
+  recorded in SOURCES.md; semaphore-slots timeline + bounded-queue pressure flow;
+  code example executed (backpressure + ceiling visible in output).
 
 ### 2026-08-24 — Wave 0
 

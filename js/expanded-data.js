@@ -366,7 +366,92 @@ visuals:[
   howToRead:['The top lane is the only real budget: 1.2s from the client.','Each stage wraps its work in asyncio.timeout() with the REMAINING budget, not a fresh constant.','The DB stage overruns its share at t≈280 and is cancelled — by design.','The handler degrades gracefully and still answers within the client\'s deadline.'],
   interviewerNotice:['You propagate deadlines instead of stacking independent timeouts that multiply worst-case latency.','You treat a timeout as a routing decision (degrade), not just an error.']}
 ]}),
-mk({id:'async-semaphore-queue',domain:'python-core',title:'Async Semaphore, Queue & Backpressure',priority:5,intuition:'Async lets you start thousands of operations; a semaphore and bounded queue stop you from overwhelming the dependency they all call.',technical:'asyncio.Semaphore caps concurrent access. asyncio.Queue(maxsize=N) makes producers await when consumers fall behind, turning unbounded memory growth into explicit backpressure.',remember:['Concurrency needs a limit tied to downstream capacity.','Bounded queues expose overload early.','Queue length and oldest-item age are saturation signals.'],terms:['semaphore','bounded queue','backpressure'],functions:['asyncio.Semaphore','asyncio.Queue','queue.put','queue.get'],interview:'I never equate “async” with “unlimited concurrency.” For GPU/model/DB calls I cap in-flight work with a semaphore or worker pool and use bounded queues so overload becomes measurable rather than memory growth.',usedByYou:['Your analytics queues and GPU services are exactly the kind of dependency that needs bounded concurrency.'],prerequisites:['python-event-loop','backpressure']}),
+mk({id:'async-semaphore-queue',domain:'python-core',title:'Async Semaphore, Queue & Backpressure',priority:5,
+intuition:'Async lets you start thousands of operations; a semaphore and a bounded queue stop you from overwhelming the dependency they all hit.',
+technical:'asyncio.Semaphore(N) is an internal counter: acquire() decrements and blocks at zero, release() increments — capping how many coroutines are inside a section at once. asyncio.Queue(maxsize=N) makes await put() block while the queue is full, so a fast producer is throttled by slow consumers instead of growing memory forever: that is backpressure. Both are task-level primitives — the docs stress they are NOT thread-safe and their methods take no timeout argument (wrap with asyncio.wait_for).',
+deepDive:'Unbounded concurrency is the default failure of new asyncio code: one request fans out to 5 upstream calls, traffic multiplies, and suddenly 2,000 simultaneous calls hit a database sized for 50. The semaphore is the direct answer: async with sem: around the call, with N chosen from the dependency\'s measured capacity (Little\'s Law, not vibes). Details that matter from the docs: plain Semaphore allows MORE releases than acquires — an over-release silently raises your ceiling; BoundedSemaphore raises ValueError instead, which is why it is the safer default for pooled resources. Acquisition is fair (FIFO among waiters) for locks; semaphore wakeups are also ordered, so no starvation by luck.\n\nThe bounded queue solves a different shape: producer and consumer running at different rates, possibly created before each other. Queue(maxsize=N) blocks put() when full — the producer awaits instead of buffering unbounded work in memory. qsize() is always known (unlike threading.Queue). The canonical shutdown pattern from the docs: producers put items, consumers loop on get() then call task_done(), the coordinator awaits queue.join() (unblocks when every put has a matching task_done), and only then cancels the workers. Calling task_done() more times than items raises ValueError — a real bug detector. Python 3.13 adds queue.shutdown(): graceful (drain remaining items, then QueueShutDown on get) vs immediate (drop everything, wake all waiters) — finally a standard way to stop worker pools.\n\nChoosing between them: a semaphore limits simultaneous in-flight calls inside one coroutine\'s fan-out (per-request fan-out to DB/GPU); a bounded queue decouples long-lived producers from long-lived consumers (ingestion pipeline feeding workers). They compose: workers pull from a bounded queue AND wrap their downstream call in a semaphore so queue depth absorbs bursts while the dependency sees a hard ceiling.\n\nSizing and signals: queue maxsize is a pressure valve, not a target — a queue sitting near full means consumers are the bottleneck; depth plus oldest-item age are your saturation metrics. Semaphore value is a capacity promise: if the downstream is a DB pool of 20, a semaphore of 200 just moves the queue to the pool. If consumers are slower on average than producers, no buffer size saves you — scale consumers, shed load, or slow ingestion (see the backpressure lab).',
+terms:['semaphore','BoundedSemaphore','bounded queue','backpressure','task_done()','queue.join()','QueueShutDown','worker pool'],
+functions:['asyncio.Semaphore','asyncio.BoundedSemaphore','asyncio.Queue(maxsize)','await queue.put()','await queue.get()','queue.task_done()','await queue.join()','queue.shutdown() (3.13+)','asyncio.wait_for (timeouts on primitives)'],
+remember:['Semaphore caps in-flight work; pick N from measured downstream capacity.','Prefer BoundedSemaphore — plain Semaphore silently accepts over-release.','Queue(maxsize=N) turns producer/consumer rate mismatch into awaited backpressure.','Every get() needs exactly one task_done(); join() unblocks at zero outstanding.','Primitives are not thread-safe and have no timeout args — use wait_for.'],
+tradeoffs:['Semaphore vs worker pool: inline fan-out cap vs dedicated consumers you can cancel/drain explicitly.','Bounded vs unbounded queue: early, measurable overload vs silent memory growth and late collapse.','Semaphore vs queue+workers: protects a dependency vs decouples lifecycles and rates; compose them when both are true.'],
+failureModes:['Unbounded create_task fan-out: memory spike plus downstream meltdown; the queue moves into the socket buffer where you cannot see it.','Over-released Semaphore: ceiling quietly rises above capacity — intermittent downstream timeouts that "fix themselves" on restart.','task_done() forgotten: join() hangs forever; task_done() extra: ValueError.','Unbounded queue under sustained overload: latency grows without bound; consumers process stale work nobody wants anymore.','Blocking (sync) work inside a consumer: one slow item stalls the whole worker loop — same loop-blocking rules apply.'],
+scaling:['Queue depth and oldest-item age are the saturation metrics; alert on both.','Scale consumers until average service rate exceeds arrival rate with headroom; the queue only absorbs bursts, not sustained mismatch.','Distribute across processes? Then the queue must become an external broker (Redis/Kafka) — in-process asyncio.Queue does not cross process boundaries.'],
+security:['Queue items can carry request-scoped data; a deep backlog extends how long sensitive payloads (tokens, PII) live in memory — cap size and drain on shutdown.'],
+traps:['Treating Semaphore(200) as "performance tuning" when the DB pool is 20.','Using threading.Lock/queue.Queue inside coroutines — they block the loop.','Assuming put_nowait/get_nowait in hot paths — they raise instead of awaiting; handle QueueFull/QueueEmpty deliberately.','Forgetting that asyncio primitives are single-loop: sharing them across threads or loops corrupts state.'],
+usedByYou:['The video analytics ingestion pattern — bounded frame/job queues in front of GPU workers — is this lesson at production scale; in-process it is asyncio.Queue, across processes it became Redis/broker queues.'],
+codeTitle:'Bounded queue + semaphore worker pool (verified runnable)',
+code:`import asyncio
+
+async def worker(name, queue, sem, results):
+    while True:
+        item = await queue.get()
+        try:
+            async with sem:                    # hard ceiling on upstream calls
+                await asyncio.sleep(0.05)      # simulate I/O-bound upstream call
+                results.append((name, item))
+                print(f'{name} finished {item} (qsize={queue.qsize()})')
+        finally:
+            queue.task_done()                  # exactly one per get()
+
+async def producer(queue, items):
+    for i in range(items):
+        await queue.put(i)                     # blocks when full = backpressure
+        print(f'produced {i} (qsize={queue.qsize()})')
+
+async def main():
+    queue = asyncio.Queue(maxsize=3)           # bounded: pressure is visible
+    sem = asyncio.BoundedSemaphore(2)          # at most 2 concurrent upstream calls
+    results = []
+    workers = [asyncio.create_task(worker(f'w{i}', queue, sem, results))
+               for i in range(2)]
+    await producer(queue, 8)
+    await queue.join()                         # unblocks when all items task_done()
+    for w in workers:
+        w.cancel()
+    await asyncio.gather(*workers, return_exceptions=True)
+    print('processed:', sorted(r[1] for r in results))
+
+asyncio.run(main())`,
+sources:['python-asyncio-sync-docs','python-asyncio-queue-docs'],
+prerequisites:['python-event-loop','python-coroutines-tasks'],
+nextTopics:['async-db-pools','backpressure'],
+interviewAnswer:'Async gives you cheap concurrency, so I never ship it without two limiters. A semaphore caps how many coroutines are inside an expensive section at once — sized from the dependency\'s measured capacity, preferably BoundedSemaphore so an over-release fails loudly instead of quietly raising the ceiling. A bounded asyncio.Queue decouples producer and consumer lifecycles and turns rate mismatch into backpressure: put() awaits when the queue is full, so overload shows up as queue depth and item age — metrics I alert on — rather than unbounded memory. Consumers follow the get()/task_done()/join() discipline so shutdown is deterministic, and since 3.13 queue.shutdown() gives graceful drain versus immediate stop. The two compose: queue absorbs bursts, semaphore protects the downstream.',
+visuals:[
+ {type:'lanes',id:'py-semaphore-slots-timeline',w:800,h:352,axis:{label:'time →'},
+  title:'Visual A — Semaphore(2): three tasks, two slots',
+  purpose:'Show how a semaphore admits two tasks immediately and holds the third in a FIFO wait until a release frees a slot — concurrency is capped, not queued in memory.',
+  rows:[
+   {label:'task 1',segments:[{from:0,to:30,label:'acquire ✓'},{from:30,to:150,label:'in section (slot 1)',cls:'green'},{from:150,to:190,label:'release',cls:'cyan'}]},
+   {label:'task 2',segments:[{from:0,to:30,label:'acquire ✓'},{from:30,to:230,label:'in section (slot 2)',cls:'green'},{from:230,to:270,label:'release',cls:'cyan'}]},
+   {label:'task 3',segments:[{from:0,to:30,label:'acquire → blocks',cls:'accent'},{from:30,to:150,label:'waiting (FIFO, no slot)',cls:'accent'},{from:150,to:270,label:'in section (freed slot 1)',cls:'green'}]},
+   {label:'slots used',segments:[{from:0,to:30,label:'2/2',cls:'cyan'},{from:150,to:230,label:'1/2',cls:'green'},{from:230,to:270,label:'0/2',cls:'green'}]}
+  ],
+  marks:[{at:30,label:'counter hits 0 — task 3 parks'},{at:150,label:'task 1 releases → task 3 wakes'}],
+  howToRead:['Tasks 1 and 2 decrement the counter 2→0 and enter immediately.','Task 3\'s acquire finds zero and parks — it costs no CPU and holds no slot.','At t≈150 task 1 releases; the counter rises and the sleeping task 3 is woken into the freed slot.','The bottom row is the counter: it never goes above 2 — that is the whole contract.'],
+  interviewerNotice:['Waiting tasks are parked at an await, not spun or threaded — zero-cost waiting.','The cap protects the downstream even when the caller\'s concurrency is unbounded.']},
+ {type:'flow',id:'py-bounded-queue-backpressure',w:800,h:330,
+  title:'Visual B — Bounded queue: overload becomes visible pressure',
+  purpose:'Show how Queue(maxsize=3) throttles a fast producer at put() when slow consumers fall behind, turning silent memory growth into measurable queue depth.',
+  nodes:[
+   {id:'prod',x:20,y:120,w:150,h:70,label:'Producer',sub:'await queue.put(i)',cls:'cyan'},
+   {id:'q1',x:250,y:60,w:70,h:56,label:'i-2',cls:'green'},
+   {id:'q2',x:330,y:60,w:70,h:56,label:'i-1',cls:'green'},
+   {id:'q3',x:410,y:60,w:70,h:56,label:'i-0',cls:'green'},
+   {id:'qfull',x:250,y:130,w:230,h:44,label:'maxsize=3 — FULL',cls:'accent'},
+   {id:'w1',x:580,y:60,w:110,h:56,label:'worker 1',cls:'green'},
+   {id:'w2',x:580,y:140,w:110,h:56,label:'worker 2',cls:'green'},
+   {id:'down',x:560,y:230,w:150,h:56,label:'downstream',sub:'capacity-limited',cls:''}
+  ],
+  edges:[
+   {from:'prod',to:'q1',points:[[170,140],[210,140],[210,88],[250,88]],label:'put() awaits when full',cls:'hot'},
+   {from:'q3',to:'w1',points:[[480,88],[580,88]],label:'get()'},
+   {from:'q3',to:'w2',points:[[480,100],[530,100],[530,168],[580,168]],cls:'arch-flow'},
+   {from:'w1',to:'down',points:[[635,116],[635,230]],cls:'arch-flow'},
+   {from:'w2',to:'down',points:[[635,196],[660,230]],cls:'arch-flow'}
+  ],
+  howToRead:['The producer is fast; the workers are slow because the downstream is capacity-limited.','Slots i-2…i-0 are the three queue entries; the FULL marker is the pressure point.','When the queue is full, put() suspends the producer — backpressure flows upstream instead of memory growing.','Depth and oldest-item age (i-2\'s wait) are the metrics that say "scale consumers", before users ever notice.'],
+  interviewerNotice:['You treat queue depth as a signal, not a buffer to resize.','You know an unbounded queue only moves the overflow into memory and latency.']}
+]}),
 mk({id:'async-db-pools',domain:'python-core',title:'Async Database Pools & Transaction Scope',priority:5,intuition:'A pool is a small set of expensive DB connections shared by many requests; making it huge does not create more database capacity.',technical:'Async drivers such as asyncpg/SQLAlchemy async acquire a connection per active DB operation. Pool size should match DB capacity and service replicas. Transactions should be short and never span slow external calls.',remember:['Pool size is a concurrency budget, not a throughput knob.','Too many app replicas × large pools can overwhelm Postgres.','Release connections before slow model/network work.'],terms:['connection pool','transaction scope','pool exhaustion'],functions:['asyncpg.create_pool','AsyncSession','async with session.begin()'],interview:'I size the pool from total database connection budget across replicas, set acquisition timeouts, keep transactions short, and expose pool wait time because a saturated pool is often the first sign the DB tier is under pressure.',usedByYou:['This directly connects your FastAPI/PostgreSQL services with the DB-load questions you were asked.'],prerequisites:['python-event-loop','db-connection-pooling']}),
 mk({id:'fastapi-lifecycle',domain:'python-core',title:'FastAPI Dependency Injection, Lifespan & Worker Model',priority:4,intuition:'Expensive clients should be created once per process and reused, while request-scoped resources should be opened and closed per request.',technical:'FastAPI dependencies express request-scoped contracts; lifespan manages app startup/shutdown. Uvicorn/Gunicorn workers are separate processes, so each gets its own clients, caches and memory.',remember:['One process = separate event loop and memory.','Use lifespan for DB/HTTP/model client initialization.','Do not create a new DB pool or HTTP client per request.'],terms:['lifespan','dependency injection','ASGI worker'],functions:['FastAPI(lifespan=...)','Depends','yield dependency'],interview:'I initialize reusable pools/clients in lifespan, inject request-scoped sessions with dependencies, and remember that multiple worker processes duplicate in-memory state—so shared coordination belongs in Redis/DB rather than a global dict.',usedByYou:['Vision Relay/FastAPI job-control services are a natural example.'],prerequisites:['fastapi-async','async-db-pools']}),
 mk({id:'python-profiling',domain:'python-core',title:'Python Profiling: CPU, Memory & Event-loop Lag',priority:4,intuition:'Optimization starts by measuring where time and memory actually go.',technical:'Use cProfile/py-spy for CPU, tracemalloc for allocations, application spans for I/O and event-loop lag/slow-callback diagnostics for async stalls. Optimize the measured bottleneck, not the most interesting function.',remember:['Wall time and CPU time are different.','Profile representative production-like workloads.','p95/p99 matters for user-visible latency.'],terms:['sampling profiler','allocation profile','event-loop lag'],functions:['cProfile','tracemalloc','asyncio debug mode'],interview:'For an async API I separate CPU, dependency wait, pool wait and event-loop lag. A flame graph answers CPU questions; distributed traces answer network/DB questions.'}),
@@ -616,6 +701,8 @@ Object.assign(glossaryRaw,{
 D.glossary=Object.entries(glossaryRaw).map(([term,definition])=>({term,definition})).sort((a,b)=>a.term.localeCompare(b.term));
 
 D.sources.push(
+ {id:'python-asyncio-sync-docs',group:'Official docs',title:'Python docs — Synchronization Primitives',url:'https://docs.python.org/3/library/asyncio-sync.html',note:'Read for Lock/Semaphore/Event/Condition/Barrier semantics: not thread-safe, no timeout args, fair lock acquisition, Semaphore over-release vs BoundedSemaphore ValueError, spurious Condition wakeups.'},
+ {id:'python-asyncio-queue-docs',group:'Official docs',title:'Python docs — Queues',url:'https://docs.python.org/3/library/asyncio-queue.html',note:'Read for Queue(maxsize) backpressure, get/task_done/join discipline, shutdown(immediate) and QueueShutDown (3.13+), PriorityQueue/LifoQueue variants.'},
  {id:'python-asyncio-eventloop-docs',group:'Official docs',title:'Python docs — Event Loop',url:'https://docs.python.org/3/library/asyncio-eventloop.html',note:'Read for loop mechanics: call_soon FIFO ordering, monotonic call_later/call_at, selector-based I/O polling, run_in_executor offloading rules, getaddrinfo running in the default thread pool, debug mode and the 100ms slow-callback threshold.'},
  {id:'python-coroutines-tasks-docs',group:'Official docs',title:'Python docs — Coroutines and Tasks',url:'https://docs.python.org/3/library/asyncio-task.html',note:'Read for precise Task/Future semantics: create_task scheduling, weak references, cancellation, TaskGroup vs gather, Task inheriting Future APIs except set_result/set_exception.'},
  {id:'python-asyncio-futures-docs',group:'Official docs',title:'Python docs — Futures',url:'https://docs.python.org/3/library/asyncio-future.html',note:'Read for what a raw Future is: eventual-result holder bridging callback code with async/await; why app code should rarely create or expose Futures.'},

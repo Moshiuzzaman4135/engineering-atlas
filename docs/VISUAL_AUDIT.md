@@ -14,8 +14,8 @@ diagram keys render nothing and appear here as MISSING.
 | Status | Lessons |
 |--------|---------|
 | GENERIC-REGISTRY | 54 |
-| MISSING | 109 |
-| APPROVED | 4 |
+| MISSING | 108 |
+| APPROVED | 5 |
 | **Total** | 167 |
 
 ## Per-lesson status
@@ -96,7 +96,7 @@ diagram keys render nothing and appear here as MISSING.
 | python-coroutines-tasks | Coroutine vs Task vs Future | P5 | generic | APPROVED | 3 purpose-built visuals |
 | python-taskgroup | Structured Concurrency with TaskGroup | P5 | generic | APPROVED | 2 purpose-built visuals |
 | python-cancellation-timeouts | Cancellation, Timeouts & Deadlines | P5 | generic | APPROVED | 2 purpose-built visuals |
-| async-semaphore-queue | Async Semaphore, Queue & Backpressure | P5 | generic | MISSING | references unregistered "generic" (renders nothing) |
+| async-semaphore-queue | Async Semaphore, Queue & Backpressure | P5 | generic | APPROVED | 2 purpose-built visuals |
 | async-db-pools | Async Database Pools & Transaction Scope | P5 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | fastapi-lifecycle | FastAPI Dependency Injection, Lifespan & Worker Model | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | python-profiling | Python Profiling: CPU, Memory & Event-loop Lag | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
