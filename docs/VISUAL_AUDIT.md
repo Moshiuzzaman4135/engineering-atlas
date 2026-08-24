@@ -14,8 +14,8 @@ diagram keys render nothing and appear here as MISSING.
 | Status | Lessons |
 |--------|---------|
 | GENERIC-REGISTRY | 54 |
-| MISSING | 108 |
-| APPROVED | 5 |
+| MISSING | 107 |
+| APPROVED | 6 |
 | **Total** | 167 |
 
 ## Per-lesson status
@@ -89,7 +89,7 @@ diagram keys render nothing and appear here as MISSING.
 | python-exceptions | Exceptions, Error Boundaries & Retryable Failures | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | python-typing-dataclasses | Type Hints, Dataclasses & Pydantic Boundaries | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | python-oop-solid | OOP & SOLID in Python | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| python-gil | GIL, Threads & CPU-bound Work | P5 | generic | MISSING | references unregistered "generic" (renders nothing) |
+| python-gil | GIL, Threads & CPU-bound Work | P5 | generic | APPROVED | 2 purpose-built visuals |
 | python-threading | Threading, Locks & Race Conditions | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | python-multiprocessing | Multiprocessing & Worker Pools | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | python-event-loop | Asyncio Event Loop Mental Model | P5 | generic | APPROVED | 2 purpose-built visuals |

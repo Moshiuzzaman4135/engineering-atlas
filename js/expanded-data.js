@@ -41,7 +41,95 @@ mk({id:'python-context-managers',domain:'python-core',title:'Context Managers & 
 mk({id:'python-exceptions',domain:'python-core',title:'Exceptions, Error Boundaries & Retryable Failures',priority:4,intuition:'Exceptions should cross only the boundaries that know how to recover or translate them.',technical:'Catch specific exceptions near recovery boundaries. Preserve causes with raise ... from. Distinguish validation, transient dependency, timeout and programmer errors because they need different handling and retry policies.',remember:['Catch specific, not blanket Exception unless at a top boundary.','Retry only transient/idempotent work.','Log with context once at the right boundary.'],terms:['exception chaining','retryable error','error boundary'],functions:['raise','try/except/finally','raise X from e'],interview:'I classify failures first. A timeout to a dependency may be retryable; malformed input is not. I translate internal errors at service boundaries and preserve the original cause for observability.',usedByYou:['This applies directly to RTSP retries, model-service failures and webhook/API integrations.']}),
 mk({id:'python-typing-dataclasses',domain:'python-core',title:'Type Hints, Dataclasses & Pydantic Boundaries',priority:3,intuition:'Types make contracts visible; validation libraries enforce data at runtime where external input enters.',technical:'Python annotations aid static analysis but do not enforce runtime types by themselves. dataclasses reduce boilerplate for internal records; Pydantic validates/parses external API/config data and produces schemas.',remember:['Type hints document and check contracts statically.','Validate untrusted input at boundaries.','Do not turn every internal object into a heavy validation model.'],terms:['type annotation','dataclass','schema validation'],functions:['@dataclass','typing.Protocol','pydantic.BaseModel'],interview:'I use Pydantic at FastAPI boundaries and lighter dataclasses or typed objects internally. That keeps validation where it adds value without coupling the entire domain to the web schema.'}),
 mk({id:'python-oop-solid',domain:'python-core',title:'OOP & SOLID in Python',priority:4,intuition:'Good OOP groups behavior with the state it owns and hides unstable details behind clear interfaces.',technical:'Encapsulation protects invariants; polymorphism lets callers depend on contracts; composition is often safer than deep inheritance. SOLID is a set of design heuristics, not laws.',remember:['Prefer composition over deep inheritance.','Dependency inversion means domain code depends on abstractions, not infrastructure details.','Single responsibility is about reasons to change.'],terms:['encapsulation','polymorphism','composition','dependency inversion'],functions:['abc.ABC','typing.Protocol','super()'],interview:'In Python I often use Protocols or small interfaces and inject adapters—for example a vector-store or model-provider abstraction—so business logic is testable and infrastructure can change.',usedByYou:['Provider abstraction in your AI gateway/RAG work is a natural dependency-inversion example.']}),
-mk({id:'python-gil',domain:'python-core',title:'GIL, Threads & CPU-bound Work',priority:5,intuition:'Python threads are excellent for waiting on I/O, but one CPython process does not execute multiple Python bytecode threads in parallel for CPU-heavy work.',technical:'The Global Interpreter Lock protects CPython interpreter state. Threads can overlap I/O because blocking C/OS calls release the GIL, but CPU-bound Python code usually needs multiprocessing, native extensions or external workers for parallelism.',remember:['GIL limits CPU-bound Python bytecode parallelism, not all concurrency.','I/O threads can still be useful.','GPU/C extensions may execute outside the GIL.'],terms:['GIL','thread','CPU-bound','I/O-bound'],functions:['threading.Thread','concurrent.futures.ThreadPoolExecutor'],interview:'For I/O-bound API or network work, threads/async are fine. For CPU-heavy frame transforms in Python, I use multiprocessing, C-backed libraries or distributed workers rather than adding threads and expecting linear CPU scaling.',usedByYou:['OpenCV/NumPy operations and Celery/multiprocessing in video pipelines make this distinction practical.'],nextTopics:['python-threading','python-multiprocessing','python-event-loop']}),
+mk({id:'python-gil',domain:'python-core',title:'GIL, Threads & CPU-bound Work',priority:5,
+intuition:'Python threads are excellent for waiting, but in standard CPython only one thread executes Python bytecode at any instant — so CPU-heavy Python code does not get faster by adding threads.',
+technical:'Per the official glossary, the global interpreter lock is "the mechanism used by CPython to assure that only one thread executes Python bytecode at a time." It makes the object model implicitly safe against concurrent access, at the cost of CPU parallelism. The GIL is released during blocking I/O and by extension modules that deliberately drop it for heavy C work (NumPy, hashing, compression). Since Python 3.13 a free-threaded build (--disable-gil, PEP 703) can run bytecode on multiple cores with per-object locking.',
+deepDive:'What the GIL actually serializes: execution of Python bytecode within one interpreter process. It does NOT serialize I/O (the GIL is released around blocking OS calls), and it does NOT prevent threads from interleaving — it only ensures that at any instant, one thread runs bytecode. The interpreter force-switches threads periodically (documented default switch interval: 5 ms, configurable via sys.setswitchinterval).\n\nConsequences, in order of practical importance:\n\n1. I/O-bound work overlaps fine on threads. Ten threads each waiting on an HTTP call release the GIL while blocked; concurrency works, parallelism is irrelevant because they are waiting anyway. This is why threading predates asyncio and is still valid for blocking SDKs that have no async version.\n\n2. CPU-bound Python code does not scale with threads — it often gets slightly SLOWER from lock contention and switch overhead. Two threads computing in pure Python take about as long as one, sometimes longer.\n\n3. "C releases the GIL" is the escape hatch inside one process. NumPy matrix ops, OpenCV frame ops, zlib/hashing, PIL encodes, most PyTorch CPU ops drop the GIL during their C/CUDA execution. So a pipeline that spends its time inside NumPy/OpenCV calls can genuinely use threads for CPU-shaped work — the Python glue is serialized, the heavy kernels are not. This is exactly the video-pipeline shape: threads feeding OpenCV work can overlap.\n\n4. Race conditions still exist. The GIL does not make your code atomic. The docs are explicit: x += 1 is multiple bytecode operations and is not atomic. Check-then-act (LBYL) races, shared list/dict mutation across threads, and double-checked locking all remain broken without locks/queues. The GIL prevents corrupted interpreter state, not your bugs.\n\n5. Free-threaded Python (3.13+, PEP 703) removes the GIL with per-object locks and biased reference counting; single-thread code pays some overhead, multi-thread CPU code finally scales, and some guarantees weaken (iterator operations are no longer thread-safe). It is opt-in per build — production adoption is a per-team decision, and interviewers increasingly ask if you know it exists.\n\nDecision rule: profile first. If the hot path is Python bytecode → multiprocessing (separate interpreters, pickling cost) or restructure into C-backed libraries. If it is already inside NumPy/OpenCV kernels → threads may be fine. If it is waiting on network → asyncio or threads. If it is GPU work → the GPU executes outside the GIL anyway; the question is feeding it fast enough.',
+terms:['GIL','free-threaded build','per-object lock','switch interval','CPU-bound','I/O-bound','atomicity'],
+functions:['sys.setswitchinterval','threading.Thread','concurrent.futures.ThreadPoolExecutor','multiprocessing.Process','os.cpu_count'],
+remember:['GIL = one thread executes bytecode at a time (standard CPython); it is an interpreter lock, not your data-race protection.','Blocking I/O and most NumPy/OpenCV/C-kernel calls release the GIL.','x += 1 is not atomic — races survive the GIL.','Pure-Python CPU work: threads do not help; use multiprocessing or C-backed libs.','Python 3.13+ offers an opt-in free-threaded build (PEP 703) without the GIL.'],
+tradeoffs:['Threads vs asyncio for I/O: preemption-free simplicity vs one loop, no threads; both overlap waiting.','Threads vs multiprocessing for CPU: shared memory, cheap startup vs true parallelism with pickling and process overhead.','Releasing-GIL libraries vs pure Python: real parallelism inside kernels vs GIL-bound glue.','GIL build vs free-threaded build: mature single-core behavior vs multi-core threads with per-object locking overhead.'],
+failureModes:['Expecting 4 threads to cut pure-Python CPU time 4× — no speedup, sometimes slower from contention.','Assuming GIL makes shared-state code safe — lost updates and check-then-act races still corrupt data.','Long-running C extension that does NOT release the GIL: one call stalls every thread in the process.','Free-threaded build assumptions: third-party C extensions may not be thread-safe yet; iterator ops no longer guaranteed thread-safe.'],
+scaling:['Scale CPU-bound Python across processes (multiprocessing, Celery workers, containers), not threads within one GIL-bound interpreter.','GIL-bound CPU in a web worker shows up as one core pegged while others idle — a signature worth recognizing in top.'],
+security:['The GIL is not a security boundary; free-threaded builds change timing and memory behavior — re-validate thread-sensitive code and dependencies before adopting.'],
+traps:['"Python threads are useless" — they overlap I/O and release-GIL C work fine.','"The GIL makes single assignments safe" — atomicity is only guaranteed where documented.','Benchmarking GIL behavior inside NumPy-heavy code and concluding threads are useless (kernels were parallel already).','Confusing the GIL with per-object locking in free-threaded builds.'],
+usedByYou:['Video pipelines: OpenCV/NumPy kernels release the GIL, so capture threads overlap real work; heavy pure-Python stages (JSON glue, consensus logic) are what actually serialize — the reason Celery/multiprocessing workers exist for CPU-heavy stages.'],
+codeTitle:'Threads vs GIL: I/O overlaps, pure-Python CPU does not (verified runnable)',
+code:`import threading, time
+
+def io_task():
+    time.sleep(0.3)                    # releases GIL while blocked
+
+def cpu_task(n=2_000_000):
+    x = 0
+    for i in range(n):                 # pure Python bytecode: GIL-bound
+        x += i
+    return x
+
+def run(label, fn, n):
+    ts = [threading.Thread(target=fn) for _ in range(n)]
+    t0 = time.perf_counter()
+    for t in ts: t.start()
+    for t in ts: t.join()
+    print(f'{label}: {time.perf_counter()-t0:.2f}s with {n} threads')
+
+run('I/O  x4 (overlaps)', io_task, 4)          # ~0.3s, not 1.2s
+run('CPU  x1 (baseline)', cpu_task, 1)
+run('CPU  x4 (no speedup)', cpu_task, 4)        # ~4x the single-thread time
+
+# lost update despite the GIL (window made visible: read → switch → write):
+counter = 0
+def bump():
+    global counter
+    for _ in range(10_000):
+        tmp = counter               # read
+        time.sleep(0)               # yields GIL — another thread reads same value
+        counter = tmp + 1           # write: clobbers the other thread's increment
+ts = [threading.Thread(target=bump) for _ in range(4)]
+for t in ts: t.start()
+for t in ts: t.join()
+print('counter:', counter, '(expected 40000 — races survive the GIL)')`,
+sources:['python-glossary-gil','python-sys-switchinterval','python-threading-docs'],
+prerequisites:['python-object-model'],
+nextTopics:['python-threading','python-multiprocessing','python-event-loop'],
+interviewAnswer:'The GIL is CPython\'s rule that one thread executes bytecode at a time inside a process. It protects interpreter state, not my data — x += 1 is still a race. Threads overlap I/O because blocking calls release the GIL, and heavy NumPy/OpenCV kernels release it too, so threaded pipelines overlap real work. But pure-Python CPU loops do not scale with threads — sometimes they slow down — so that work goes to multiprocessing, Celery workers, or C-backed libraries; the GPU executes outside the GIL entirely. Since 3.13 there is an opt-in free-threaded build per PEP 703 with per-object locks, which changes the calculus but requires validating every dependency. My decision rule: profile, then match the tool to whether the hot path is waiting, C-kernel, or bytecode.',
+visuals:[
+ {type:'lanes',id:'py-gil-timeline',w:800,h:352,axis:{label:'time →'},
+  title:'Visual A — One GIL: threads interleave bytecode, but never share it',
+  purpose:'Show two threads alternately holding the single GIL for CPU work, and how a blocking I/O call releases the GIL so the other thread runs — parallel waiting, serial bytecode.',
+  rows:[
+   {label:'thread 1',segments:[{from:0,to:70,label:'GIL · work',cls:'hot'},{from:70,to:170,label:'I/O — GIL released',cls:'cyan'},{from:170,to:240,label:'GIL · work',cls:'hot'}]},
+   {label:'thread 2',segments:[{from:0,to:70,label:'waits',cls:'accent'},{from:70,to:170,label:'GIL · work',cls:'hot'},{from:170,to:200,label:'waits',cls:'accent'},{from:200,to:280,label:'GIL · work',cls:'hot'}]},
+   {label:'GIL holder',segments:[{from:0,to:70,label:'T1',cls:'cyan'},{from:70,to:170,label:'T2',cls:'cyan'},{from:170,to:200,label:'T1',cls:'cyan'},{from:200,to:280,label:'T2',cls:'cyan'}]}
+  ],
+  marks:[{at:70,label:'T1 blocks on I/O → releases GIL'},{at:170,label:'T2 blocks → T1 re-acquires'}],
+  howToRead:['The bottom row is the story: exactly one thread holds the GIL at any instant.','While T1 waits on I/O (released GIL), T2 makes progress — that is why threads help I/O work.','CPU segments never overlap between threads: two CPU-bound threads take turns, not run together.','Switches happen roughly every switch interval (~5 ms) or when a thread blocks.'],
+  interviewerNotice:['You distinguish "concurrent interleaving" from "parallel execution" precisely.','You know I/O releases the GIL and that this — not magic — is why threads overlap I/O.']},
+ {type:'flow',id:'py-gil-decision-map',w:800,h:340,
+  title:'Visual B — Choosing the escape hatch for CPU-bound work',
+  purpose:'Map the three ways around GIL-limited CPU work — release-GIL C kernels, multiple processes, free-threaded builds — to when each is the right call.',
+  nodes:[
+   {id:'hot',x:20,y:130,w:170,h:64,label:'Hot path is slow',sub:'profile it first',cls:'cyan'},
+   {id:'wait',x:250,y:30,w:170,h:56,label:'Waiting on I/O',cls:'green'},
+   {id:'kernel',x:250,y:120,w:170,h:56,label:'Inside C kernels',sub:'NumPy · OpenCV · hashing',cls:'green'},
+   {id:'byte',x:250,y:210,w:170,h:56,label:'Pure-Python bytecode',cls:'accent'},
+   {id:'async',x:490,y:30,w:150,h:56,label:'asyncio / threads',sub:'overlap waiting',cls:'green'},
+   {id:'threads',x:490,y:120,w:150,h:56,label:'Threads OK',sub:'kernels release GIL',cls:'green'},
+   {id:'mp',x:490,y:210,w:150,h:56,label:'multiprocessing / workers',sub:'true parallelism',cls:'accent'},
+   {id:'ft',x:680,y:210,w:100,h:56,label:'free-threaded?',sub:'3.13+ opt-in',cls:''}
+  ],
+  edges:[
+   {from:'hot',to:'wait',points:[[105,130],[105,58],[250,58]],label:'what is it doing?'},
+   {from:'hot',to:'kernel',points:[[190,162],[250,148]],cls:'arch-flow'},
+   {from:'hot',to:'byte',points:[[190,162],[250,238]],cls:'arch-flow'},
+   {from:'wait',to:'async',points:[[420,58],[490,58]],label:'overlap it',cls:'hot'},
+   {from:'kernel',to:'threads',points:[[420,148],[490,148]],label:'parallel inside kernels'},
+   {from:'byte',to:'mp',points:[[420,238],[490,238]],label:'more interpreters',cls:'hot'},
+   {from:'mp',to:'ft',points:[[640,238],[680,238]],label:'or',cls:'arch-flow'}
+  ],
+  howToRead:['Start at the profile result: the fix depends on WHERE the time goes, not on the framework.','Waiting on network/disk → overlap with asyncio or threads (GIL irrelevant).','Time inside NumPy/OpenCV kernels → threads work because kernels release the GIL.','Time in pure-Python bytecode → only more processes (or an opt-in free-threaded build) add cores.'],
+  interviewerNotice:['You reach for multiprocessing based on profiling evidence, not fashion.','You can name the trade: processes give parallelism but cost pickling and startup.']}
+]}),
 mk({id:'python-threading',domain:'python-core',title:'Threading, Locks & Race Conditions',priority:4,intuition:'Threads share memory, which is convenient until two of them change the same state at the same time.',technical:'Threading is useful for blocking I/O or C extensions. Shared mutable state requires synchronization with Lock/RLock/Condition/Semaphore, but excessive locking creates contention and deadlocks.',remember:['Race conditions come from interleavings, not only “simultaneous” CPU execution.','Keep critical sections small.','Prefer queues/message passing when ownership can be isolated.'],terms:['race condition','critical section','deadlock','mutex'],functions:['threading.Lock','threading.Semaphore','queue.Queue'],interview:'I minimize shared state and use queues for handoff. When I must lock, I keep the critical section small and use a fixed acquisition order to reduce deadlock risk.',prerequisites:['python-gil']}),
 mk({id:'python-multiprocessing',domain:'python-core',title:'Multiprocessing & Worker Pools',priority:4,intuition:'Processes trade memory and communication overhead for true CPU parallelism and fault isolation.',technical:'multiprocessing starts separate interpreters with separate memory. Work is serialized across process boundaries. ProcessPoolExecutor is useful for coarse CPU tasks; tiny tasks can lose to serialization/startup overhead.',remember:['Separate memory avoids the GIL but requires IPC.','Large models duplicated per process can exhaust RAM/VRAM.','Use coarse work units.'],terms:['process','IPC','serialization','worker pool'],functions:['multiprocessing.Process','ProcessPoolExecutor','multiprocessing.Queue'],interview:'I choose processes for CPU-bound Python work when tasks are coarse enough to justify IPC. For GPU inference I usually centralize the model in a serving process such as Triton instead of loading a GPU model per Python process.',usedByYou:['Your Triton-based ANPR design centralizes model serving instead of duplicating models in every worker.']}),
 mk({id:'python-event-loop',domain:'python-core',title:'Asyncio Event Loop Mental Model',priority:5,
@@ -701,6 +789,9 @@ Object.assign(glossaryRaw,{
 D.glossary=Object.entries(glossaryRaw).map(([term,definition])=>({term,definition})).sort((a,b)=>a.term.localeCompare(b.term));
 
 D.sources.push(
+ {id:'python-glossary-gil',group:'Official docs',title:'Python glossary — global interpreter lock / free threading',url:'https://docs.python.org/3/glossary.html#term-global-interpreter-lock',note:'Read for the precise GIL definition, release-on-I/O and release-GIL extension behavior, and PEP 703 free-threaded builds (--disable-gil, per-object locks).'},
+ {id:'python-sys-switchinterval',group:'Official docs',title:'Python docs — sys.setswitchinterval',url:'https://docs.python.org/3/library/sys.html#sys.setswitchinterval',note:'Documented thread switch interval (default 5ms) governing how often the GIL is force-released between bytecode threads.'},
+ {id:'python-threading-docs',group:'Official docs',title:'Python docs — threading',url:'https://docs.python.org/3/library/threading.html',note:'Thread objects, Lock/RLock/Event/Condition semantics, daemon threads and GIL-era threading model.'},
  {id:'python-asyncio-sync-docs',group:'Official docs',title:'Python docs — Synchronization Primitives',url:'https://docs.python.org/3/library/asyncio-sync.html',note:'Read for Lock/Semaphore/Event/Condition/Barrier semantics: not thread-safe, no timeout args, fair lock acquisition, Semaphore over-release vs BoundedSemaphore ValueError, spurious Condition wakeups.'},
  {id:'python-asyncio-queue-docs',group:'Official docs',title:'Python docs — Queues',url:'https://docs.python.org/3/library/asyncio-queue.html',note:'Read for Queue(maxsize) backpressure, get/task_done/join discipline, shutdown(immediate) and QueueShutDown (3.13+), PriorityQueue/LifoQueue variants.'},
  {id:'python-asyncio-eventloop-docs',group:'Official docs',title:'Python docs — Event Loop',url:'https://docs.python.org/3/library/asyncio-eventloop.html',note:'Read for loop mechanics: call_soon FIFO ordering, monotonic call_later/call_at, selector-based I/O polling, run_in_executor offloading rules, getaddrinfo running in the default thread pool, debug mode and the 100ms slow-callback threshold.'},
