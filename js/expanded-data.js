@@ -128,7 +128,119 @@ visuals:[
   interviewerNotice:['You can define the protocol without hand-waving and explain for-loop desugaring.','You know why re-iterating a generator is empty: it is the same exhausted iterator.']}
 ]}),
 mk({id:'python-context-managers',domain:'python-core',title:'Context Managers & Resource Safety',priority:3,intuition:'A context manager guarantees cleanup around a block—even when an exception happens.',technical:'The with statement calls __enter__/__exit__ or an @contextmanager generator. Async context managers use __aenter__/__aexit__. They fit files, DB transactions, locks, spans and temporary resources.',remember:['Acquire resource → use → guaranteed cleanup.','Prefer context managers over scattered try/finally cleanup.'],terms:['context manager','RAII-like lifecycle'],functions:['with','contextlib.contextmanager','async with'],interview:'I wrap resources with context managers so ownership and cleanup are explicit; for async DB sessions or HTTP clients I use async with so connections are returned even on exceptions.'}),
-mk({id:'python-exceptions',domain:'python-core',title:'Exceptions, Error Boundaries & Retryable Failures',priority:4,intuition:'Exceptions should cross only the boundaries that know how to recover or translate them.',technical:'Catch specific exceptions near recovery boundaries. Preserve causes with raise ... from. Distinguish validation, transient dependency, timeout and programmer errors because they need different handling and retry policies.',remember:['Catch specific, not blanket Exception unless at a top boundary.','Retry only transient/idempotent work.','Log with context once at the right boundary.'],terms:['exception chaining','retryable error','error boundary'],functions:['raise','try/except/finally','raise X from e'],interview:'I classify failures first. A timeout to a dependency may be retryable; malformed input is not. I translate internal errors at service boundaries and preserve the original cause for observability.',usedByYou:['This applies directly to RTSP retries, model-service failures and webhook/API integrations.']}),
+mk({id:'python-exceptions',domain:'python-core',title:'Exceptions, Error Boundaries & Retryable Failures',priority:4,
+intuition:'Exceptions should cross only the boundaries that know how to recover or translate them — everything else should propagate.',
+technical:'try/except matches by class hierarchy: an except clause catches the named class and its subclasses, and the FIRST matching clause wins, so order specific-before-general. raise ... from exc chains a translated error to its cause (from None suppresses). finally always runs — and if finally itself returns, it swallows the in-flight exception. ExceptionGroup with except* handles multiple unrelated failures; add_note() enriches tracebacks. BaseException sits above Exception precisely so SystemExit/KeyboardInterrupt are not caught by accident.',
+deepDive:'The matching rules are where subtle bugs live, straight from the tutorial: a class in except matches instances of that class or any derived class, "but not the other way around" — and with multiple clauses, only the first match executes. except Exception above except ValueError makes the ValueError handler dead code. The tutorial\'s B/C/D example prints B, B, B if reversed. Also: handlers catch exceptions from anywhere inside the try block, including deep in called functions — a try around a whole request handler is a boundary, not a local guard.\n\nChaining is an observability contract. Implicit chaining: raising inside an except block attaches the active exception ("During handling of the above exception, another exception occurred"). Explicit chaining: raise ServiceError("db unavailable") from exc marks a deliberate translation ("The above exception was the direct cause of...") — this is how a repository layer should convert psycopg errors into domain errors while keeping the stack. from None suppresses context — justified only when the cause is redundant or sensitive (e.g., hiding internals at a public API edge).\n\nfinally has teeth people forget: it runs before break/continue/return leave the try, and "if a finally clause includes a return statement, the returned value will be the one from the finally" — silently discarding both the try\'s return and any in-flight exception. Python 3.14 now emits SyntaxWarning for this (PEP 765) because it is that error-prone. Rule: finally releases resources; it never returns and never raises new things.\n\nThe engineering decision is classification. Four failure classes with different policies: (1) programmer errors (TypeError, AttributeError, assertion failures) — never retry, fix the code, fail fast in dev, alert in prod; (2) transient dependency errors (connection reset, timeout on idempotent read) — retry with exponential backoff + jitter, bounded attempts; (3) permanent dependency errors (401, 404, validation) — no retry, translate and surface; (4) cancellation/shutdown (KeyboardInterrupt, CancelledError, SystemExit) — never swallow, they live outside Exception for a reason. Retry policy must also consider idempotency: retrying a non-idempotent POST can double-charge; retrying a GET is safe.\n\nBoundaries: translate at layer edges (repository → domain → API), log ONCE with full context at the boundary that finally handles the error, and re-raise elsewhere. except Exception as e: log(...); raise is the correct top-boundary wildcard per the tutorial. ExceptionGroup + except* exists for concurrent failures (TaskGroup raises one); add_note() attaches late-arriving context ("happened during iteration 3") without wrapping.',
+terms:['exception hierarchy','exception chaining','error boundary','retryable vs permanent failure','ExceptionGroup','except*','add_note()','finally semantics'],
+functions:['try/except/else/finally','raise X from exc','raise ... from None','except* (ExceptionGroup)','e.add_note()','logging at boundaries','contextlib.suppress'],
+remember:['First matching except wins — order specific before general or handlers become dead code.','raise X from exc preserves the cause; from None deliberately hides it.','finally always runs; a return inside finally swallows exceptions and overrides results (SyntaxWarning in 3.14).','Classify: programmer error ≠ transient ≠ permanent ≠ cancellation — each has a different policy.','Log once at the handling boundary; translate and chain at layer edges; re-raise elsewhere.'],
+tradeoffs:['EAFP vs LBYL: try/except is faster and race-free on hot paths; explicit checks read better for rare, expected conditions.','Catch-specific vs catch-Exception: precise recovery vs guaranteed boundary logging — combine (specific first, Exception logs + re-raises).','Exceptions vs error codes/Result types: Pythonic flow control and stack context vs explicit signatures; exceptions win in idiomatic Python.'],
+failureModes:['except Exception: pass — silent corruption; the single worst Python anti-pattern.','Dead except clause hidden behind a broader earlier clause.','finally return/break swallowing in-flight exceptions (pre-3.14: no warning).','Retrying non-idempotent operations — duplicate payments/side effects.','Losing the cause chain: raise NewError(...) without from exc — the original stack vanishes from logs.'],
+scaling:['At scale, error classes become metrics: count by (endpoint, exception class) — spikes in a transient class justify backoff tuning; programmer-error classes should trend to zero.','Exception-heavy hot loops are slow — use them for boundaries, not inner-loop control flow.'],
+security:['Exception messages can leak internals (paths, SQL, keys) to clients — translate to safe messages at the API edge; from None where the cause chain itself is sensitive.','Do not catch KeyboardInterrupt/SystemExit in workers — it breaks graceful shutdown semantics.'],
+traps:['Writing except ValueError after except Exception and wondering why it never runs.','Believing the GIL or "atomic" statements protect multi-statement invariants (see GIL lesson).','Catching BaseException implicitly via bare except: — catches SystemExit/KeyboardInterrupt.','Wrapping EVERYTHING in try inside inner loops instead of one boundary — unreadable and slow.'],
+usedByYou:['RTSP capture loops, model-service calls and webhook handlers all follow the same shape: classify (transient/permanent), retry transient reads with backoff, translate at the service boundary with from exc, and log once with camera/stream context.'],
+codeTitle:'Classification, chaining and safe retry (verified runnable)',
+code:`import random, time
+
+class TransientError(Exception): pass
+class PermanentError(Exception): pass
+
+def flaky_upstream(call_id: int):
+    """Simulated dependency: fails transiently, then succeeds."""
+    if call_id < 2:
+        raise TransientError(f'connection reset (call {call_id})')
+    return {'status': 'ok', 'data': call_id}
+
+def call_with_retry(op, attempts=3, base_delay=0.05):
+    last = None
+    for attempt in range(attempts):
+        try:
+            return op()
+        except TransientError as exc:          # retryable: backoff + jitter
+            last = exc
+            delay = base_delay * (2 ** attempt) + random.uniform(0, 0.01)
+            print(f'attempt {attempt+1} failed ({exc}); retrying in {delay*1000:.0f}ms')
+            time.sleep(delay)
+        except PermanentError as exc:          # never retried
+            raise ValueError(f'operation rejected: {exc}') from exc
+    raise TransientError(f'exhausted {attempts} attempts') from last
+
+def repository():
+    try:
+        return call_with_retry(lambda: flaky_upstream(random.randint(0, 2)))
+    except TransientError as exc:
+        raise RuntimeError('upstream unavailable after retries') from exc
+
+def main():
+    try:
+        result = repository()
+        print('result:', result)
+    except RuntimeError as exc:
+        print('boundary handled:', exc)
+        print('cause chain preserved:', type(exc.__cause__).__name__,
+              '←', type(exc.__cause__.__cause__).__name__)
+
+    # finally-return trap (documented behavior — do NOT do this):
+    def trap():
+        try:
+            raise ValueError('in-flight')
+        finally:
+            return 'finally wins'              # swallows the exception
+    print('trap result:', trap())
+
+main()`,
+sources:['python-tutorial-errors','python-glossary-generators'],
+prerequisites:['python-object-model'],
+nextTopics:['python-context-managers','python-oop-solid'],
+interviewAnswer:'I treat exceptions as a boundary problem. Inside a layer I let them propagate; at layer edges I translate — raise a domain error from the original with from exc so the cause chain survives into logs — and I log once, where the error is finally handled, never at every level. Before catching I classify: programmer errors fail fast and are never retried; transient dependency errors get bounded exponential backoff with jitter, and only when the operation is idempotent; permanent errors surface immediately; cancellation and SystemExit are never swallowed because they sit outside Exception deliberately. I also respect the sharp edges: first matching except wins, and a return inside finally silently swallows in-flight exceptions — Python 3.14 now warns on it.',
+visuals:[
+ {type:'flow',id:'py-exceptions-boundary-map',w:800,h:330,
+  title:'Visual A — Where exceptions are translated, logged and re-raised',
+  purpose:'Show the rule "propagate inside, translate at edges, log once at the handler" across repository → service → API layers, with the cause chain preserved.',
+  nodes:[
+   {id:'repo',x:20,y:110,w:160,h:70,label:'Repository',sub:'raises ConnectionError',cls:'cyan'},
+   {id:'svc',x:240,y:110,w:180,h:70,label:'Service layer',sub:'translates: raise DomainError from exc',cls:'accent'},
+   {id:'api',x:480,y:110,w:150,h:70,label:'API boundary',sub:'logs once + safe message',cls:'green'},
+   {id:'client',x:690,y:110,w:90,h:70,label:'Client',sub:'4xx/5xx'},
+   {id:'chain',x:240,y:230,w:390,h:56,label:'cause chain: DomainError ← ConnectionError ← socket trace',cls:''}
+  ],
+  edges:[
+   {from:'repo',to:'svc',points:[[180,145],[240,145]],label:'raw',cls:'hot'},
+   {from:'svc',to:'api',points:[[420,145],[480,145]],label:'domain'},
+   {from:'api',to:'client',points:[[630,145],[690,145]],label:'HTTP'},
+   {from:'svc',to:'chain',points:[[330,180],[330,230]],label:'from exc',cls:'arch-flow'},
+   {from:'chain',to:'api',points:[[560,230],[560,180]],label:'rendered in logs',cls:'arch-flow'}
+  ],
+  howToRead:['The repository raises a low-level error — it does not know HTTP, and should not pretend to.','The service translates to a domain error and CHAINS the cause — nothing is lost.','The API boundary logs once (full chain) and emits a safe client message.','Between boundaries, do nothing: no logging, no wrapping — just let it fly.'],
+  interviewerNotice:['You separate handling responsibility from detection — no log spam across layers.','You keep root causes reachable for postmortems via from exc.']},
+ {type:'states',id:'py-exceptions-classify-flow',w:800,h:352,
+  title:'Visual B — Classify first: the four failure families',
+  purpose:'Show the decision path from "an exception happened" to the correct policy — retry, surface, fix, or never interfere.',
+  nodes:[
+   {id:'err',x:20,y:100,w:130,h:56,label:'exception',cls:'cyan',start:true},
+   {id:'prog',x:220,y:20,w:170,h:56,label:'programmer error',sub:'TypeError, bad state'},
+   {id:'tran',x:220,y:104,w:170,h:56,label:'transient dependency',sub:'timeout, reset'},
+   {id:'perm',x:220,y:188,w:170,h:56,label:'permanent rejection',sub:'404, 401, validation'},
+   {id:'cancel',x:220,y:272,w:170,h:56,label:'cancellation',sub:'KeyboardInterrupt, CancelledError'},
+   {id:'fix',x:560,y:20,w:150,h:56,label:'fail fast · fix',sub:'never retry',cls:'accent'},
+   {id:'retry',x:560,y:104,w:150,h:56,label:'bounded retry',sub:'backoff + jitter + idempotent?',cls:'green'},
+   {id:'surf',x:560,y:188,w:150,h:56,label:'surface now',sub:'no retry',cls:'cyan'},
+   {id:'never',x:560,y:272,w:150,h:56,label:'never swallow',sub:'let it propagate',cls:'hot'}
+  ],
+  edges:[
+   {from:'err',to:'prog',points:[[150,116],[195,116],[195,48],[220,48]],cls:'arch-flow'},
+   {from:'err',to:'tran',points:[[150,128],[220,132]],cls:'arch-flow'},
+   {from:'err',to:'perm',points:[[150,140],[195,140],[195,216],[220,216]],cls:'arch-flow'},
+   {from:'prog',to:'fix',points:[[390,48],[560,48]],cls:'hot'},
+   {from:'tran',to:'retry',points:[[390,132],[560,132]],label:'idempotent only'},
+   {from:'perm',to:'surf',points:[[390,216],[560,216]],cls:'arch-flow'},
+   {from:'cancel',to:'never',points:[[390,300],[560,300]],cls:'hot'}
+  ],
+  howToRead:['The first decision is always classification — policy follows from the family.','Programmer errors: retrying hides bugs; crash, alert, fix the code.','Transient errors: retry only with a bound, backoff, jitter — and only idempotent operations.','Permanent rejections: surface immediately with a translated message.','Cancellation lives outside Exception: swallowing it breaks timeouts, TaskGroup and shutdown.'],
+  interviewerNotice:['You never reach for a retry loop before asking what KIND of failure occurred.','You know why CancelledError/KeyboardInterrupt must not be caught by broad handlers.']}
+]}),
 mk({id:'python-typing-dataclasses',domain:'python-core',title:'Type Hints, Dataclasses & Pydantic Boundaries',priority:3,intuition:'Types make contracts visible; validation libraries enforce data at runtime where external input enters.',technical:'Python annotations aid static analysis but do not enforce runtime types by themselves. dataclasses reduce boilerplate for internal records; Pydantic validates/parses external API/config data and produces schemas.',remember:['Type hints document and check contracts statically.','Validate untrusted input at boundaries.','Do not turn every internal object into a heavy validation model.'],terms:['type annotation','dataclass','schema validation'],functions:['@dataclass','typing.Protocol','pydantic.BaseModel'],interview:'I use Pydantic at FastAPI boundaries and lighter dataclasses or typed objects internally. That keeps validation where it adds value without coupling the entire domain to the web schema.'}),
 mk({id:'python-oop-solid',domain:'python-core',title:'OOP & SOLID in Python',priority:4,intuition:'Good OOP groups behavior with the state it owns and hides unstable details behind clear interfaces.',technical:'Encapsulation protects invariants; polymorphism lets callers depend on contracts; composition is often safer than deep inheritance. SOLID is a set of design heuristics, not laws.',remember:['Prefer composition over deep inheritance.','Dependency inversion means domain code depends on abstractions, not infrastructure details.','Single responsibility is about reasons to change.'],terms:['encapsulation','polymorphism','composition','dependency inversion'],functions:['abc.ABC','typing.Protocol','super()'],interview:'In Python I often use Protocols or small interfaces and inject adapters—for example a vector-store or model-provider abstraction—so business logic is testable and infrastructure can change.',usedByYou:['Provider abstraction in your AI gateway/RAG work is a natural dependency-inversion example.']}),
 mk({id:'python-gil',domain:'python-core',title:'GIL, Threads & CPU-bound Work',priority:5,
@@ -1056,6 +1168,7 @@ Object.assign(glossaryRaw,{
 D.glossary=Object.entries(glossaryRaw).map(([term,definition])=>({term,definition})).sort((a,b)=>a.term.localeCompare(b.term));
 
 D.sources.push(
+ {id:'python-tutorial-errors',group:'Official docs',title:'Python tutorial — Errors and Exceptions',url:'https://docs.python.org/3/tutorial/errors.html',note:'Read for except matching order and subclass rules, implicit/explicit chaining (raise from / from None), finally return-swallowing (PEP 765 warning), ExceptionGroup/except*, add_note().'},
  {id:'python-glossary-generators',group:'Official docs',title:'Python glossary — generator / iterator terms',url:'https://docs.python.org/3/glossary.html#term-generator',note:'Read for precise definitions: generator function/iterator/expression, yield suspending frame state, send()/throw(), single-pass semantics.'},
  {id:'python-reference-generators',group:'Official docs',title:'Python language reference — Yield expressions',url:'https://docs.python.org/3/reference/expressions.html#yieldexpr',note:'Authoritative yield/yield from semantics: frame suspension, StopIteration.value from return, generator close/throw protocol.'},
  {id:'python-multiprocessing-docs',group:'Official docs',title:'Python docs — multiprocessing',url:'https://docs.python.org/3/library/multiprocessing.html',note:'Read for start methods (spawn/forkserver/fork, 3.14 defaults), pickling boundary, __main__ guard, Queue feeder-thread and terminate-corruption warnings, Pool semantics and shared memory/Manager options.'},

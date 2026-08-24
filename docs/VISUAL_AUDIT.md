@@ -14,8 +14,8 @@ diagram keys render nothing and appear here as MISSING.
 | Status | Lessons |
 |--------|---------|
 | GENERIC-REGISTRY | 54 |
-| MISSING | 104 |
-| APPROVED | 9 |
+| MISSING | 103 |
+| APPROVED | 10 |
 | **Total** | 167 |
 
 ## Per-lesson status
@@ -86,7 +86,7 @@ diagram keys render nothing and appear here as MISSING.
 | python-closures-decorators | Closures & Decorators | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | python-iterators-generators | Iterators, Generators & Lazy Pipelines | P4 | generic | APPROVED | 2 purpose-built visuals |
 | python-context-managers | Context Managers & Resource Safety | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| python-exceptions | Exceptions, Error Boundaries & Retryable Failures | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
+| python-exceptions | Exceptions, Error Boundaries & Retryable Failures | P4 | generic | APPROVED | 2 purpose-built visuals |
 | python-typing-dataclasses | Type Hints, Dataclasses & Pydantic Boundaries | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | python-oop-solid | OOP & SOLID in Python | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
 | python-gil | GIL, Threads & CPU-bound Work | P5 | generic | APPROVED | 2 purpose-built visuals |
