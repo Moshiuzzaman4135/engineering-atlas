@@ -10,7 +10,7 @@ CURRENT_COMMIT: (this wave — see git log)
 CURRENT_DOMAIN: all domains enriched except ml-foundations (20) + vision-ai (23)
 LAST_COMPLETED_WAVE: Waves 0–2 done; ai-runtime/inference/database/messaging/
   distributed/system-design/platform/cs-core ALL have purpose-built visuals
-  + deepDives (151/167 lessons now render visuals; vision-ai's 16 remain)
+  + deepDives (167/167 lessons now render visuals)
 LAST_FULL_TEST_RESULT: PASS — 66/66 (node --check all + node --test)
 LAST_BROWSER_RESULT: PASS — smoke test (route/topic/lab render + spec bounds)
   clean; screenshots inspected for agent-runtime, model-routing, vllm-serving,
@@ -21,13 +21,7 @@ DOMAINS_COMPLETED: ai-runtime, inference, database, messaging, distributed,
   system-design, platform, cs-core, python-core, ml-foundations (ALL 20 ml
   lessons now have 2 purpose-built visuals + deepDives)
 DOMAINS_IN_PROGRESS: none (between waves)
-DOMAINS_REMAINING: vision-ai ONLY (23 lessons: cv-image-representation,
-  cv-preprocessing, yolo-architecture, yolo-loss, iou-nms, yolo-anchorfree,
-  yolo-training-debug, object-tracking, sort-deepsort, kalman-filter,
-  hungarian, anpr-end-to-end, plate-recognition, temporal-voting,
-  mmc-pipeline, motion-detection, scene-detection, face-recognition-pipeline,
-  arcface, faiss-ann, multimodal-embeddings, video-sampling,
-  video-context-fusion)
+DOMAINS_REMAINING: none — ALL 167 lessons have purpose-built visuals (APPROVED)
 
 RESEARCH_COMPLETED: see docs/SOURCES.md — datamodel, contextlib, dataclasses,
   profile, FastAPI lifespan, asyncpg, PG EXPLAIN recorded; in-app curated
@@ -64,20 +58,11 @@ NEXT_EXACT_TASK: ml-foundations + vision-ai batches, using the proven pipeline:
     7. Then: add all new ids to APPROVED in tools/visual-audit.mjs AND
        tests/visual-semantics.test.js; regenerate docs/VISUAL_AUDIT.md;
        update this file; final commit.
-    ML is DONE (batch /tmp/opencode/batchN.mjs pattern — copy its structure).
-    Vision visual ideas (2 per lesson, purpose-first): YOLO = flow
-    (backbone→neck→head grid cells); IoU/NMS = flow (score-sorted
-    suppression steps) + matrix (IoU thresholds); tracking = lanes
-    (detections→tracks over frames); Kalman = states (predict/update
-    cycle); Hungarian = matrix (cost grid + assignments); ANPR end-to-end
-    = flow WITH FAILURE PATHS; plate OCR = flow (crop→rectify→sequence
-    model→confidence); temporal voting = lanes (frames→votes→decision);
-    MMC = flow (multi-task heads); motion = flow (frame diff→bg model);
-    face pipeline = flow (detect→align→embed→search with thresholds);
-    ArcFace = plot (angular margin geometry); FAISS = flow (build→query
-    →rerank); CLIP = flow (two towers→shared space); video-sampling =
-    plot (fps vs cost/accuracy); scene detection = lanes (shots→sampling).
-    Vision lessons live in js/data.js (T() format) — verify with grep first.
+    Vision is DONE (batches /tmp/opencode/batchO.mjs + batchP.mjs pattern).
+    NEXT: Waves 15-18 — GitHub evidence audit, interview-bank adversarial
+    upgrade, whole-product visual/a11y/mobile review, deployment verification.
+    Remaining polish candidates: some lessons carry 1 visual (test ratchet
+    now >=1); add second visuals to P5 vision lessons when revisiting.
     NOTE: patch-lessons.mjs merges extraTraps/extraFailureModes via T()/mk()
     (T() already patched to merge). Keep deepDives 2-3 paragraphs, honest
     numbers (illustrative labels), sources from in-app curated list.
@@ -93,12 +78,10 @@ NEXT_EXACT_TASK: ml-foundations + vision-ai batches, using the proven pipeline:
 - [x] **Wave 3** SQL + PostgreSQL + DB performance (11 lessons, visuals+depth)
 - [x] **Wave 4** Redis/Kafka/RabbitMQ/MQTT/Celery messaging (7 lessons)
 - [x] **Wave 5** distributed + system design (34 lessons across 2 domains)
-- [ ] **Wave 6** ML fundamentals + neural nets (20 lessons — NEXT)
-- [ ] **Wave 7** CV + YOLO + tracking (23 lessons)
-- [x] **Wave 8** ANPR + MMC + Motion + Face case-study lessons (visuals pending
-      with Wave 7 batch)
-- [ ] **Wave 9** embeddings + FAISS + vector search (partially done: faiss-ann,
-      multimodal-embeddings pending)
+- [x] **Wave 6** ML fundamentals + neural nets (20 lessons done)
+- [x] **Wave 7** CV + YOLO + tracking (23 lessons done)
+- [x] **Wave 8** ANPR + MMC + Motion + Face case-study lessons (done)
+- [x] **Wave 9** embeddings + FAISS + vector search (done)
 - [x] **Wave 10** RAG + retrieval + evaluation (rag-grounding, rag-chunking,
       evals-guardrails done)
 - [x] **Wave 11** agents + harness + memory + routing (ai-runtime domain done)

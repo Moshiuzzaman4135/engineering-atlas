@@ -13,74 +13,71 @@ diagram keys render nothing and appear here as MISSING.
 
 | Status | Lessons |
 |--------|---------|
-| CUSTOM | 122 |
-| APPROVED | 22 |
-| MISSING | 16 |
-| GENERIC-REGISTRY | 7 |
+| APPROVED | 167 |
 | **Total** | 167 |
 
 ## Per-lesson status
 
 | Lesson | Title | Pri | diagram key | Status | Notes |
 |--------|-------|-----|-------------|--------|-------|
-| agent-runtime | Agent Runtime / Harness | P5 | harness | CUSTOM | 2 visual spec(s) — review pending |
-| harness-optimization | Harness Optimization | P5 | harness | CUSTOM | 2 visual spec(s) — review pending |
-| runtime-orchestration | Runtime Orchestration & Agent Execution | P5 | harness | CUSTOM | 2 visual spec(s) — review pending |
-| tool-calling | Tool Calling & Structured Actions | P5 | harness | CUSTOM | 2 visual spec(s) — review pending |
-| model-routing | Model Routing & AI Gateways | P5 | router | CUSTOM | 2 visual spec(s) — review pending |
-| memory-systems | Agent Memory Systems | P5 | memory | CUSTOM | 2 visual spec(s) — review pending |
-| rag-grounding | RAG & Enterprise Knowledge Grounding | P5 | rag | CUSTOM | 2 visual spec(s) — review pending |
-| evals-guardrails | AI Evaluation, Guardrails & Hallucination Mitigation | P5 | eval | CUSTOM | 2 visual spec(s) — review pending |
-| ai-observability | AI Observability | P5 | trace | CUSTOM | 2 visual spec(s) — review pending |
-| local-llm | Local / Open-Source LLM Deployment | P4 | router | CUSTOM | 2 visual spec(s) — review pending |
-| gpu-fundamentals | GPU Inference Fundamentals | P4 | gpu | CUSTOM | 2 visual spec(s) — review pending |
-| triton-optimization | Triton Serving & Dynamic Batching | P5 | gpu | CUSTOM | 2 visual spec(s) — review pending |
-| k8s-ai-scaling | Kubernetes AI Deployment & HPA | P4 | scale | CUSTOM | 2 visual spec(s) — review pending |
-| backpressure | Backpressure & Admission Control | P5 | queue | CUSTOM | 2 visual spec(s) — review pending |
-| latency-throughput | Latency, Throughput, Concurrency & Cost | P5 | scale | CUSTOM | 2 visual spec(s) — review pending |
-| fastapi-async | FastAPI Async, Concurrency & Service Boundaries | P4 | api | CUSTOM | 2 visual spec(s) — review pending |
-| event-driven | Event-Driven Architecture & Producer–Consumer | P5 | pipeline | CUSTOM | 2 visual spec(s) — review pending |
-| reliability-patterns | Retries, Circuit Breakers, Bulkheads, DLQ & Outbox | P5 | reliability | CUSTOM | 2 visual spec(s) — review pending |
-| load-balancing | Load Balancing | P5 | scale | CUSTOM | 2 visual spec(s) — review pending |
-| horizontal-scaling | Horizontal vs Vertical Scaling & Statelessness | P5 | scale | CUSTOM | 2 visual spec(s) — review pending |
-| redis-zset | Redis ZSET as a Work Queue | P5 | broker | CUSTOM | 2 visual spec(s) — review pending |
-| redis-streams | Redis Streams & Consumer Groups | P5 | broker | CUSTOM | 2 visual spec(s) — review pending |
-| rabbitmq-deep-dive | RabbitMQ: Exchanges, Ack, Prefetch, DLQ & Quorum Queues | P5 | broker | CUSTOM | 2 visual spec(s) — review pending |
-| kafka-deep-dive | Kafka: Partitions, Keys, Offsets & Consumer Groups | P5 | kafka | CUSTOM | 2 visual spec(s) — review pending |
-| mqtt | MQTT & Lightweight Pub/Sub | P4 | broker | CUSTOM | 2 visual spec(s) — review pending |
-| broker-decision | Kafka vs RabbitMQ vs Redis vs MQTT vs Celery | P5 | broker | CUSTOM | 2 visual spec(s) — review pending |
-| postgres-explain | PostgreSQL Query Planning & EXPLAIN | P5 | planner | CUSTOM | 2 visual spec(s) — review pending |
-| postgres-indexes | PostgreSQL Indexes: Composite, Partial & Covering | P5 | db | CUSTOM | 2 visual spec(s) — review pending |
-| sql-joins | Join & Query Optimization | P4 | db | CUSTOM | 2 visual spec(s) — review pending |
-| db-connection-pooling | Connection Pooling | P5 | db | CUSTOM | 2 visual spec(s) — review pending |
-| db-load-reduction | Reduce Database Load: Cache, Replicas & Precomputation | P5 | db | CUSTOM | 2 visual spec(s) — review pending |
-| partitioning | Partitioning, Retention & Hot Tables | P4 | db | CUSTOM | 2 visual spec(s) — review pending |
-| transactions-locks | Transactions, Isolation, Locks & Contention | P4 | db | CUSTOM | 2 visual spec(s) — review pending |
-| api-security | API Security: OAuth/OIDC, JWT, RBAC, mTLS & Secrets | P4 | security | CUSTOM | 2 visual spec(s) — review pending |
-| multi-tenancy | Multi-Tenancy & Data Isolation | P4 | security | CUSTOM | 2 visual spec(s) — review pending |
-| observability-slos | Metrics, Logs, Traces, SLOs & Alerting | P5 | trace | CUSTOM | 2 visual spec(s) — review pending |
-| architecture-tradeoffs | Architecture Decision-Making & Trade-offs | P5 | decision | CUSTOM | 2 visual spec(s) — review pending |
-| leadership-stories | Leadership, Debugging & Incident Stories | P4 | decision | CUSTOM | 2 visual spec(s) — review pending |
-| enterprise-agent-system-design | Enterprise AI Runtime: Enterprise Agent Runtime System Design | P5 | priority | CUSTOM | 2 visual spec(s) — review pending |
-| final-simulation | Final Interview Simulation | P5 | decision | CUSTOM | 2 visual spec(s) — review pending |
-| rag-chunking | RAG Chunking, Top-k & Reranking | P4 | rag | CUSTOM | 2 visual spec(s) — review pending |
-| prompt-injection | Prompt Injection & Tool Security | P4 | security | CUSTOM | 2 visual spec(s) — review pending |
-| context-engineering | Context Engineering | P4 | harness | CUSTOM | 2 visual spec(s) — review pending |
-| model-caching | AI Caching & Request Deduplication | P3 | scale | CUSTOM | 2 visual spec(s) — review pending |
-| queueing-capacity | Capacity Planning & Queueing Intuition | P4 | scale | CUSTOM | 2 visual spec(s) — review pending |
-| idempotency | Idempotency & Delivery Semantics | P5 | reliability | CUSTOM | 2 visual spec(s) — review pending |
-| cache-patterns | Caching Patterns & Stampede Control | P4 | db | CUSTOM | 2 visual spec(s) — review pending |
-| read-replicas | Read Replicas & Consistency | P4 | db | CUSTOM | 2 visual spec(s) — review pending |
-| microservices-boundaries | Monolith vs Microservices & Boundaries | P4 | pipeline | CUSTOM | 2 visual spec(s) — review pending |
-| api-rate-limits | Rate Limiting, Quotas & Fairness | P4 | scale | CUSTOM | 2 visual spec(s) — review pending |
-| docker-cicd | Docker, CI/CD & Safe Releases | P3 | pipeline | CUSTOM | 2 visual spec(s) — review pending |
-| voice-ai | Voice AI Pipeline & Real-Time Latency | P4 | pipeline | CUSTOM | 2 visual spec(s) — review pending |
-| vector-search | Vector Search: Chroma, FAISS & Metadata | P4 | rag | CUSTOM | 2 visual spec(s) — review pending |
-| system-design-process | System Design Interview Process | P5 | decision | CUSTOM | 2 visual spec(s) — review pending |
-| cost-optimization | AI Cost Optimization | P4 | router | CUSTOM | 2 visual spec(s) — review pending |
-| fine-tuning-vs-rag | RAG vs Fine-Tuning vs Prompting | P3 | decision | CUSTOM | 2 visual spec(s) — review pending |
-| data-pipelines | Data Pipelines & Workflow Orchestration | P3 | pipeline | CUSTOM | 2 visual spec(s) — review pending |
-| object-storage | Object Storage vs Database vs Cache | P3 | pipeline | CUSTOM | 2 visual spec(s) — review pending |
+| agent-runtime | Agent Runtime / Harness | P5 | harness | APPROVED | 2 purpose-built visuals |
+| harness-optimization | Harness Optimization | P5 | harness | APPROVED | 2 purpose-built visuals |
+| runtime-orchestration | Runtime Orchestration & Agent Execution | P5 | harness | APPROVED | 2 purpose-built visuals |
+| tool-calling | Tool Calling & Structured Actions | P5 | harness | APPROVED | 2 purpose-built visuals |
+| model-routing | Model Routing & AI Gateways | P5 | router | APPROVED | 2 purpose-built visuals |
+| memory-systems | Agent Memory Systems | P5 | memory | APPROVED | 2 purpose-built visuals |
+| rag-grounding | RAG & Enterprise Knowledge Grounding | P5 | rag | APPROVED | 2 purpose-built visuals |
+| evals-guardrails | AI Evaluation, Guardrails & Hallucination Mitigation | P5 | eval | APPROVED | 2 purpose-built visuals |
+| ai-observability | AI Observability | P5 | trace | APPROVED | 2 purpose-built visuals |
+| local-llm | Local / Open-Source LLM Deployment | P4 | router | APPROVED | 2 purpose-built visuals |
+| gpu-fundamentals | GPU Inference Fundamentals | P4 | gpu | APPROVED | 2 purpose-built visuals |
+| triton-optimization | Triton Serving & Dynamic Batching | P5 | gpu | APPROVED | 2 purpose-built visuals |
+| k8s-ai-scaling | Kubernetes AI Deployment & HPA | P4 | scale | APPROVED | 2 purpose-built visuals |
+| backpressure | Backpressure & Admission Control | P5 | queue | APPROVED | 2 purpose-built visuals |
+| latency-throughput | Latency, Throughput, Concurrency & Cost | P5 | scale | APPROVED | 2 purpose-built visuals |
+| fastapi-async | FastAPI Async, Concurrency & Service Boundaries | P4 | api | APPROVED | 2 purpose-built visuals |
+| event-driven | Event-Driven Architecture & Producer–Consumer | P5 | pipeline | APPROVED | 2 purpose-built visuals |
+| reliability-patterns | Retries, Circuit Breakers, Bulkheads, DLQ & Outbox | P5 | reliability | APPROVED | 2 purpose-built visuals |
+| load-balancing | Load Balancing | P5 | scale | APPROVED | 2 purpose-built visuals |
+| horizontal-scaling | Horizontal vs Vertical Scaling & Statelessness | P5 | scale | APPROVED | 2 purpose-built visuals |
+| redis-zset | Redis ZSET as a Work Queue | P5 | broker | APPROVED | 2 purpose-built visuals |
+| redis-streams | Redis Streams & Consumer Groups | P5 | broker | APPROVED | 2 purpose-built visuals |
+| rabbitmq-deep-dive | RabbitMQ: Exchanges, Ack, Prefetch, DLQ & Quorum Queues | P5 | broker | APPROVED | 2 purpose-built visuals |
+| kafka-deep-dive | Kafka: Partitions, Keys, Offsets & Consumer Groups | P5 | kafka | APPROVED | 2 purpose-built visuals |
+| mqtt | MQTT & Lightweight Pub/Sub | P4 | broker | APPROVED | 2 purpose-built visuals |
+| broker-decision | Kafka vs RabbitMQ vs Redis vs MQTT vs Celery | P5 | broker | APPROVED | 2 purpose-built visuals |
+| postgres-explain | PostgreSQL Query Planning & EXPLAIN | P5 | planner | APPROVED | 2 purpose-built visuals |
+| postgres-indexes | PostgreSQL Indexes: Composite, Partial & Covering | P5 | db | APPROVED | 2 purpose-built visuals |
+| sql-joins | Join & Query Optimization | P4 | db | APPROVED | 2 purpose-built visuals |
+| db-connection-pooling | Connection Pooling | P5 | db | APPROVED | 2 purpose-built visuals |
+| db-load-reduction | Reduce Database Load: Cache, Replicas & Precomputation | P5 | db | APPROVED | 2 purpose-built visuals |
+| partitioning | Partitioning, Retention & Hot Tables | P4 | db | APPROVED | 2 purpose-built visuals |
+| transactions-locks | Transactions, Isolation, Locks & Contention | P4 | db | APPROVED | 2 purpose-built visuals |
+| api-security | API Security: OAuth/OIDC, JWT, RBAC, mTLS & Secrets | P4 | security | APPROVED | 2 purpose-built visuals |
+| multi-tenancy | Multi-Tenancy & Data Isolation | P4 | security | APPROVED | 2 purpose-built visuals |
+| observability-slos | Metrics, Logs, Traces, SLOs & Alerting | P5 | trace | APPROVED | 2 purpose-built visuals |
+| architecture-tradeoffs | Architecture Decision-Making & Trade-offs | P5 | decision | APPROVED | 2 purpose-built visuals |
+| leadership-stories | Leadership, Debugging & Incident Stories | P4 | decision | APPROVED | 2 purpose-built visuals |
+| enterprise-agent-system-design | Enterprise AI Runtime: Enterprise Agent Runtime System Design | P5 | priority | APPROVED | 2 purpose-built visuals |
+| final-simulation | Final Interview Simulation | P5 | decision | APPROVED | 2 purpose-built visuals |
+| rag-chunking | RAG Chunking, Top-k & Reranking | P4 | rag | APPROVED | 2 purpose-built visuals |
+| prompt-injection | Prompt Injection & Tool Security | P4 | security | APPROVED | 2 purpose-built visuals |
+| context-engineering | Context Engineering | P4 | harness | APPROVED | 2 purpose-built visuals |
+| model-caching | AI Caching & Request Deduplication | P3 | scale | APPROVED | 2 purpose-built visuals |
+| queueing-capacity | Capacity Planning & Queueing Intuition | P4 | scale | APPROVED | 2 purpose-built visuals |
+| idempotency | Idempotency & Delivery Semantics | P5 | reliability | APPROVED | 2 purpose-built visuals |
+| cache-patterns | Caching Patterns & Stampede Control | P4 | db | APPROVED | 2 purpose-built visuals |
+| read-replicas | Read Replicas & Consistency | P4 | db | APPROVED | 2 purpose-built visuals |
+| microservices-boundaries | Monolith vs Microservices & Boundaries | P4 | pipeline | APPROVED | 2 purpose-built visuals |
+| api-rate-limits | Rate Limiting, Quotas & Fairness | P4 | scale | APPROVED | 2 purpose-built visuals |
+| docker-cicd | Docker, CI/CD & Safe Releases | P3 | pipeline | APPROVED | 2 purpose-built visuals |
+| voice-ai | Voice AI Pipeline & Real-Time Latency | P4 | pipeline | APPROVED | 2 purpose-built visuals |
+| vector-search | Vector Search: Chroma, FAISS & Metadata | P4 | rag | APPROVED | 2 purpose-built visuals |
+| system-design-process | System Design Interview Process | P5 | decision | APPROVED | 2 purpose-built visuals |
+| cost-optimization | AI Cost Optimization | P4 | router | APPROVED | 2 purpose-built visuals |
+| fine-tuning-vs-rag | RAG vs Fine-Tuning vs Prompting | P3 | decision | APPROVED | 2 purpose-built visuals |
+| data-pipelines | Data Pipelines & Workflow Orchestration | P3 | pipeline | APPROVED | 2 purpose-built visuals |
+| object-storage | Object Storage vs Database vs Cache | P3 | pipeline | APPROVED | 2 purpose-built visuals |
 | python-object-model | Python Object Model: Names, Objects & References | P4 | generic | APPROVED | 2 purpose-built visuals |
 | python-mutable-immutable | Mutable vs Immutable Objects | P4 | generic | APPROVED | 2 purpose-built visuals |
 | python-copying | Shallow Copy vs Deep Copy | P3 | generic | APPROVED | 2 purpose-built visuals |
@@ -101,92 +98,92 @@ diagram keys render nothing and appear here as MISSING.
 | async-db-pools | Async Database Pools & Transaction Scope | P5 | generic | APPROVED | 2 purpose-built visuals |
 | fastapi-lifecycle | FastAPI Dependency Injection, Lifespan & Worker Model | P4 | generic | APPROVED | 2 purpose-built visuals |
 | python-profiling | Python Profiling: CPU, Memory & Event-loop Lag | P4 | generic | APPROVED | 2 purpose-built visuals |
-| ml-train-val-test | Train / Validation / Test Splits | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| ml-bias-variance | Bias–Variance Trade-off | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| ml-overfitting-regularization | Overfitting & Regularization | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| ml-gradient-descent | Gradient Descent, Learning Rate & Optimizers | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| ml-loss-functions | Loss Functions: Cross-Entropy, BCE, MSE & Focal Loss | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| ml-metrics | Precision, Recall, F1, ROC-AUC & PR-AUC | P5 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| ml-regression-metrics | Regression Metrics: MAE, MSE, RMSE & R² | P2 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| ml-cross-validation | Cross-Validation & Hyperparameter Search | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| ml-feature-scaling | Feature Scaling & Normalization | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| ml-data-leakage | Data Leakage & Shortcut Learning | P5 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| ml-class-imbalance | Class Imbalance & Threshold Tuning | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| ml-embeddings | Embeddings: Turning Meaning into Vectors | P5 | vector | CUSTOM | 1 visual spec(s) — review pending |
-| cosine-similarity | Cosine Similarity & Thresholds | P5 | vector | CUSTOM | 1 visual spec(s) — review pending |
-| ml-knn | K-Nearest Neighbors | P2 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| ml-svm | SVM, Margin & Kernels | P2 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| ml-tree-ensembles | Decision Trees, Random Forest & Gradient Boosting | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| ml-neural-net-basics | Neural Network Fundamentals | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| ml-cnn-basics | CNN Fundamentals: Convolution, Receptive Field & Pooling | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| ml-transfer-learning | Transfer Learning & Fine-Tuning | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| ml-drift | Data Drift, Concept Drift & Model Monitoring | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| cv-image-representation | Images as Tensors: Shape, Color & Normalization | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| cv-preprocessing | Resize, Letterbox, Augmentation & Preprocessing Parity | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| yolo-architecture | YOLO Architecture: Backbone, Neck & Detection Head | P5 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
-| yolo-loss | Detection Loss: Box, Objectness & Classification | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| iou-nms | IoU & Non-Maximum Suppression (NMS) | P5 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
-| yolo-anchorfree | Anchor-Based vs Anchor-Free Detection | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| yolo-training-debug | Training & Debugging a YOLO Detector | P5 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| object-tracking | Object Tracking: Detection → Association → Track | P5 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
-| sort-deepsort | SORT vs DeepSORT | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| kalman-filter | Kalman Filter for Tracking | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| hungarian | Hungarian Assignment for Detection-to-Track Matching | P3 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| anpr-end-to-end | ANPR End-to-End Architecture | P5 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
-| plate-recognition | Plate OCR / Recognition: Crops, Sequence Models & Confidence | P5 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| temporal-voting | Temporal Voting & Multi-frame Consensus | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| mmc-pipeline | Vehicle Make / Model / Color (MMC) Pipeline | P5 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
-| motion-detection | Motion Detection: Frame Difference, Background Models & Learned Models | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| scene-detection | Scene Detection & Smart Video Sampling | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| face-recognition-pipeline | Face Recognition: Detect → Align → Embed → Search | P5 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
-| arcface | ArcFace & Metric Learning | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| faiss-ann | FAISS & Approximate Nearest-Neighbor Search | P5 | vector | MISSING | references unregistered "vector" (renders nothing) |
-| multimodal-embeddings | CLIP-style Multimodal Embeddings | P4 | vector | MISSING | references unregistered "vector" (renders nothing) |
-| vlm-vs-vllm | VLM vs vLLM — Do Not Confuse Them | P5 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| vllm-serving | vLLM Serving: KV Cache, Continuous Batching & Throughput | P5 | inference | CUSTOM | 2 visual spec(s) — review pending |
-| video-sampling | Video Sampling, FPS & Cost/Accuracy Trade-off | P4 | generic | MISSING | references unregistered "generic" (renders nothing) |
-| video-context-fusion | Fusing Specialized Models into Video Context | P5 | pipeline | GENERIC-REGISTRY | named renderer "pipeline" — semantic fit unreviewed |
-| system-design-requirements | System Design Step 1: Functional & Non-functional Requirements | P5 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| system-design-capacity | Capacity Estimation: QPS, Storage, Bandwidth & Concurrency | P5 | scale | CUSTOM | 2 visual spec(s) — review pending |
-| system-design-api | API Design: Resources, Idempotency & Pagination | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| load-balancer-algorithms | Load Balancing Algorithms & Health Checks | P5 | scale | CUSTOM | 2 visual spec(s) — review pending |
-| reverse-proxy | Reverse Proxy, API Gateway & Ingress | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| cache-aside-design | Cache-Aside Design & Invalidation | P5 | cache | CUSTOM | 2 visual spec(s) — review pending |
-| consistent-hashing | Consistent Hashing & Partition Movement | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| cdn-design | CDN & Edge Caching | P3 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| db-replication-design | Database Replication: Primary/Replica & Lag | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| sharding-strategies | Sharding Strategies: Range, Hash & Tenant | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| distributed-locks | Distributed Locks & Leases | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| leader-election | Leader Election & Single-Writer Tasks | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| consensus-basics | Consensus Basics: Quorum, Raft & Why It Matters | P3 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| cap-pacelc | CAP & PACELC Without the Meme | P3 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| id-generation | Distributed ID Generation | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| bloom-filter | Bloom Filter | P2 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| rate-limiter-design | Design a Distributed Rate Limiter | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| outbox-pattern | Transactional Outbox Pattern | P5 | queue | CUSTOM | 2 visual spec(s) — review pending |
-| saga-pattern | Saga Pattern for Multi-service Workflows | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| bulkhead-pattern | Bulkhead Isolation | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| four-golden-signals | Four Golden Signals & RED/USE Metrics | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| graceful-degradation | Graceful Degradation & Load Shedding | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| large-file-upload-design | Large File Upload: Multipart, Presigned URLs & Resume | P4 | object | CUSTOM | 2 visual spec(s) — review pending |
-| search-system-design | Search System Design: Filter + Vector + Ranking | P4 | vector | CUSTOM | 2 visual spec(s) — review pending |
-| big-o | Big-O Time & Space Complexity | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| arrays-hashmaps | Arrays, Lists, Hash Maps & Sets | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| stack-queue | Stack, Queue, Deque & Priority Queue | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| linked-list | Linked Lists & Pointer Trade-offs | P2 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| trees-bst | Trees, BSTs & Balanced Search Trees | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| heap | Heap / Priority Queue | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| graphs-bfs-dfs | Graphs, BFS & DFS | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| binary-search | Binary Search & Search-on-Answer | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| recursion-dp | Recursion, Memoization & Dynamic Programming | P3 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| oop-pillars | OOP Pillars: Encapsulation, Abstraction, Inheritance, Polymorphism | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| design-patterns | Factory, Strategy, Adapter & Observer Patterns | P4 | generic | CUSTOM | 1 visual spec(s) — review pending |
-| testing-pyramid | Testing Pyramid, Contracts & Integration Tests | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| ml-train-val-test | Train / Validation / Test Splits | P4 | generic | APPROVED | 1 purpose-built visuals |
+| ml-bias-variance | Bias–Variance Trade-off | P4 | generic | APPROVED | 1 purpose-built visuals |
+| ml-overfitting-regularization | Overfitting & Regularization | P4 | generic | APPROVED | 1 purpose-built visuals |
+| ml-gradient-descent | Gradient Descent, Learning Rate & Optimizers | P3 | generic | APPROVED | 1 purpose-built visuals |
+| ml-loss-functions | Loss Functions: Cross-Entropy, BCE, MSE & Focal Loss | P4 | generic | APPROVED | 1 purpose-built visuals |
+| ml-metrics | Precision, Recall, F1, ROC-AUC & PR-AUC | P5 | generic | APPROVED | 2 purpose-built visuals |
+| ml-regression-metrics | Regression Metrics: MAE, MSE, RMSE & R² | P2 | generic | APPROVED | 1 purpose-built visuals |
+| ml-cross-validation | Cross-Validation & Hyperparameter Search | P3 | generic | APPROVED | 1 purpose-built visuals |
+| ml-feature-scaling | Feature Scaling & Normalization | P3 | generic | APPROVED | 1 purpose-built visuals |
+| ml-data-leakage | Data Leakage & Shortcut Learning | P5 | generic | APPROVED | 1 purpose-built visuals |
+| ml-class-imbalance | Class Imbalance & Threshold Tuning | P4 | generic | APPROVED | 1 purpose-built visuals |
+| ml-embeddings | Embeddings: Turning Meaning into Vectors | P5 | vector | APPROVED | 1 purpose-built visuals |
+| cosine-similarity | Cosine Similarity & Thresholds | P5 | vector | APPROVED | 1 purpose-built visuals |
+| ml-knn | K-Nearest Neighbors | P2 | generic | APPROVED | 1 purpose-built visuals |
+| ml-svm | SVM, Margin & Kernels | P2 | generic | APPROVED | 1 purpose-built visuals |
+| ml-tree-ensembles | Decision Trees, Random Forest & Gradient Boosting | P3 | generic | APPROVED | 1 purpose-built visuals |
+| ml-neural-net-basics | Neural Network Fundamentals | P4 | generic | APPROVED | 1 purpose-built visuals |
+| ml-cnn-basics | CNN Fundamentals: Convolution, Receptive Field & Pooling | P4 | generic | APPROVED | 1 purpose-built visuals |
+| ml-transfer-learning | Transfer Learning & Fine-Tuning | P4 | generic | APPROVED | 1 purpose-built visuals |
+| ml-drift | Data Drift, Concept Drift & Model Monitoring | P4 | generic | APPROVED | 1 purpose-built visuals |
+| cv-image-representation | Images as Tensors: Shape, Color & Normalization | P3 | generic | APPROVED | 1 purpose-built visuals |
+| cv-preprocessing | Resize, Letterbox, Augmentation & Preprocessing Parity | P4 | generic | APPROVED | 1 purpose-built visuals |
+| yolo-architecture | YOLO Architecture: Backbone, Neck & Detection Head | P5 | pipeline | APPROVED | 1 purpose-built visuals |
+| yolo-loss | Detection Loss: Box, Objectness & Classification | P4 | generic | APPROVED | 1 purpose-built visuals |
+| iou-nms | IoU & Non-Maximum Suppression (NMS) | P5 | pipeline | APPROVED | 1 purpose-built visuals |
+| yolo-anchorfree | Anchor-Based vs Anchor-Free Detection | P3 | generic | APPROVED | 1 purpose-built visuals |
+| yolo-training-debug | Training & Debugging a YOLO Detector | P5 | generic | APPROVED | 1 purpose-built visuals |
+| object-tracking | Object Tracking: Detection → Association → Track | P5 | pipeline | APPROVED | 1 purpose-built visuals |
+| sort-deepsort | SORT vs DeepSORT | P4 | generic | APPROVED | 1 purpose-built visuals |
+| kalman-filter | Kalman Filter for Tracking | P3 | generic | APPROVED | 1 purpose-built visuals |
+| hungarian | Hungarian Assignment for Detection-to-Track Matching | P3 | generic | APPROVED | 1 purpose-built visuals |
+| anpr-end-to-end | ANPR End-to-End Architecture | P5 | pipeline | APPROVED | 1 purpose-built visuals |
+| plate-recognition | Plate OCR / Recognition: Crops, Sequence Models & Confidence | P5 | generic | APPROVED | 1 purpose-built visuals |
+| temporal-voting | Temporal Voting & Multi-frame Consensus | P4 | generic | APPROVED | 1 purpose-built visuals |
+| mmc-pipeline | Vehicle Make / Model / Color (MMC) Pipeline | P5 | pipeline | APPROVED | 1 purpose-built visuals |
+| motion-detection | Motion Detection: Frame Difference, Background Models & Learned Models | P4 | generic | APPROVED | 1 purpose-built visuals |
+| scene-detection | Scene Detection & Smart Video Sampling | P4 | generic | APPROVED | 1 purpose-built visuals |
+| face-recognition-pipeline | Face Recognition: Detect → Align → Embed → Search | P5 | pipeline | APPROVED | 1 purpose-built visuals |
+| arcface | ArcFace & Metric Learning | P4 | generic | APPROVED | 1 purpose-built visuals |
+| faiss-ann | FAISS & Approximate Nearest-Neighbor Search | P5 | vector | APPROVED | 1 purpose-built visuals |
+| multimodal-embeddings | CLIP-style Multimodal Embeddings | P4 | vector | APPROVED | 1 purpose-built visuals |
+| vlm-vs-vllm | VLM vs vLLM — Do Not Confuse Them | P5 | generic | APPROVED | 2 purpose-built visuals |
+| vllm-serving | vLLM Serving: KV Cache, Continuous Batching & Throughput | P5 | inference | APPROVED | 2 purpose-built visuals |
+| video-sampling | Video Sampling, FPS & Cost/Accuracy Trade-off | P4 | generic | APPROVED | 1 purpose-built visuals |
+| video-context-fusion | Fusing Specialized Models into Video Context | P5 | pipeline | APPROVED | 1 purpose-built visuals |
+| system-design-requirements | System Design Step 1: Functional & Non-functional Requirements | P5 | generic | APPROVED | 2 purpose-built visuals |
+| system-design-capacity | Capacity Estimation: QPS, Storage, Bandwidth & Concurrency | P5 | scale | APPROVED | 2 purpose-built visuals |
+| system-design-api | API Design: Resources, Idempotency & Pagination | P4 | generic | APPROVED | 2 purpose-built visuals |
+| load-balancer-algorithms | Load Balancing Algorithms & Health Checks | P5 | scale | APPROVED | 2 purpose-built visuals |
+| reverse-proxy | Reverse Proxy, API Gateway & Ingress | P4 | generic | APPROVED | 2 purpose-built visuals |
+| cache-aside-design | Cache-Aside Design & Invalidation | P5 | cache | APPROVED | 2 purpose-built visuals |
+| consistent-hashing | Consistent Hashing & Partition Movement | P4 | generic | APPROVED | 1 purpose-built visuals |
+| cdn-design | CDN & Edge Caching | P3 | generic | APPROVED | 2 purpose-built visuals |
+| db-replication-design | Database Replication: Primary/Replica & Lag | P4 | generic | APPROVED | 2 purpose-built visuals |
+| sharding-strategies | Sharding Strategies: Range, Hash & Tenant | P4 | generic | APPROVED | 2 purpose-built visuals |
+| distributed-locks | Distributed Locks & Leases | P4 | generic | APPROVED | 2 purpose-built visuals |
+| leader-election | Leader Election & Single-Writer Tasks | P3 | generic | APPROVED | 1 purpose-built visuals |
+| consensus-basics | Consensus Basics: Quorum, Raft & Why It Matters | P3 | generic | APPROVED | 2 purpose-built visuals |
+| cap-pacelc | CAP & PACELC Without the Meme | P3 | generic | APPROVED | 2 purpose-built visuals |
+| id-generation | Distributed ID Generation | P3 | generic | APPROVED | 1 purpose-built visuals |
+| bloom-filter | Bloom Filter | P2 | generic | APPROVED | 2 purpose-built visuals |
+| rate-limiter-design | Design a Distributed Rate Limiter | P4 | generic | APPROVED | 2 purpose-built visuals |
+| outbox-pattern | Transactional Outbox Pattern | P5 | queue | APPROVED | 2 purpose-built visuals |
+| saga-pattern | Saga Pattern for Multi-service Workflows | P4 | generic | APPROVED | 2 purpose-built visuals |
+| bulkhead-pattern | Bulkhead Isolation | P4 | generic | APPROVED | 2 purpose-built visuals |
+| four-golden-signals | Four Golden Signals & RED/USE Metrics | P4 | generic | APPROVED | 2 purpose-built visuals |
+| graceful-degradation | Graceful Degradation & Load Shedding | P4 | generic | APPROVED | 2 purpose-built visuals |
+| large-file-upload-design | Large File Upload: Multipart, Presigned URLs & Resume | P4 | object | APPROVED | 2 purpose-built visuals |
+| search-system-design | Search System Design: Filter + Vector + Ranking | P4 | vector | APPROVED | 2 purpose-built visuals |
+| big-o | Big-O Time & Space Complexity | P4 | generic | APPROVED | 1 purpose-built visuals |
+| arrays-hashmaps | Arrays, Lists, Hash Maps & Sets | P4 | generic | APPROVED | 1 purpose-built visuals |
+| stack-queue | Stack, Queue, Deque & Priority Queue | P4 | generic | APPROVED | 1 purpose-built visuals |
+| linked-list | Linked Lists & Pointer Trade-offs | P2 | generic | APPROVED | 1 purpose-built visuals |
+| trees-bst | Trees, BSTs & Balanced Search Trees | P3 | generic | APPROVED | 1 purpose-built visuals |
+| heap | Heap / Priority Queue | P3 | generic | APPROVED | 1 purpose-built visuals |
+| graphs-bfs-dfs | Graphs, BFS & DFS | P4 | generic | APPROVED | 1 purpose-built visuals |
+| binary-search | Binary Search & Search-on-Answer | P3 | generic | APPROVED | 1 purpose-built visuals |
+| recursion-dp | Recursion, Memoization & Dynamic Programming | P3 | generic | APPROVED | 1 purpose-built visuals |
+| oop-pillars | OOP Pillars: Encapsulation, Abstraction, Inheritance, Polymorphism | P4 | generic | APPROVED | 2 purpose-built visuals |
+| design-patterns | Factory, Strategy, Adapter & Observer Patterns | P4 | generic | APPROVED | 1 purpose-built visuals |
+| testing-pyramid | Testing Pyramid, Contracts & Integration Tests | P4 | generic | APPROVED | 2 purpose-built visuals |
 | python-args-kwargs | Python *args, **kwargs & Function Signatures | P4 | generic | APPROVED | 2 purpose-built visuals |
 | python-scope-methods | LEGB Scope, classmethod, staticmethod & Dunder Methods | P4 | generic | APPROVED | 2 purpose-built visuals |
-| db-normalization-bcnf | Database Normalization: 1NF → 2NF → 3NF → BCNF | P5 | db | CUSTOM | 2 visual spec(s) — review pending |
-| sql-window-cte | SQL CTEs, Window Functions & Pagination | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| docker-fundamentals | Docker Fundamentals: Image, Container, Layers & Namespaces | P5 | pipeline | CUSTOM | 2 visual spec(s) — review pending |
-| docker-network-volumes | Docker Networking, Volumes & Health Checks | P4 | generic | CUSTOM | 2 visual spec(s) — review pending |
-| kubernetes-core | Kubernetes Core: Pod, Deployment, Service, Config & Probes | P5 | scale | CUSTOM | 2 visual spec(s) — review pending |
-| linux-process-memory | Linux Process, Thread, Memory & Signals | P3 | generic | CUSTOM | 2 visual spec(s) — review pending |
+| db-normalization-bcnf | Database Normalization: 1NF → 2NF → 3NF → BCNF | P5 | db | APPROVED | 2 purpose-built visuals |
+| sql-window-cte | SQL CTEs, Window Functions & Pagination | P4 | generic | APPROVED | 2 purpose-built visuals |
+| docker-fundamentals | Docker Fundamentals: Image, Container, Layers & Namespaces | P5 | pipeline | APPROVED | 2 purpose-built visuals |
+| docker-network-volumes | Docker Networking, Volumes & Health Checks | P4 | generic | APPROVED | 2 purpose-built visuals |
+| kubernetes-core | Kubernetes Core: Pod, Deployment, Service, Config & Probes | P5 | scale | APPROVED | 2 purpose-built visuals |
+| linux-process-memory | Linux Process, Thread, Memory & Signals | P3 | generic | APPROVED | 2 purpose-built visuals |
