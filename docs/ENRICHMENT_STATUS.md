@@ -65,6 +65,11 @@ NEXT_EXACT_TASK: ml-foundations + vision-ai batches, using the proven pipeline:
     ml-cross-validation, ml-feature-scaling, ml-knn, ml-svm,
     ml-tree-ensembles, cv-image-representation, yolo-anchorfree,
     kalman-filter, hungarian, leader-election, id-generation.
+    Project maps REVAMPED: all 11 projects had rendered the same generic
+    'pipeline' diagram (app.js default). Each now carries a purpose-built
+    named renderer in js/diagrams.js (projIvip…projOcr) showing ITS real
+    architecture from p.flow, wired via p.diagram in data.js. Verified in
+    browser: 11/11 render, fonts capped (fitFont max 12 for top labels).
     Wave 18 (local part) DONE: all assets serve 200, sw.js precaches all
     7 JS files, release tests pass, GitHub Pages paths verified.
     Mobile diagrams: 540px scroll pattern KEPT deliberately — scaling 800px
