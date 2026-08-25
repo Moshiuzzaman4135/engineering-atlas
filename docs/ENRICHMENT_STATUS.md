@@ -65,10 +65,16 @@ NEXT_EXACT_TASK: ml-foundations + vision-ai batches, using the proven pipeline:
     ml-cross-validation, ml-feature-scaling, ml-knn, ml-svm,
     ml-tree-ensembles, cv-image-representation, yolo-anchorfree,
     kalman-filter, hungarian, leader-election, id-generation.
-    NEXT: Waves 15-18 — GitHub evidence audit (inspect repos per
-    SOURCE_NOTES before claiming experience), interview-bank adversarial
-    upgrade, whole-product visual/a11y/mobile review (mobile diagram
-    540px scroll pattern), deployment verification.
+    Wave 18 (local part) DONE: all assets serve 200, sw.js precaches all
+    7 JS files, release tests pass, GitHub Pages paths verified.
+    Mobile diagrams: 540px scroll pattern KEPT deliberately — scaling 800px
+    diagrams into 390px makes text unreadable; scroll + auto-fit fonts is
+    the better mobile UX (responsive test confirms shrink behavior).
+    REMAINING WAVES: 15 (GitHub evidence audit — inspect repos per
+    SOURCE_NOTES before experience claims), 16 (interview-bank adversarial
+    upgrade), 17 (full a11y/keyboard/contrast pass), 18 (live Pages deploy
+    verification). Depth tier-2 opportunity: add verified code examples to
+    domain lessons (currently only 22 python-core lessons carry them).
     NOTE: patch-lessons.mjs merges extraTraps/extraFailureModes via T()/mk()
     (T() already patched to merge). Keep deepDives 2-3 paragraphs, honest
     numbers (illustrative labels), sources from in-app curated list.
