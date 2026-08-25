@@ -101,34 +101,34 @@ diagram keys render nothing and appear here as MISSING.
 | ml-train-val-test | Train / Validation / Test Splits | P4 | generic | APPROVED | 2 purpose-built visuals |
 | ml-bias-variance | Bias–Variance Trade-off | P4 | generic | APPROVED | 2 purpose-built visuals |
 | ml-overfitting-regularization | Overfitting & Regularization | P4 | generic | APPROVED | 2 purpose-built visuals |
-| ml-gradient-descent | Gradient Descent, Learning Rate & Optimizers | P3 | generic | APPROVED | 1 purpose-built visuals |
+| ml-gradient-descent | Gradient Descent, Learning Rate & Optimizers | P3 | generic | APPROVED | 2 purpose-built visuals |
 | ml-loss-functions | Loss Functions: Cross-Entropy, BCE, MSE & Focal Loss | P4 | generic | APPROVED | 2 purpose-built visuals |
 | ml-metrics | Precision, Recall, F1, ROC-AUC & PR-AUC | P5 | generic | APPROVED | 2 purpose-built visuals |
-| ml-regression-metrics | Regression Metrics: MAE, MSE, RMSE & R² | P2 | generic | APPROVED | 1 purpose-built visuals |
-| ml-cross-validation | Cross-Validation & Hyperparameter Search | P3 | generic | APPROVED | 1 purpose-built visuals |
-| ml-feature-scaling | Feature Scaling & Normalization | P3 | generic | APPROVED | 1 purpose-built visuals |
+| ml-regression-metrics | Regression Metrics: MAE, MSE, RMSE & R² | P2 | generic | APPROVED | 2 purpose-built visuals |
+| ml-cross-validation | Cross-Validation & Hyperparameter Search | P3 | generic | APPROVED | 2 purpose-built visuals |
+| ml-feature-scaling | Feature Scaling & Normalization | P3 | generic | APPROVED | 2 purpose-built visuals |
 | ml-data-leakage | Data Leakage & Shortcut Learning | P5 | generic | APPROVED | 2 purpose-built visuals |
 | ml-class-imbalance | Class Imbalance & Threshold Tuning | P4 | generic | APPROVED | 2 purpose-built visuals |
 | ml-embeddings | Embeddings: Turning Meaning into Vectors | P5 | vector | APPROVED | 2 purpose-built visuals |
 | cosine-similarity | Cosine Similarity & Thresholds | P5 | vector | APPROVED | 2 purpose-built visuals |
-| ml-knn | K-Nearest Neighbors | P2 | generic | APPROVED | 1 purpose-built visuals |
-| ml-svm | SVM, Margin & Kernels | P2 | generic | APPROVED | 1 purpose-built visuals |
-| ml-tree-ensembles | Decision Trees, Random Forest & Gradient Boosting | P3 | generic | APPROVED | 1 purpose-built visuals |
+| ml-knn | K-Nearest Neighbors | P2 | generic | APPROVED | 2 purpose-built visuals |
+| ml-svm | SVM, Margin & Kernels | P2 | generic | APPROVED | 2 purpose-built visuals |
+| ml-tree-ensembles | Decision Trees, Random Forest & Gradient Boosting | P3 | generic | APPROVED | 2 purpose-built visuals |
 | ml-neural-net-basics | Neural Network Fundamentals | P4 | generic | APPROVED | 2 purpose-built visuals |
 | ml-cnn-basics | CNN Fundamentals: Convolution, Receptive Field & Pooling | P4 | generic | APPROVED | 2 purpose-built visuals |
 | ml-transfer-learning | Transfer Learning & Fine-Tuning | P4 | generic | APPROVED | 2 purpose-built visuals |
 | ml-drift | Data Drift, Concept Drift & Model Monitoring | P4 | generic | APPROVED | 2 purpose-built visuals |
-| cv-image-representation | Images as Tensors: Shape, Color & Normalization | P3 | generic | APPROVED | 1 purpose-built visuals |
+| cv-image-representation | Images as Tensors: Shape, Color & Normalization | P3 | generic | APPROVED | 2 purpose-built visuals |
 | cv-preprocessing | Resize, Letterbox, Augmentation & Preprocessing Parity | P4 | generic | APPROVED | 2 purpose-built visuals |
 | yolo-architecture | YOLO Architecture: Backbone, Neck & Detection Head | P5 | pipeline | APPROVED | 2 purpose-built visuals |
 | yolo-loss | Detection Loss: Box, Objectness & Classification | P4 | generic | APPROVED | 2 purpose-built visuals |
 | iou-nms | IoU & Non-Maximum Suppression (NMS) | P5 | pipeline | APPROVED | 2 purpose-built visuals |
-| yolo-anchorfree | Anchor-Based vs Anchor-Free Detection | P3 | generic | APPROVED | 1 purpose-built visuals |
+| yolo-anchorfree | Anchor-Based vs Anchor-Free Detection | P3 | generic | APPROVED | 2 purpose-built visuals |
 | yolo-training-debug | Training & Debugging a YOLO Detector | P5 | generic | APPROVED | 2 purpose-built visuals |
 | object-tracking | Object Tracking: Detection → Association → Track | P5 | pipeline | APPROVED | 2 purpose-built visuals |
 | sort-deepsort | SORT vs DeepSORT | P4 | generic | APPROVED | 2 purpose-built visuals |
-| kalman-filter | Kalman Filter for Tracking | P3 | generic | APPROVED | 1 purpose-built visuals |
-| hungarian | Hungarian Assignment for Detection-to-Track Matching | P3 | generic | APPROVED | 1 purpose-built visuals |
+| kalman-filter | Kalman Filter for Tracking | P3 | generic | APPROVED | 2 purpose-built visuals |
+| hungarian | Hungarian Assignment for Detection-to-Track Matching | P3 | generic | APPROVED | 2 purpose-built visuals |
 | anpr-end-to-end | ANPR End-to-End Architecture | P5 | pipeline | APPROVED | 2 purpose-built visuals |
 | plate-recognition | Plate OCR / Recognition: Crops, Sequence Models & Confidence | P5 | generic | APPROVED | 2 purpose-built visuals |
 | temporal-voting | Temporal Voting & Multi-frame Consensus | P4 | generic | APPROVED | 2 purpose-built visuals |
@@ -154,10 +154,10 @@ diagram keys render nothing and appear here as MISSING.
 | db-replication-design | Database Replication: Primary/Replica & Lag | P4 | generic | APPROVED | 2 purpose-built visuals |
 | sharding-strategies | Sharding Strategies: Range, Hash & Tenant | P4 | generic | APPROVED | 2 purpose-built visuals |
 | distributed-locks | Distributed Locks & Leases | P4 | generic | APPROVED | 2 purpose-built visuals |
-| leader-election | Leader Election & Single-Writer Tasks | P3 | generic | APPROVED | 1 purpose-built visuals |
+| leader-election | Leader Election & Single-Writer Tasks | P3 | generic | APPROVED | 2 purpose-built visuals |
 | consensus-basics | Consensus Basics: Quorum, Raft & Why It Matters | P3 | generic | APPROVED | 2 purpose-built visuals |
 | cap-pacelc | CAP & PACELC Without the Meme | P3 | generic | APPROVED | 2 purpose-built visuals |
-| id-generation | Distributed ID Generation | P3 | generic | APPROVED | 1 purpose-built visuals |
+| id-generation | Distributed ID Generation | P3 | generic | APPROVED | 2 purpose-built visuals |
 | bloom-filter | Bloom Filter | P2 | generic | APPROVED | 2 purpose-built visuals |
 | rate-limiter-design | Design a Distributed Rate Limiter | P4 | generic | APPROVED | 2 purpose-built visuals |
 | outbox-pattern | Transactional Outbox Pattern | P5 | queue | APPROVED | 2 purpose-built visuals |
