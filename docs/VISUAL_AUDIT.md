@@ -98,58 +98,58 @@ diagram keys render nothing and appear here as MISSING.
 | async-db-pools | Async Database Pools & Transaction Scope | P5 | generic | APPROVED | 2 purpose-built visuals |
 | fastapi-lifecycle | FastAPI Dependency Injection, Lifespan & Worker Model | P4 | generic | APPROVED | 2 purpose-built visuals |
 | python-profiling | Python Profiling: CPU, Memory & Event-loop Lag | P4 | generic | APPROVED | 2 purpose-built visuals |
-| ml-train-val-test | Train / Validation / Test Splits | P4 | generic | APPROVED | 1 purpose-built visuals |
-| ml-bias-variance | Bias–Variance Trade-off | P4 | generic | APPROVED | 1 purpose-built visuals |
-| ml-overfitting-regularization | Overfitting & Regularization | P4 | generic | APPROVED | 1 purpose-built visuals |
+| ml-train-val-test | Train / Validation / Test Splits | P4 | generic | APPROVED | 2 purpose-built visuals |
+| ml-bias-variance | Bias–Variance Trade-off | P4 | generic | APPROVED | 2 purpose-built visuals |
+| ml-overfitting-regularization | Overfitting & Regularization | P4 | generic | APPROVED | 2 purpose-built visuals |
 | ml-gradient-descent | Gradient Descent, Learning Rate & Optimizers | P3 | generic | APPROVED | 1 purpose-built visuals |
-| ml-loss-functions | Loss Functions: Cross-Entropy, BCE, MSE & Focal Loss | P4 | generic | APPROVED | 1 purpose-built visuals |
+| ml-loss-functions | Loss Functions: Cross-Entropy, BCE, MSE & Focal Loss | P4 | generic | APPROVED | 2 purpose-built visuals |
 | ml-metrics | Precision, Recall, F1, ROC-AUC & PR-AUC | P5 | generic | APPROVED | 2 purpose-built visuals |
 | ml-regression-metrics | Regression Metrics: MAE, MSE, RMSE & R² | P2 | generic | APPROVED | 1 purpose-built visuals |
 | ml-cross-validation | Cross-Validation & Hyperparameter Search | P3 | generic | APPROVED | 1 purpose-built visuals |
 | ml-feature-scaling | Feature Scaling & Normalization | P3 | generic | APPROVED | 1 purpose-built visuals |
-| ml-data-leakage | Data Leakage & Shortcut Learning | P5 | generic | APPROVED | 1 purpose-built visuals |
-| ml-class-imbalance | Class Imbalance & Threshold Tuning | P4 | generic | APPROVED | 1 purpose-built visuals |
-| ml-embeddings | Embeddings: Turning Meaning into Vectors | P5 | vector | APPROVED | 1 purpose-built visuals |
-| cosine-similarity | Cosine Similarity & Thresholds | P5 | vector | APPROVED | 1 purpose-built visuals |
+| ml-data-leakage | Data Leakage & Shortcut Learning | P5 | generic | APPROVED | 2 purpose-built visuals |
+| ml-class-imbalance | Class Imbalance & Threshold Tuning | P4 | generic | APPROVED | 2 purpose-built visuals |
+| ml-embeddings | Embeddings: Turning Meaning into Vectors | P5 | vector | APPROVED | 2 purpose-built visuals |
+| cosine-similarity | Cosine Similarity & Thresholds | P5 | vector | APPROVED | 2 purpose-built visuals |
 | ml-knn | K-Nearest Neighbors | P2 | generic | APPROVED | 1 purpose-built visuals |
 | ml-svm | SVM, Margin & Kernels | P2 | generic | APPROVED | 1 purpose-built visuals |
 | ml-tree-ensembles | Decision Trees, Random Forest & Gradient Boosting | P3 | generic | APPROVED | 1 purpose-built visuals |
-| ml-neural-net-basics | Neural Network Fundamentals | P4 | generic | APPROVED | 1 purpose-built visuals |
-| ml-cnn-basics | CNN Fundamentals: Convolution, Receptive Field & Pooling | P4 | generic | APPROVED | 1 purpose-built visuals |
-| ml-transfer-learning | Transfer Learning & Fine-Tuning | P4 | generic | APPROVED | 1 purpose-built visuals |
-| ml-drift | Data Drift, Concept Drift & Model Monitoring | P4 | generic | APPROVED | 1 purpose-built visuals |
+| ml-neural-net-basics | Neural Network Fundamentals | P4 | generic | APPROVED | 2 purpose-built visuals |
+| ml-cnn-basics | CNN Fundamentals: Convolution, Receptive Field & Pooling | P4 | generic | APPROVED | 2 purpose-built visuals |
+| ml-transfer-learning | Transfer Learning & Fine-Tuning | P4 | generic | APPROVED | 2 purpose-built visuals |
+| ml-drift | Data Drift, Concept Drift & Model Monitoring | P4 | generic | APPROVED | 2 purpose-built visuals |
 | cv-image-representation | Images as Tensors: Shape, Color & Normalization | P3 | generic | APPROVED | 1 purpose-built visuals |
-| cv-preprocessing | Resize, Letterbox, Augmentation & Preprocessing Parity | P4 | generic | APPROVED | 1 purpose-built visuals |
-| yolo-architecture | YOLO Architecture: Backbone, Neck & Detection Head | P5 | pipeline | APPROVED | 1 purpose-built visuals |
-| yolo-loss | Detection Loss: Box, Objectness & Classification | P4 | generic | APPROVED | 1 purpose-built visuals |
-| iou-nms | IoU & Non-Maximum Suppression (NMS) | P5 | pipeline | APPROVED | 1 purpose-built visuals |
+| cv-preprocessing | Resize, Letterbox, Augmentation & Preprocessing Parity | P4 | generic | APPROVED | 2 purpose-built visuals |
+| yolo-architecture | YOLO Architecture: Backbone, Neck & Detection Head | P5 | pipeline | APPROVED | 2 purpose-built visuals |
+| yolo-loss | Detection Loss: Box, Objectness & Classification | P4 | generic | APPROVED | 2 purpose-built visuals |
+| iou-nms | IoU & Non-Maximum Suppression (NMS) | P5 | pipeline | APPROVED | 2 purpose-built visuals |
 | yolo-anchorfree | Anchor-Based vs Anchor-Free Detection | P3 | generic | APPROVED | 1 purpose-built visuals |
-| yolo-training-debug | Training & Debugging a YOLO Detector | P5 | generic | APPROVED | 1 purpose-built visuals |
-| object-tracking | Object Tracking: Detection → Association → Track | P5 | pipeline | APPROVED | 1 purpose-built visuals |
-| sort-deepsort | SORT vs DeepSORT | P4 | generic | APPROVED | 1 purpose-built visuals |
+| yolo-training-debug | Training & Debugging a YOLO Detector | P5 | generic | APPROVED | 2 purpose-built visuals |
+| object-tracking | Object Tracking: Detection → Association → Track | P5 | pipeline | APPROVED | 2 purpose-built visuals |
+| sort-deepsort | SORT vs DeepSORT | P4 | generic | APPROVED | 2 purpose-built visuals |
 | kalman-filter | Kalman Filter for Tracking | P3 | generic | APPROVED | 1 purpose-built visuals |
 | hungarian | Hungarian Assignment for Detection-to-Track Matching | P3 | generic | APPROVED | 1 purpose-built visuals |
-| anpr-end-to-end | ANPR End-to-End Architecture | P5 | pipeline | APPROVED | 1 purpose-built visuals |
-| plate-recognition | Plate OCR / Recognition: Crops, Sequence Models & Confidence | P5 | generic | APPROVED | 1 purpose-built visuals |
-| temporal-voting | Temporal Voting & Multi-frame Consensus | P4 | generic | APPROVED | 1 purpose-built visuals |
-| mmc-pipeline | Vehicle Make / Model / Color (MMC) Pipeline | P5 | pipeline | APPROVED | 1 purpose-built visuals |
-| motion-detection | Motion Detection: Frame Difference, Background Models & Learned Models | P4 | generic | APPROVED | 1 purpose-built visuals |
-| scene-detection | Scene Detection & Smart Video Sampling | P4 | generic | APPROVED | 1 purpose-built visuals |
-| face-recognition-pipeline | Face Recognition: Detect → Align → Embed → Search | P5 | pipeline | APPROVED | 1 purpose-built visuals |
-| arcface | ArcFace & Metric Learning | P4 | generic | APPROVED | 1 purpose-built visuals |
-| faiss-ann | FAISS & Approximate Nearest-Neighbor Search | P5 | vector | APPROVED | 1 purpose-built visuals |
-| multimodal-embeddings | CLIP-style Multimodal Embeddings | P4 | vector | APPROVED | 1 purpose-built visuals |
+| anpr-end-to-end | ANPR End-to-End Architecture | P5 | pipeline | APPROVED | 2 purpose-built visuals |
+| plate-recognition | Plate OCR / Recognition: Crops, Sequence Models & Confidence | P5 | generic | APPROVED | 2 purpose-built visuals |
+| temporal-voting | Temporal Voting & Multi-frame Consensus | P4 | generic | APPROVED | 2 purpose-built visuals |
+| mmc-pipeline | Vehicle Make / Model / Color (MMC) Pipeline | P5 | pipeline | APPROVED | 2 purpose-built visuals |
+| motion-detection | Motion Detection: Frame Difference, Background Models & Learned Models | P4 | generic | APPROVED | 2 purpose-built visuals |
+| scene-detection | Scene Detection & Smart Video Sampling | P4 | generic | APPROVED | 2 purpose-built visuals |
+| face-recognition-pipeline | Face Recognition: Detect → Align → Embed → Search | P5 | pipeline | APPROVED | 2 purpose-built visuals |
+| arcface | ArcFace & Metric Learning | P4 | generic | APPROVED | 2 purpose-built visuals |
+| faiss-ann | FAISS & Approximate Nearest-Neighbor Search | P5 | vector | APPROVED | 2 purpose-built visuals |
+| multimodal-embeddings | CLIP-style Multimodal Embeddings | P4 | vector | APPROVED | 2 purpose-built visuals |
 | vlm-vs-vllm | VLM vs vLLM — Do Not Confuse Them | P5 | generic | APPROVED | 2 purpose-built visuals |
 | vllm-serving | vLLM Serving: KV Cache, Continuous Batching & Throughput | P5 | inference | APPROVED | 2 purpose-built visuals |
-| video-sampling | Video Sampling, FPS & Cost/Accuracy Trade-off | P4 | generic | APPROVED | 1 purpose-built visuals |
-| video-context-fusion | Fusing Specialized Models into Video Context | P5 | pipeline | APPROVED | 1 purpose-built visuals |
+| video-sampling | Video Sampling, FPS & Cost/Accuracy Trade-off | P4 | generic | APPROVED | 2 purpose-built visuals |
+| video-context-fusion | Fusing Specialized Models into Video Context | P5 | pipeline | APPROVED | 2 purpose-built visuals |
 | system-design-requirements | System Design Step 1: Functional & Non-functional Requirements | P5 | generic | APPROVED | 2 purpose-built visuals |
 | system-design-capacity | Capacity Estimation: QPS, Storage, Bandwidth & Concurrency | P5 | scale | APPROVED | 2 purpose-built visuals |
 | system-design-api | API Design: Resources, Idempotency & Pagination | P4 | generic | APPROVED | 2 purpose-built visuals |
 | load-balancer-algorithms | Load Balancing Algorithms & Health Checks | P5 | scale | APPROVED | 2 purpose-built visuals |
 | reverse-proxy | Reverse Proxy, API Gateway & Ingress | P4 | generic | APPROVED | 2 purpose-built visuals |
 | cache-aside-design | Cache-Aside Design & Invalidation | P5 | cache | APPROVED | 2 purpose-built visuals |
-| consistent-hashing | Consistent Hashing & Partition Movement | P4 | generic | APPROVED | 1 purpose-built visuals |
+| consistent-hashing | Consistent Hashing & Partition Movement | P4 | generic | APPROVED | 2 purpose-built visuals |
 | cdn-design | CDN & Edge Caching | P3 | generic | APPROVED | 2 purpose-built visuals |
 | db-replication-design | Database Replication: Primary/Replica & Lag | P4 | generic | APPROVED | 2 purpose-built visuals |
 | sharding-strategies | Sharding Strategies: Range, Hash & Tenant | P4 | generic | APPROVED | 2 purpose-built visuals |
@@ -167,17 +167,17 @@ diagram keys render nothing and appear here as MISSING.
 | graceful-degradation | Graceful Degradation & Load Shedding | P4 | generic | APPROVED | 2 purpose-built visuals |
 | large-file-upload-design | Large File Upload: Multipart, Presigned URLs & Resume | P4 | object | APPROVED | 2 purpose-built visuals |
 | search-system-design | Search System Design: Filter + Vector + Ranking | P4 | vector | APPROVED | 2 purpose-built visuals |
-| big-o | Big-O Time & Space Complexity | P4 | generic | APPROVED | 1 purpose-built visuals |
-| arrays-hashmaps | Arrays, Lists, Hash Maps & Sets | P4 | generic | APPROVED | 1 purpose-built visuals |
-| stack-queue | Stack, Queue, Deque & Priority Queue | P4 | generic | APPROVED | 1 purpose-built visuals |
-| linked-list | Linked Lists & Pointer Trade-offs | P2 | generic | APPROVED | 1 purpose-built visuals |
-| trees-bst | Trees, BSTs & Balanced Search Trees | P3 | generic | APPROVED | 1 purpose-built visuals |
-| heap | Heap / Priority Queue | P3 | generic | APPROVED | 1 purpose-built visuals |
-| graphs-bfs-dfs | Graphs, BFS & DFS | P4 | generic | APPROVED | 1 purpose-built visuals |
-| binary-search | Binary Search & Search-on-Answer | P3 | generic | APPROVED | 1 purpose-built visuals |
-| recursion-dp | Recursion, Memoization & Dynamic Programming | P3 | generic | APPROVED | 1 purpose-built visuals |
+| big-o | Big-O Time & Space Complexity | P4 | generic | APPROVED | 2 purpose-built visuals |
+| arrays-hashmaps | Arrays, Lists, Hash Maps & Sets | P4 | generic | APPROVED | 2 purpose-built visuals |
+| stack-queue | Stack, Queue, Deque & Priority Queue | P4 | generic | APPROVED | 2 purpose-built visuals |
+| linked-list | Linked Lists & Pointer Trade-offs | P2 | generic | APPROVED | 2 purpose-built visuals |
+| trees-bst | Trees, BSTs & Balanced Search Trees | P3 | generic | APPROVED | 2 purpose-built visuals |
+| heap | Heap / Priority Queue | P3 | generic | APPROVED | 2 purpose-built visuals |
+| graphs-bfs-dfs | Graphs, BFS & DFS | P4 | generic | APPROVED | 2 purpose-built visuals |
+| binary-search | Binary Search & Search-on-Answer | P3 | generic | APPROVED | 2 purpose-built visuals |
+| recursion-dp | Recursion, Memoization & Dynamic Programming | P3 | generic | APPROVED | 2 purpose-built visuals |
 | oop-pillars | OOP Pillars: Encapsulation, Abstraction, Inheritance, Polymorphism | P4 | generic | APPROVED | 2 purpose-built visuals |
-| design-patterns | Factory, Strategy, Adapter & Observer Patterns | P4 | generic | APPROVED | 1 purpose-built visuals |
+| design-patterns | Factory, Strategy, Adapter & Observer Patterns | P4 | generic | APPROVED | 2 purpose-built visuals |
 | testing-pyramid | Testing Pyramid, Contracts & Integration Tests | P4 | generic | APPROVED | 2 purpose-built visuals |
 | python-args-kwargs | Python *args, **kwargs & Function Signatures | P4 | generic | APPROVED | 2 purpose-built visuals |
 | python-scope-methods | LEGB Scope, classmethod, staticmethod & Dunder Methods | P4 | generic | APPROVED | 2 purpose-built visuals |
