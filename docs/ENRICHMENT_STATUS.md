@@ -58,11 +58,17 @@ NEXT_EXACT_TASK: ml-foundations + vision-ai batches, using the proven pipeline:
     7. Then: add all new ids to APPROVED in tools/visual-audit.mjs AND
        tests/visual-semantics.test.js; regenerate docs/VISUAL_AUDIT.md;
        update this file; final commit.
-    Vision is DONE (batches /tmp/opencode/batchO.mjs + batchP.mjs pattern).
-    NEXT: Waves 15-18 — GitHub evidence audit, interview-bank adversarial
-    upgrade, whole-product visual/a11y/mobile review, deployment verification.
-    Remaining polish candidates: some lessons carry 1 visual (test ratchet
-    now >=1); add second visuals to P5 vision lessons when revisiting.
+    Vision DONE (batchO/batchP). Second visuals added to 42 lessons
+    (batches batchQ/batchR via /tmp/opencode/merge-visuals.mjs — merges
+    into existing visuals arrays). Remaining single-visual lessons (13,
+    all P2/P3 small foundational): ml-gradient-descent, ml-regression-metrics,
+    ml-cross-validation, ml-feature-scaling, ml-knn, ml-svm,
+    ml-tree-ensembles, cv-image-representation, yolo-anchorfree,
+    kalman-filter, hungarian, leader-election, id-generation.
+    NEXT: Waves 15-18 — GitHub evidence audit (inspect repos per
+    SOURCE_NOTES before claiming experience), interview-bank adversarial
+    upgrade, whole-product visual/a11y/mobile review (mobile diagram
+    540px scroll pattern), deployment verification.
     NOTE: patch-lessons.mjs merges extraTraps/extraFailureModes via T()/mk()
     (T() already patched to merge). Keep deepDives 2-3 paragraphs, honest
     numbers (illustrative labels), sources from in-app curated list.
